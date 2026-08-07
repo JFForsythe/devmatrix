@@ -1,0 +1,2459 @@
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Devmatrix Console</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Crect width='10' height='10' rx='2.2' fill='%230b0e13'/%3E%3Cg fill='%2339424e'%3E%3Crect x='1.6' y='1.6' width='1.7' height='1.7' rx='.35'/%3E%3Crect x='4.15' y='1.6' width='1.7' height='1.7' rx='.35'/%3E%3Crect x='1.6' y='4.15' width='1.7' height='1.7' rx='.35'/%3E%3Crect x='4.15' y='4.15' width='1.7' height='1.7' rx='.35'/%3E%3Crect x='6.7' y='4.15' width='1.7' height='1.7' rx='.35'/%3E%3Crect x='1.6' y='6.7' width='1.7' height='1.7' rx='.35'/%3E%3Crect x='4.15' y='6.7' width='1.7' height='1.7' rx='.35'/%3E%3Crect x='6.7' y='6.7' width='1.7' height='1.7' rx='.35'/%3E%3C/g%3E%3Crect x='6.7' y='1.6' width='1.7' height='1.7' rx='.35' fill='%23ffb224'/%3E%3C/svg%3E">
+<style>
+/* zero network calls (ADR-0005): local font stacks only.
+   Theme: light terminal — paper chrome, dark emissive panel + wells. */
+/* ============ tokens ============ */
+:root{
+  --paper:#f3f1ea; --srf:#fcfbf8; --srf2:#f6f4ed; --srf3:#eeebe1;
+  --well:#12161c; --well-ink:#9fb0c0;
+  --line:#ddd9cd; --line2:#c9c4b5;
+  --ink:#1c2128; --ink2:#4d5866; --ink3:#5f6b78;
+  --acc:#14663e; --acc-soft:rgba(20,102,62,.08);
+  --series:#2a78d6;                    /* validated categorical slot 1 (light) */
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --amber:#ffb224;                     /* emissive: exists only inside the bezel */
+  --sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI Variable","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --display:var(--sans);
+  --mono:ui-monospace,"SFMono-Regular","Cascadia Code","Cascadia Mono",Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+  --r:8px;
+  --dot:rgba(28,33,40,.06); --ok-text:#0a7d0a; --warn-text:#8a6200;
+}
+/* ==== switchable terminal themes (canonical palettes, MIT-licensed schemes;
+        the LED panel + terminal wells stay dark in every theme) ==== */
+[data-theme="solarized-light"]{
+  --paper:#eee8d5; --srf:#fdf6e3; --srf2:#f3ecd9; --srf3:#e8e1cc;
+  --well:#002b36; --well-ink:#93a1a1;
+  --line:#d9d2bc; --line2:#c4bda6;
+  --ink:#073642; --ink2:#586e75; --ink3:#657b83;
+  --acc:#2aa198; --acc-soft:rgba(42,161,152,.1);
+  --series:#268bd2; --ok-text:#667500; --warn-text:#8a6200;
+  --dot:rgba(7,54,66,.06); color-scheme:light;
+}
+[data-theme="solarized-dark"]{
+  --paper:#00212b; --srf:#002b36; --srf2:#04313d; --srf3:#073642;
+  --well:#001820; --well-ink:#93a1a1;
+  --line:rgba(147,161,161,.18); --line2:rgba(147,161,161,.32);
+  --ink:#eee8d5; --ink2:#a8b5b5; --ink3:#7e9295;
+  --acc:#2aa198; --acc-soft:rgba(42,161,152,.14);
+  --series:#268bd2; --ok-text:#9bb300; --warn-text:#e0af1f;
+  --dot:rgba(238,232,213,.05); color-scheme:dark;
+}
+[data-theme="nord"]{
+  --paper:#272c36; --srf:#2e3440; --srf2:#353d4c; --srf3:#3b4252;
+  --well:#20242d; --well-ink:#a5b0c2;
+  --line:rgba(216,222,233,.12); --line2:rgba(216,222,233,.24);
+  --ink:#eceff4; --ink2:#c5cddb; --ink3:#94a0b4;
+  --acc:#88c0d0; --acc-soft:rgba(136,192,208,.12);
+  --series:#81a1c1; --ok-text:#a3be8c; --warn-text:#ebcb8b;
+  --dot:rgba(236,239,244,.045); color-scheme:dark;
+}
+[data-theme="dracula"]{
+  --paper:#21222c; --srf:#282a36; --srf2:#2f313f; --srf3:#3a3d4d;
+  --well:#191a21; --well-ink:#b7bccd;
+  --line:rgba(98,114,164,.28); --line2:rgba(98,114,164,.5);
+  --ink:#f8f8f2; --ink2:#cdd0dd; --ink3:#98a0c5;
+  --acc:#8be9fd; --acc-soft:rgba(139,233,253,.12);
+  --series:#bd93f9; --ok-text:#50fa7b; --warn-text:#f1fa8c;
+  --dot:rgba(248,248,242,.04); color-scheme:dark;
+}
+[data-theme="gruvbox-dark"]{
+  --paper:#1d2021; --srf:#282828; --srf2:#30302e; --srf3:#3c3836;
+  --well:#161819; --well-ink:#bdae93;
+  --line:rgba(235,219,178,.12); --line2:rgba(235,219,178,.26);
+  --ink:#ebdbb2; --ink2:#cfc0a2; --ink3:#a89984;
+  --acc:#b8bb26; --acc-soft:rgba(184,187,38,.12);
+  --series:#83a598; --ok-text:#b8bb26; --warn-text:#fabd2f;
+  --dot:rgba(235,219,178,.045); color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+html{color-scheme:light;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-synthesis-weight:none}
+body{
+  background:var(--paper);color:var(--ink);font:400 15px/1.55 var(--sans);
+  min-height:100vh;
+  background-image:radial-gradient(var(--dot) 1px,transparent 1px);
+  background-size:18px 18px;
+}
+::selection{background:var(--acc-soft);color:var(--acc)}
+a{color:var(--ink2)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,select,textarea{font:inherit;color:var(--ink)}
+canvas{display:block}
+b,strong{font-weight:600}
+
+/* ============ shell ============ */
+.shell{display:flex;min-height:100vh}
+.rail{
+  width:218px;flex:none;border-right:1px solid var(--line);
+  padding:20px 14px;display:flex;flex-direction:column;gap:22px;
+  position:sticky;top:0;height:100vh;background:var(--srf);
+}
+.brand{display:flex;gap:10px;align-items:center;padding:0 6px}
+.brand svg{flex:none;border-radius:4px}
+.brand b{font:600 12px var(--mono);letter-spacing:.22em}
+.brand span{display:block;font:500 9.5px var(--mono);letter-spacing:.3em;color:var(--ink3)}
+nav{display:flex;flex-direction:column;gap:1px}
+nav button{
+  display:flex;align-items:center;gap:9px;text-align:left;
+  padding:8px 10px;border-radius:6px;color:var(--ink2);
+  font:500 13.5px/1.35 var(--sans);letter-spacing:0;
+}
+nav button:hover{background:var(--srf2);color:var(--ink)}
+nav button[aria-current="page"]{background:var(--srf3);color:var(--ink)}
+.px{width:4px;height:12px;background:transparent;flex:none}
+nav button[aria-current="page"] .px{background:var(--acc)}
+.rail .foot{margin-top:auto;display:flex;flex-direction:column;gap:12px;padding:0 6px}
+.userchip{display:flex;gap:10px;align-items:center;font-size:12px;color:var(--ink2)}
+.avatar{width:28px;height:28px;border-radius:6px;background:var(--ink);color:var(--srf);
+  display:grid;place-items:center;font:500 10.5px var(--mono);letter-spacing:.08em}
+.ver{font:400 10px var(--mono);color:var(--ink3);letter-spacing:.06em}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{
+  display:flex;align-items:center;gap:14px;padding:12px 26px;
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;
+  background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(8px);
+}
+.searchtrigger{
+  width:min(260px,25vw);min-width:176px;display:flex;align-items:center;gap:8px;
+  padding:7px 10px;border:1px solid var(--line2);border-radius:7px;background:var(--srf);
+  color:var(--ink3);font:500 12.5px/1.3 var(--sans);text-align:left;
+}
+.searchtrigger:hover{border-color:var(--acc);color:var(--ink);background:var(--acc-soft)}
+.searchtrigger svg{width:14px;height:14px;flex:none}
+.searchtrigger span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.searchtrigger kbd{margin-left:auto;border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;
+  padding:1px 5px;background:var(--srf2);color:var(--ink3);font:600 10px var(--mono)}
+.prompt{font:500 13px var(--mono);color:var(--ink3);white-space:nowrap}
+.prompt b{color:var(--acc);font-weight:600}
+.devsel{
+  background:var(--srf);border:1px solid var(--line2);border-radius:6px;
+  padding:6px 28px 6px 10px;font:500 12.5px var(--mono);appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%235f6b78'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center;
+}
+.statuspill{display:flex;align-items:center;gap:8px;font:400 12px var(--mono);color:var(--ink2);white-space:nowrap}
+.led{width:7px;height:7px;flex:none;background:var(--good);box-shadow:0 0 6px rgba(12,163,12,.6);border:1px solid rgba(0,0,0,.15)}
+.led.off{background:var(--line2);box-shadow:none}
+.led.warn{background:var(--warn);box-shadow:0 0 6px rgba(250,178,25,.6)}
+.spring{flex:1}
+.modechip{
+  font:500 11.5px/1.25 var(--sans);letter-spacing:.03em;padding:5px 10px;border-radius:5px;
+  border:1px solid var(--line2);color:var(--ink2);background:var(--srf);white-space:nowrap;
+}
+.modechip:hover{border-color:var(--acc);color:var(--acc);background:var(--acc-soft)}
+.modechip.local{border-color:var(--acc);color:var(--acc);background:var(--acc-soft)}
+
+/* ============ views / cards ============ */
+.view{display:none;padding:26px;max-width:1180px;width:100%;margin:0 auto}
+.view.active{display:block}
+.vhead{margin-bottom:18px}
+.vhead h1{font:500 23px/1.2 var(--display);letter-spacing:-.015em}
+.vhead h1:focus{outline:none}
+.vhead p{color:var(--ink2);font-size:14.5px;line-height:1.55;margin-top:5px;max-width:70ch}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+.card{
+  grid-column:span 12;background:var(--srf);border:1px solid var(--line);
+  border-radius:var(--r);padding:16px 18px;min-width:0;
+  animation:rise .3s cubic-bezier(.2,.7,.2,1) both;
+}
+.card:focus{outline:2px solid var(--acc);outline-offset:2px}
+.card:nth-child(2){animation-delay:.04s}.card:nth-child(3){animation-delay:.08s}
+.card:nth-child(4){animation-delay:.12s}.card:nth-child(5){animation-delay:.16s}
+.card:nth-child(6){animation-delay:.2s}.card:nth-child(7){animation-delay:.24s}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.c8{grid-column:span 8}.c6{grid-column:span 6}.c4{grid-column:span 4}.c3{grid-column:span 3}
+.chead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.chead h2{font:500 12px/1.3 var(--sans);letter-spacing:.04em;color:var(--ink2)}
+.chead h2::before{content:"// ";color:var(--acc);font-weight:500}
+.chead .sub{font:400 11.5px/1.4 var(--mono);color:var(--ink3)}
+.chead .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+.btn{
+  border:1px solid var(--line2);border-radius:6px;padding:7px 13px;
+  font:500 12.5px/1.3 var(--sans);letter-spacing:.015em;color:var(--ink);background:var(--srf);
+  transition:background .12s,color .12s,border-color .12s;white-space:nowrap;
+}
+.btn:hover{background:var(--ink);color:var(--srf);border-color:var(--ink)}
+.btn.pri{background:var(--ink);border-color:var(--ink);color:var(--srf)}
+.btn.pri:hover{background:var(--acc);border-color:var(--acc)}
+.btn.ghost{background:none}
+.btn.danger{color:var(--crit);border-color:rgba(208,59,59,.45)}
+.btn.danger:hover{background:var(--crit);border-color:var(--crit);color:#fff}
+.btn.sm{padding:4px 9px;font-size:11.5px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:disabled:hover{background:var(--srf);color:var(--ink);border-color:var(--line2)}
+
+.chip{
+  display:inline-flex;align-items:center;gap:5px;font:500 11.5px/1.25 var(--sans);
+  padding:2.5px 8px;border-radius:4px;border:1px solid var(--line2);color:var(--ink2);
+  white-space:nowrap;background:var(--srf);
+}
+.chip.hi{color:var(--acc);border-color:var(--acc);background:var(--acc-soft)}
+.chip.ok{color:var(--ok-text);border-color:rgba(12,163,12,.5)}
+.chip.warn{color:var(--warn-text);border-color:rgba(250,178,25,.6)}
+.chip.crit{color:var(--crit);border-color:rgba(208,59,59,.45)}
+
+.toggle{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink2);text-align:left}
+.toggle .tk{
+  width:32px;height:18px;border-radius:9px;border:1px solid var(--line2);
+  background:var(--srf3);position:relative;transition:background .15s,border-color .15s;flex:none;
+}
+.toggle .tk::after{
+  content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;
+  background:var(--ink3);transition:transform .15s,background .15s;
+}
+.toggle[aria-checked="true"] .tk{background:var(--acc-soft);border-color:var(--acc)}
+.toggle[aria-checked="true"] .tk::after{transform:translateX(14px);background:var(--acc)}
+
+.field{display:flex;flex-direction:column;gap:5px;font:500 11.5px/1.35 var(--sans);color:var(--ink3);letter-spacing:.035em}
+.field input,.field select,.field textarea{
+  background:var(--srf);border:1px solid var(--line2);border-radius:6px;
+  padding:8px 11px;font:400 13px var(--sans);letter-spacing:normal;
+}
+.field textarea{font:12px/1.6 var(--mono);resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible,
+[role="button"]:focus-visible{
+  outline:2px solid var(--acc);outline-offset:1px;
+}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{font:500 11.5px/1.35 var(--sans);letter-spacing:.035em;color:var(--ink3);text-align:left;
+  padding:6px 10px;border-bottom:1px solid var(--line)}
+td{padding:8px 10px;border-bottom:1px solid var(--line);color:var(--ink2);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.mono,.mono{font:400 12px var(--mono)}
+td.strong,td .strong{color:var(--ink)}
+.num{font-variant-numeric:tabular-nums}
+
+/* ============ mirror (the panel stays dark — it's a light source) ============ */
+.bezel{
+  background:#04060a;border:1px solid #2a2f36;border-radius:10px;
+  padding:14px;box-shadow:inset 0 2px 16px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.6);
+  position:relative;
+}
+.bezel canvas{width:100%;height:auto;image-rendering:pixelated}
+.offline-overlay{
+  position:absolute;inset:14px;display:none;place-items:center;
+  background:rgba(4,6,10,.74);border-radius:4px;text-align:center;
+}
+.offline-overlay.show{display:grid}
+.offline-overlay b{display:block;font:600 13px var(--mono);letter-spacing:.3em;color:#9fb0c0}
+.offline-overlay span{font:400 11px var(--mono);color:#5c6b7d}
+.mirrorbar{display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap}
+input[type=range]{accent-color:var(--acc)}
+.mirrorbar input[type=range]{width:110px}
+.pushrow{display:flex;gap:8px;flex:1;min-width:200px}
+.pushrow input{flex:1;background:var(--srf);border:1px solid var(--line2);border-radius:6px;
+  padding:7px 11px;font:12.5px var(--mono)}
+.scenechips{display:flex;gap:6px}
+.scenechips .chip{cursor:pointer}
+.scenechips .chip[aria-pressed="true"]{color:var(--acc);border-color:var(--acc);background:var(--acc-soft)}
+
+/* ============ stat tiles ============ */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;grid-column:span 12}
+.tile{background:var(--srf);border:1px solid var(--line);border-radius:var(--r);
+  padding:13px 15px 10px;min-width:0;animation:rise .3s cubic-bezier(.2,.7,.2,1) both}
+.tile .lbl{font:500 11.5px/1.35 var(--sans);letter-spacing:.035em;color:var(--ink3)}
+.tile .val{font:500 20px/1.25 var(--mono);margin-top:5px}
+.tile .val small{font-size:12px;color:var(--ink2);font-weight:400}
+.tile .delta{display:inline-flex;align-items:center;gap:4px;font:400 10.5px var(--mono);margin-top:2px;color:var(--ink2)}
+.tile canvas{width:100%;height:40px;margin-top:6px}
+.tile .note{font:400 10.5px var(--mono);color:var(--ink3);margin-top:6px}
+
+/* ============ lists / rows ============ */
+.rows{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line);min-width:0}
+.row:last-child{border-bottom:0}
+.row .grow{flex:1;min-width:0}
+.row .t{font-size:13.5px;color:var(--ink);font-weight:500}
+.row .s{font:400 12px/1.45 var(--sans);color:var(--ink3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.appicon{width:34px;height:34px;border-radius:6px;border:1px solid var(--line2);
+  background:var(--srf2);display:grid;place-items:center;flex:none;font-size:14px}
+.meter{width:70px;height:4px;border-radius:2px;background:var(--srf3);overflow:hidden;flex:none}
+.meter i{display:block;height:100%;background:var(--series)}
+
+.drop{
+  border:1.5px dashed var(--line2);border-radius:var(--r);padding:26px;
+  display:grid;place-items:center;text-align:center;gap:6px;color:var(--ink2);
+  cursor:pointer;transition:border-color .12s,background .12s;
+}
+.drop:hover,.drop.over{border-color:var(--acc);background:var(--acc-soft)}
+.drop b{font:500 12.5px/1.35 var(--sans);letter-spacing:.02em;color:var(--ink)}
+.drop span{font:400 11px var(--mono);color:var(--ink3)}
+
+.progress{height:5px;border-radius:3px;background:var(--srf3);overflow:hidden;margin-top:10px;display:none}
+.progress.show{display:block}
+.progress i{display:block;height:100%;width:0%;background:var(--acc);transition:width .3s}
+.steps{font:400 11px var(--mono);color:var(--ink3);margin-top:6px;min-height:15px}
+
+.devcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;grid-column:span 12}
+.devcard{background:var(--srf);border:1px solid var(--line);border-radius:var(--r);padding:15px;
+  display:flex;flex-direction:column;gap:10px;animation:rise .3s both}
+.devcard .thumb{background:#04060a;border-radius:6px;border:1px solid #2a2f36;padding:8px}
+.devcard .thumb canvas{width:100%;height:auto;image-rendering:pixelated}
+.devcard h3{font:500 13.5px var(--sans);display:flex;align-items:center;gap:8px}
+.devcard .meta{font:400 11px var(--mono);color:var(--ink3);display:flex;flex-direction:column;gap:3px}
+.devcard.claimnew{border-style:dashed;align-items:center;justify-content:center;text-align:center;
+  color:var(--ink2);min-height:200px;cursor:pointer}
+.devcard.claimnew:hover{border-color:var(--acc);color:var(--acc)}
+
+/* ============ terminal wells (stay dark) ============ */
+.termbox{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
+  font:12.5px/1.65 var(--mono);padding:10px 12px;height:170px;overflow-y:auto;color:var(--well-ink)}
+.termbox .tag{color:#3fbf7f}
+.termbox .dim{color:#5c6b7d}
+pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
+  font:11.5px/1.65 var(--mono);padding:11px 12px;overflow-x:auto;color:var(--well-ink);min-height:88px}
+.keyrow code{font:400 11.5px var(--mono);color:var(--ink2);letter-spacing:.02em}
+
+/* ============ movable four-pane device workbench ============ */
+.workbench-card{padding:14px}
+.workbench-intro{color:var(--ink2);font-size:13px;line-height:1.5;margin:-3px 0 12px}
+.workbench{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.terminal-pane{min-width:0;background:var(--well);border:1px solid #2a2f36;border-radius:7px;
+  overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
+.terminal-pane.dragging{opacity:.42}
+.terminal-pane.drag-target{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc-soft)}
+.terminal-head{height:36px;display:flex;align-items:center;gap:7px;padding:0 8px;
+  background:#1a1f26;border-bottom:1px solid #2a2f36;color:#9fb0c0}
+.draghandle{cursor:grab;color:#5c6b7d;font:600 13px var(--mono);letter-spacing:-.2em;padding-right:2px;
+  touch-action:none;user-select:none}
+.draghandle:active{cursor:grabbing}
+.terminal-profile{min-width:0;max-width:125px;border:0;background:transparent;color:#dfe7f2;
+  font:500 11px var(--sans);letter-spacing:.03em;text-transform:uppercase}
+.terminal-context{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:#6f8092;font:400 10.5px var(--mono)}
+.terminal-tools{display:flex;align-items:center;gap:2px;margin-left:auto}
+.terminal-tools button{width:32px;height:32px;border-radius:5px;color:#718195;font:500 13px var(--mono)}
+.terminal-tools button:hover{background:#2a3039;color:#dfe7f2}
+.terminal-out{height:126px;overflow:auto;padding:9px 11px;color:var(--well-ink);
+  font:12px/1.55 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.terminal-out .terminal-command{color:#dfe7f2}.terminal-out .terminal-ok{color:#67c58f}
+.terminal-out .terminal-error{color:#ff9b9b}
+.terminal-inputrow{display:flex;align-items:center;gap:7px;padding:7px 10px;border-top:1px solid #2a2f36;background:#10141a}
+.terminal-prompt{color:#67c58f;font:600 13px var(--mono)}
+.terminal-input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#dfe7f2;
+  font:12px/1.4 var(--mono)}
+.terminal-input::placeholder{color:#536171}
+.workbench-empty{grid-column:1/-1;display:grid;place-items:center;gap:8px;min-height:150px;
+  border:1px dashed var(--line2);border-radius:7px;color:var(--ink3);text-align:center}
+
+/* ============ global command search ============ */
+#searchback{position:fixed;inset:0;z-index:90;display:none;align-items:flex-start;justify-content:center;
+  padding:10vh 18px;background:rgba(8,11,15,.58);backdrop-filter:blur(4px)}
+#searchback.show{display:flex}
+.searchdialog{width:min(640px,100%);overflow:hidden;border:1px solid var(--line2);border-radius:12px;
+  background:var(--srf);box-shadow:0 24px 70px rgba(0,0,0,.34)}
+.searchinputrow{display:flex;align-items:center;gap:10px;padding:13px 15px;border-bottom:1px solid var(--line)}
+.searchinputrow svg{width:18px;height:18px;color:var(--ink3);flex:none}
+#globalsearch{width:100%;border:0;outline:0;background:transparent;color:var(--ink);
+  font:500 16px/1.4 var(--sans)}
+#globalsearch::placeholder{color:var(--ink3)}
+.searchresults{max-height:min(430px,60vh);overflow:auto;padding:7px}
+.searchresult{width:100%;display:grid;grid-template-columns:1fr auto;gap:3px 12px;text-align:left;
+  padding:10px 11px;border-radius:7px;color:var(--ink2)}
+.searchresult:hover,.searchresult.active{background:var(--acc-soft);color:var(--ink)}
+.searchresult strong{font:500 14px/1.25 var(--sans);color:var(--ink)}
+.searchresult small{font:400 11px/1.4 var(--mono);color:var(--ink3);grid-column:1}
+.searchresult .searchkind{grid-column:2;grid-row:1/3;align-self:center;font:500 10.5px var(--sans);
+  letter-spacing:.03em;text-transform:uppercase;color:var(--ink3)}
+.searchempty{padding:30px 14px;text-align:center;color:var(--ink3);font-size:13px}
+.searchfoot{display:flex;flex-wrap:wrap;gap:8px 14px;padding:8px 14px;border-top:1px solid var(--line);color:var(--ink3);
+  font:500 10.5px var(--mono)}
+.searchfoot span:last-child{margin-left:auto}
+
+/* ============ welcome ============ */
+#welcome{
+  position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;
+  gap:18px;overflow-y:auto;background:
+    radial-gradient(rgba(28,33,40,.06) 1px,transparent 1px) 0 0/18px 18px,
+    var(--paper);
+  padding:20px;transition:opacity .45s;
+}
+/* auto-margin centering: centers when it fits, scrolls normally when it doesn't */
+#welcome > :first-child{margin-top:auto}
+#welcome > :last-child{margin-bottom:auto}
+#welcome.gone{opacity:0;pointer-events:none;visibility:hidden;
+  transition:opacity .45s, visibility 0s .45s}
+.wbrand{display:flex;align-items:center;gap:12px}
+.wbrand b{font:600 14px var(--mono);letter-spacing:.3em}
+.wbrand span{display:block;font:500 9.5px var(--mono);letter-spacing:.28em;color:var(--ink3)}
+.wpanelwrap{width:min(480px,92vw)}
+.claimcard{
+  width:min(500px,92vw);background:var(--srf);border:1px solid var(--line2);
+  border-radius:12px;padding:22px 24px;display:flex;flex-direction:column;gap:14px;
+  box-shadow:0 16px 44px rgba(28,33,40,.14);
+}
+.dots{display:flex;gap:6px;justify-content:center}
+.dots i{width:7px;height:7px;background:var(--srf3);border:1px solid var(--line2)}
+.dots i.on{background:var(--acc);border-color:var(--acc)}
+.claimsteps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center}
+.claimsteps span{font:500 11.5px/1.3 var(--sans);color:var(--ink3)}
+.claimsteps span.on{color:var(--acc)}
+.claimcard h2{font:500 18px/1.25 var(--display);letter-spacing:-.005em;text-align:center}
+.claimcard h2:focus{outline:none}
+.claimcard p{font-size:15.5px;line-height:1.55;color:var(--ink2);text-align:center}
+.claimfields{display:grid;grid-template-columns:1fr 170px;gap:10px;margin:12px 0}
+.claimfield{display:flex;flex-direction:column;gap:6px;color:var(--ink3);font:500 11.5px/1.35 var(--sans);letter-spacing:.035em}
+.claimfield input{width:100%;min-width:0;background:var(--srf);border:1px solid var(--line2);border-radius:6px;
+  padding:10px 11px;color:var(--ink);font:500 16px var(--mono);letter-spacing:normal}
+.claimfield.code input{text-align:center;background:var(--well);border-color:#2a2f36;font-weight:600;
+  letter-spacing:.18em;color:var(--amber)}
+.claimcode{display:flex;justify-content:center}
+.claimcode input{
+  width:160px;text-align:center;background:var(--well);border:1px solid #2a2f36;
+  border-radius:6px;padding:10px;font:600 18px var(--mono);letter-spacing:.26em;color:var(--amber);
+}
+.holdbar{height:6px;border-radius:3px;background:var(--srf3);overflow:hidden}
+.holdbar i{display:block;height:100%;width:0%;background:var(--acc);transition:width .1s linear}
+.modechoices{display:grid;gap:8px}
+.modepromise{padding:10px 12px;border:1px solid var(--acc);border-radius:7px;background:var(--acc-soft);
+  color:var(--ink2);font-size:14px;line-height:1.45;text-align:left}
+.modepromise b{color:var(--acc)}
+.quickcmd{margin:10px 0;padding:9px 10px;border-radius:6px;background:var(--well);color:var(--well-ink);
+  font:11px/1.5 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;text-align:left}
+.quickcmdrow{display:grid;gap:6px;margin:10px 0}.quickcmdrow .quickcmd{margin:0}.quickcmdrow .btn{justify-self:end}
+.skiplink{font:500 13.5px var(--sans);color:var(--ink3);text-align:center;cursor:pointer;letter-spacing:0}
+.skiplink:hover{color:var(--ink)}
+#btnClaim,#btnFirstPixel,#btnLocal,#btnPasskey{min-height:44px}
+#skipwelcome{min-height:44px;display:grid;place-items:center}
+
+/* ============ sheet / toast / tooltip ============ */
+#sheetback{position:fixed;inset:0;background:rgba(28,33,40,.32);z-index:60;display:none}
+#sheetback.show{display:grid;place-items:center}
+.sheet{width:min(460px,92vw);background:var(--srf);border:1px solid var(--line2);
+  border-radius:12px;padding:22px 24px;display:flex;flex-direction:column;gap:12px;
+  box-shadow:0 16px 44px rgba(28,33,40,.18)}
+.sheet h2{font:500 13px/1.35 var(--display);letter-spacing:0}
+.sheet ol{margin-left:18px;color:var(--ink2);font-size:12.5px;display:flex;flex-direction:column;gap:6px}
+#toasts{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;z-index:70}
+.toast{
+  background:var(--srf);border:1px solid var(--line2);border-left:3px solid var(--acc);
+  border-radius:6px;padding:10px 14px;font-size:12.5px;min-width:230px;max-width:340px;
+  animation:slidein .22s cubic-bezier(.2,.7,.2,1);box-shadow:0 8px 24px rgba(28,33,40,.14);
+}
+.toast.ok{border-left-color:var(--good)}
+.toast.warn{border-left-color:var(--warn)}
+.toast .tt{font:400 10.5px var(--mono);color:var(--ink3);margin-top:2px}
+@keyframes slidein{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+#viztip{
+  position:fixed;z-index:80;pointer-events:none;display:none;
+  background:var(--well);border:1px solid #2a2f36;border-radius:5px;
+  font:400 10.5px var(--mono);color:#dfe7f2;padding:4px 8px;white-space:nowrap;
+}
+
+/* ============ responsive ============ */
+@media(max-width:1350px){.prompt{display:none}}
+@media(max-width:960px){
+  .shell{flex-direction:column}
+  .rail{width:100%;height:auto;position:static;flex-direction:row;align-items:center;
+    border-right:0;border-bottom:1px solid var(--line);padding:12px 14px;gap:14px;overflow-x:auto}
+  nav{flex-direction:row;gap:2px}
+  nav button{padding:7px 9px;white-space:nowrap}
+  .rail .foot{display:none}
+  .c8,.c6,.c4,.c3{grid-column:span 12}
+  .tiles{grid-template-columns:repeat(2,1fr)}
+  .topbar{padding:12px 16px;flex-wrap:wrap}
+  .searchtrigger{order:5;width:100%;min-width:100%}
+  .view{padding:16px}
+}
+@media(max-width:700px){
+  .wpanelwrap{width:min(332px,92vw)}
+  .workbench{grid-template-columns:1fr}
+  .terminal-tools button{width:44px;height:44px}
+  .statuspill{font-size:11px}
+  .prompt{display:none}
+  .claimfields{grid-template-columns:1fr}
+  .claimcard{padding:18px}
+  .claimcard h2{font-size:17px}
+  .claimcard p{font-size:15px}
+  .claimsteps{gap:4px}.claimsteps span{font-size:10px}
+  .terminal-input,#globalsearch{font-size:16px}
+  .claimfield input,#setname,#epbody,#epsel,#logfilter{font-size:16px!important}
+}
+@media(max-height:760px) and (min-width:701px){
+  #welcome{gap:10px;padding:10px 20px}
+  .wpanelwrap{width:min(404px,92vw)}
+  .claimcard{padding:16px 22px;gap:10px}
+  .claimfields{margin:8px 0}
+  .quickcmdrow{margin:6px 0}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ======================= WELCOME / CLAIM ======================= -->
+<div id="welcome" role="dialog" aria-modal="true" aria-label="Set up your Devmatrix">
+  <div class="wbrand">
+    <svg width="30" height="30" viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2.2" fill="#0b0e13"/><g fill="#39424e"><rect x="1.6" y="1.6" width="1.7" height="1.7" rx=".35"/><rect x="4.15" y="1.6" width="1.7" height="1.7" rx=".35"/><rect x="1.6" y="4.15" width="1.7" height="1.7" rx=".35"/><rect x="4.15" y="4.15" width="1.7" height="1.7" rx=".35"/><rect x="6.7" y="4.15" width="1.7" height="1.7" rx=".35"/><rect x="1.6" y="6.7" width="1.7" height="1.7" rx=".35"/><rect x="4.15" y="6.7" width="1.7" height="1.7" rx=".35"/><rect x="6.7" y="6.7" width="1.7" height="1.7" rx=".35"/></g><rect x="6.7" y="1.6" width="1.7" height="1.7" rx=".35" fill="#ffb224"/></svg>
+    <div><b>DEVMATRIX</b><span>DEV KIT BY FLIGHTTRACKERLED</span></div>
+  </div>
+  <div class="wpanelwrap bezel"><canvas id="wpanel" aria-label="Boot screen of the LED panel" role="img"></canvas></div>
+
+  <div class="claimcard" id="claimcard">
+    <div class="dots" id="claimdots" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></div>
+    <div class="claimsteps" id="claimsteps" aria-label="Setup progress">
+      <span class="on">1 · panel details</span><span>2 · physical proof</span><span>3 · first pixel</span><span>4 · access</span>
+    </div>
+    <div id="claimstep1">
+      <h2 tabindex="-1">Enter what your panel shows</h2>
+      <p style="margin:8px 0 4px">This claim-flow demo starts after USB or SoftAP Wi-Fi setup. Your browser never scans the LAN: read both values from your DK-01.</p>
+      <div class="claimfields">
+        <label class="claimfield">DEVICE ADDRESS<input id="claimaddress" value="dmx-0952.local" autocomplete="off" spellcheck="false"></label>
+        <label class="claimfield code">CLAIM CODE<input id="claimcode" value="H7Q-4KD" maxlength="7" autocomplete="off" spellcheck="false"></label>
+      </div>
+      <p class="mono" style="font-size:12px">Demo values are prefilled · serial DMX-4E71-0952</p>
+      <button class="btn pri" style="width:100%" id="btnClaim">CLAIM THIS KIT</button>
+    </div>
+    <div id="claimstep2" hidden>
+      <h2 tabindex="-1">Match the code, then hold the button</h2>
+      <p style="margin:8px 0 12px">Your panel should say <b class="mono">CLAIM → 7F2Q?</b>. If it matches, hold the top button for two seconds. The request expires in 60 seconds.</p>
+      <div class="holdbar"><i id="holdfill"></i></div>
+      <p class="mono" style="margin-top:10px;color:var(--ink3);font-size:13px" id="holdhint" aria-live="polite">waiting for device…</p>
+    </div>
+    <div id="claimstep3" hidden>
+      <h2 tabindex="-1">Light your first pixel</h2>
+      <p style="margin:8px 0 4px">Name the kit, then send one simulated LAN command before choosing any remote service.</p>
+      <div class="claimfields">
+        <label class="claimfield">DEVICE NAME<input id="firstpixelname" value="Study" maxlength="24" autocomplete="off"></label>
+        <label class="claimfield">PANEL TEXT<input id="firstpixeltext" value="SHIP IT" maxlength="40" autocomplete="off"></label>
+      </div>
+      <div class="quickcmdrow">
+        <pre class="quickcmd" id="firstpixelcmd">curl -X POST https://study.local/api/v1/display/text -H "Authorization: Bearer dmx_lan_demo" -d '{"text":"SHIP IT"}'</pre>
+        <button class="btn sm ghost" id="btnCopyFirstPixel">COPY CURL</button>
+      </div>
+      <button class="btn pri" style="width:100%" id="btnFirstPixel">SEND “SHIP IT” TO THE PANEL</button>
+      <p class="mono" id="firstpixelstatus" aria-live="polite" style="margin-top:8px;font-size:12px"></p>
+    </div>
+    <div id="claimstep4" hidden>
+      <h2 tabindex="-1">Your DK-01 is ready</h2>
+      <div class="modepromise"><b>Local Mode is complete and free forever.</b><br>No account, subscription, or Devmatrix server is required.</div>
+      <div class="modechoices">
+        <button class="btn pri" style="width:100%" id="btnLocal">CONTINUE FREE · LOCAL MODE</button>
+        <button class="btn" style="width:100%" id="btnPasskey">PREVIEW OPTIONAL CLOUD · PAID</button>
+      </div>
+      <p style="margin-top:6px">Cloud adds remote reach, multi-site fleet, hosted backups, and alerts. It never unlocks a device capability, and this mock is not an offer.</p>
+    </div>
+    <div class="skiplink" id="skipwelcome" role="button" tabindex="0">Skip setup · explore sample data →</div>
+  </div>
+</div>
+
+<!-- ======================= SHELL ======================= -->
+<div class="shell" id="shell">
+  <aside class="rail">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2.2" fill="#0b0e13"/><g fill="#39424e"><rect x="1.6" y="1.6" width="1.7" height="1.7" rx=".35"/><rect x="4.15" y="1.6" width="1.7" height="1.7" rx=".35"/><rect x="1.6" y="4.15" width="1.7" height="1.7" rx=".35"/><rect x="4.15" y="4.15" width="1.7" height="1.7" rx=".35"/><rect x="6.7" y="4.15" width="1.7" height="1.7" rx=".35"/><rect x="1.6" y="6.7" width="1.7" height="1.7" rx=".35"/><rect x="4.15" y="6.7" width="1.7" height="1.7" rx=".35"/><rect x="6.7" y="6.7" width="1.7" height="1.7" rx=".35"/></g><rect x="6.7" y="1.6" width="1.7" height="1.7" rx=".35" fill="#ffb224"/></svg>
+      <div><b>DEVMATRIX</b><span>CONSOLE</span></div>
+    </div>
+    <nav aria-label="Console sections">
+      <button data-view="dashboard" aria-current="page"><i class="px"></i>dashboard</button>
+      <button data-view="devices"><i class="px"></i>devices</button>
+      <button data-view="apps"><i class="px"></i>apps</button>
+      <button data-view="deploy"><i class="px"></i>deploy</button>
+      <button data-view="devconsole"><i class="px"></i>dev console</button>
+      <button data-view="security"><i class="px"></i>security</button>
+      <button data-view="settings"><i class="px"></i>settings</button>
+    </nav>
+    <div class="foot">
+      <div class="ver">console v0.1.1 · mock<br>api /api/v1 · draft</div>
+      <div class="userchip"><div class="avatar" id="railavatar">MC</div><div><span id="railusername">Maya Chen</span><br><span class="mono" id="railrole" style="font-size:10px;color:var(--ink3)">owner</span></div></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <span class="prompt">devmatrix <b>❯</b></span>
+      <select class="devsel" id="devsel" aria-label="Active device"></select>
+      <div class="statuspill"><i class="led" id="statusled"></i><span id="statustext">online · 10.0.4.22</span></div>
+      <button class="searchtrigger" id="openSearch" aria-haspopup="dialog" aria-controls="searchback">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <span>Search console…</span><kbd>⌘K</kbd>
+      </button>
+      <div class="spring"></div>
+      <select class="devsel" id="themesel" aria-label="Theme" title="Theme">
+        <option value="paper">theme: paper</option>
+        <option value="solarized-light">solarized light</option>
+        <option value="solarized-dark">solarized dark</option>
+        <option value="nord">nord</option>
+        <option value="dracula">dracula</option>
+        <option value="gruvbox-dark">gruvbox</option>
+      </select>
+      <button class="modechip" id="modechip" data-goto="settings" title="Access mode — open Settings">CLOUD · DEMO</button>
+      <span class="chip ok" id="transportchip" aria-label="Active transport">CONNECTED · LAN</span>
+      <div class="avatar" id="topavatar" style="width:30px;height:30px">MC</div>
+    </header>
+
+    <!-- ================= DASHBOARD ================= -->
+    <section class="view active" id="view-dashboard" aria-label="Dashboard">
+      <div class="vhead"><h1>dashboard</h1><p id="dashsub">Study · everything your box is doing, live.</p></div>
+      <div class="grid">
+        <div class="card c8">
+          <div class="chead"><h2>MIRROR</h2><span class="sub" id="mirrorsub">live · 30 fps · 18 ms</span>
+            <div class="right scenechips" role="group" aria-label="Scene">
+              <button class="chip" data-scene="clock" aria-pressed="true">clock</button>
+              <button class="chip" data-scene="ambient" aria-pressed="false">ambient</button>
+              <button class="chip" data-scene="text" aria-pressed="false">text</button>
+            </div>
+          </div>
+          <div class="bezel">
+            <canvas id="mirror" role="img" aria-label="Live mirror of the 64 by 32 LED panel"></canvas>
+            <div class="offline-overlay" id="mirroroffline"><div><b>OFFLINE</b><span id="lastseen">last seen 2 d ago · snapshot available</span></div></div>
+          </div>
+          <div class="mirrorbar">
+            <label class="statuspill" style="gap:9px">BRIGHTNESS
+              <input type="range" id="bright" min="15" max="100" value="72" aria-label="Brightness">
+              <span class="mono" id="brightval" style="width:34px">72%</span></label>
+            <div class="pushrow">
+              <input id="pushtext" placeholder='push text… e.g. SHIP IT' aria-label="Text to push to the panel" maxlength="40">
+              <button class="btn pri" id="btnPush">SEND</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card c4">
+          <div class="chead"><h2>FIRMWARE</h2></div>
+          <div style="font:600 19px var(--mono)" id="fwver">v0.4.2</div>
+          <div style="margin:6px 0 12px;display:flex;gap:6px;align-items:center">
+            <span class="chip" id="fwchan">stable</span><span class="chip ok" id="fwstate">✓ up to date</span>
+          </div>
+          <div class="row" style="border:0;padding:6px 0">
+            <button class="toggle" id="tgAuto" role="switch" aria-checked="true"><span class="tk"></span>Auto-update, with auto-rollback</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn sm" id="btnCheck">CHECK NOW</button>
+            <span class="mono" style="font-size:10.5px;color:var(--ink3);align-self:center" id="lastcheck">checked 2 min ago</span>
+          </div>
+          <div class="chead" style="margin:18px 0 8px"><h2>QUICK ACTIONS</h2></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn sm" id="qaShot">SCREENSHOT</button>
+            <button class="btn sm" id="qaIdent">IDENTIFY</button>
+            <button class="btn sm" id="qaReboot">REBOOT</button>
+            <button class="toggle" id="tgQuiet" role="switch" aria-checked="true" style="margin-left:2px"><span class="tk"></span>Quiet 23:00–07:00</button>
+          </div>
+        </div>
+
+        <div class="tiles" id="tiles">
+          <div class="tile"><div class="lbl">UPTIME</div><div class="val num" id="t-up">12d 04:11</div>
+            <div class="note" id="t-up-note">since Jul 23 · 3 restarts · watchdog 0</div></div>
+          <div class="tile"><div class="lbl">HEAP FREE</div><div class="val num"><span id="t-heap">148</span><small> KB</small></div>
+            <div class="delta"><span style="color:var(--ok-text)">▲</span>steady</div><canvas data-spark="heap" role="img" aria-label="Heap free, last hour: steady around 148 kilobytes"></canvas></div>
+          <div class="tile"><div class="lbl">WIFI RSSI</div><div class="val num"><span id="t-rssi">−52</span><small> dBm</small></div>
+            <div class="delta" id="t-rssi-note">chen-iot · ch 44</div><canvas data-spark="rssi" role="img" aria-label="WiFi signal, last hour: steady around minus 52 dBm"></canvas></div>
+          <div class="tile"><div class="lbl">PANEL TEMP</div><div class="val num"><span id="t-temp">38.2</span><small> °C</small></div>
+            <div class="delta"><span style="color:var(--ok-text)">▲</span>normal band</div><canvas data-spark="temp" role="img" aria-label="Panel temperature, last hour: slowly rising to 38 degrees"></canvas></div>
+        </div>
+
+        <div class="card c8">
+          <div class="chead"><h2>RECENT ACTIVITY</h2><div class="right"><button class="btn sm ghost" data-goto="security">FULL AUDIT LOG →</button></div></div>
+          <table id="activity"><caption class="sr-only">Recent device activity</caption><thead><tr><th scope="col">Time</th><th scope="col">Actor</th><th scope="col">Action</th><th scope="col">Target</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="card c4">
+          <div class="chead"><h2>INTEGRATIONS</h2></div>
+          <div class="rows">
+            <div class="row"><div class="grow"><div class="t">Home Assistant</div><div class="s">MQTT discovery · 4 entities</div></div><span class="chip ok">✓ linked</span></div>
+            <div class="row"><div class="grow"><div class="t">MQTT broker</div><div class="s">10.0.4.2:1883 · yours, not ours</div></div><span class="chip ok">✓ connected</span></div>
+            <div class="row"><div class="grow"><div class="t">Webhooks</div><div class="s">0 configured</div></div><button class="btn sm" data-goto="devconsole">ADD</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= DEVICES ================= -->
+    <section class="view" id="view-devices" aria-label="Devices">
+      <div class="vhead"><h1>devices</h1><p>Your same-LAN devices are free in Local Mode. Optional Cloud brings devices from other sites into this view; tenancy remains absolute.</p></div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <span class="chip hi" id="device-all-count">all · 3</span><span class="chip" id="device-home-count">home · 2</span><span class="chip" id="device-chalet-count">chalet · 1</span>
+      </div>
+      <div class="devcards" id="devcards"></div>
+    </section>
+
+    <!-- ================= APPS ================= -->
+    <section class="view" id="view-apps" aria-label="Apps">
+      <div class="vhead"><h1>apps</h1><p>Your code, on your box. Every app declares its permissions up front and runs sandboxed — quotas enforced, watchdog armed.</p></div>
+      <div class="grid">
+        <div class="card c8">
+          <div class="chead"><h2 id="apps-device-title">INSTALLED ON STUDY</h2><span class="sub" id="apps-summary">3 apps · 46% storage</span></div>
+          <div class="rows" id="applist"></div>
+          <div class="progress" id="appprog"><i></i></div>
+          <div class="steps" id="appsteps"></div>
+        </div>
+        <div class="card c4">
+          <div class="chead"><h2>DEPLOY AN APP</h2></div>
+          <div class="drop" id="drop" role="button" tabindex="0" aria-label="Upload an app bundle">
+            <b>DROP A .DMAPP BUNDLE</b>
+            <span>or click to browse · installs over the air</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <button class="btn sm" id="btnTemplate">FORK THE TEMPLATE</button>
+            <button class="btn sm ghost" id="btnSdk">PYTHON / JS SDK →</button>
+          </div>
+          <div class="chead" style="margin:18px 0 8px"><h2>COMMUNITY REGISTRY</h2></div>
+          <div class="rows">
+            <div class="row"><div class="appicon">☄</div><div class="grow"><div class="t">ISS Overhead</div><div class="s">net: api.open-notify.example</div></div><button class="btn sm reginstall">INSTALL</button></div>
+            <div class="row"><div class="appicon">♫</div><div class="grow"><div class="t">Now Playing</div><div class="s">net: your LAN only</div></div><button class="btn sm reginstall">INSTALL</button></div>
+            <div class="row"><div class="appicon">⛅</div><div class="grow"><div class="t">Weather Tile</div><div class="s">net: api.met.example</div></div><button class="btn sm reginstall">INSTALL</button></div>
+          </div>
+          <button class="btn ghost sm" style="margin-top:10px" id="btnRegistry">BROWSE ALL 41 →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= DEPLOY ================= -->
+    <section class="view" id="view-deploy" aria-label="Deploy">
+      <div class="vhead"><h1>deploy</h1><p>You decide what firmware runs. Signed updates, dual slots, automatic rollback — and USB recovery that works even on a dead box.</p></div>
+      <div class="grid">
+        <div class="card c6">
+          <div class="chead"><h2 id="deploy-device-title">FIRMWARE · STUDY</h2></div>
+          <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+            <div style="font:600 22px var(--mono)" id="depver">v0.4.2</div>
+            <label class="field" style="flex-direction:row;align-items:center;gap:8px">CHANNEL
+              <select id="chansel"><option>stable</option><option>beta</option><option>dev</option></select></label>
+          </div>
+          <div class="rows" id="updrow" style="display:none">
+            <div class="row"><div class="grow"><div class="t">v0.5.0-beta.2 available</div>
+              <div class="s">signed · ed25519 b7d2…44a1 · 1.9 MB · changelog →</div></div>
+              <button class="btn pri sm" id="btnUpdate">UPDATE STUDY</button></div>
+          </div>
+          <div class="progress" id="otaprog"><i></i></div>
+          <div class="steps" id="otasteps"></div>
+          <div class="chead" style="margin:16px 0 6px"><h2>HISTORY</h2></div>
+          <table id="fwhistory"><caption class="sr-only">Firmware history</caption><thead><tr><th scope="col">Version</th><th scope="col">Date</th><th scope="col">Result</th><th scope="col">Action</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="card c6">
+          <div id="cloud-rollout-section">
+            <div class="chead"><h2>FLEET ROLLOUT <span class="chip" style="margin-left:6px">cloud</span></h2></div>
+            <button class="toggle" id="tgStaged" role="switch" aria-checked="true"><span class="tk"></span>Staged: Workshop first · 24 h health gate · then the rest</button>
+          </div>
+          <div class="chead" style="margin:18px 0 6px"><h2>USB RECOVERY</h2></div>
+          <p style="font-size:12.5px;color:var(--ink2)">Flash any build over USB from this browser — works even if the device won't boot. This is the "never bricked" guarantee, and it is entirely local.</p>
+          <button class="btn" style="margin-top:10px" id="btnUsb">OPEN USB FLASHER</button>
+          <div class="chead" style="margin:18px 0 6px"><h2>YOUR BUILDS</h2></div>
+          <div class="rows">
+            <div class="row"><div class="grow"><div class="t">Signing key <span class="chip ok" style="margin-left:6px">✓ enrolled</span></div>
+              <div class="s">ed25519 8e01…a91f · added Aug 3 via device ceremony</div></div></div>
+            <div class="row"><div class="grow"><div class="t">owner/dmx-fw</div><div class="s">build #42 · signed with your key · 2 h ago</div></div>
+              <button class="btn sm" id="btnByo">DEPLOY #42</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= DEV CONSOLE ================= -->
+    <section class="view" id="view-devconsole" aria-label="Dev Console">
+      <div class="vhead"><h1>dev console</h1><p>Everything a button does here, a documented API call does too. Build against your real panel from a small, owner-controlled workbench.</p></div>
+      <div class="grid">
+        <div class="card workbench-card" id="workbench-card">
+          <div class="chead"><h2>DEVICE WORKBENCH</h2><span class="sub" id="workbench-count">4 panes · mock only</span>
+            <div class="right"><button class="btn sm" id="btnAddPane">+ PANE</button></div></div>
+          <p class="workbench-intro">Four minimal CLIs for the surfaces you actually ship against. Change a pane’s profile, drag or use the arrow controls to reorder it, and remove anything you do not need.</p>
+          <div class="workbench" id="workbench" aria-label="Movable CLI workbench"></div>
+        </div>
+        <div class="card c6" id="api-playground">
+          <div class="chead"><h2>API PLAYGROUND</h2><span class="sub" id="api-device-sub">study.local · /api/v1 · LAN token attached</span></div>
+          <div style="display:flex;gap:8px">
+            <select id="epsel" aria-label="API endpoint" style="flex:1;background:var(--srf);border:1px solid var(--line2);border-radius:6px;padding:8px 11px;font:12px var(--mono)">
+              <option value="info">GET /info</option>
+              <option value="text" selected>POST /display/text</option>
+              <option value="notify">POST /notify</option>
+              <option value="metrics">GET /metrics</option>
+              <option value="screenshot">GET /screenshot</option>
+            </select>
+            <button class="btn pri" id="btnSend">SEND</button>
+          </div>
+          <div class="field" style="margin-top:10px"><textarea id="epbody" rows="4" maxlength="2048" aria-label="Request body JSON">{ "text": "HELLO FROM THE API", "scroll": true }</textarea></div>
+          <div style="display:flex;gap:8px;align-items:center;margin:10px 0 6px">
+            <span class="chip ok" id="respbadge" style="display:none">200 · 14 ms</span>
+          </div>
+          <pre class="resp" id="resp">// response appears here — POST /display/text really drives the Mirror</pre>
+        </div>
+        <div class="card c6" id="api-keys">
+          <div class="chead"><h2>API KEYS</h2><div class="right"><button class="btn sm" id="btnNewKey">NEW KEY</button></div></div>
+          <div class="rows" id="keylist"></div>
+          <div class="chead" style="margin:16px 0 6px"><h2>MQTT · YOUR BROKER</h2></div>
+          <div class="keyrow mono" style="font-size:11.5px;color:var(--ink2);line-height:1.9">
+            broker&nbsp;&nbsp;10.0.4.2:1883 <span style="color:var(--ink3)">(HA Mosquitto — yours, not ours)</span><br>
+            root&nbsp;&nbsp;&nbsp;&nbsp;<span id="mqtt-root">devmatrix/DMX-4E71-0952/</span><br>
+            &nbsp;&nbsp;├ display/text · set<br>
+            &nbsp;&nbsp;├ scene · set/state<br>
+            &nbsp;&nbsp;└ availability <span class="chip ok" id="mqtt-availability" style="margin-left:4px">online</span>
+          </div>
+        </div>
+        <div class="card c6" id="event-stream">
+          <div class="chead"><h2>EVENT STREAM</h2><span class="sub">wss /api/v1/stream</span>
+            <div class="right"><button class="btn sm" id="btnWs">PAUSE</button></div></div>
+          <div class="termbox" id="wsbox" aria-live="off"></div>
+        </div>
+        <div class="card c6" id="device-log">
+          <div class="chead"><h2>DEVICE LOG</h2>
+            <div class="right"><input id="logfilter" placeholder="filter…" aria-label="Filter log" style="background:var(--srf);border:1px solid var(--line2);border-radius:5px;padding:4px 9px;font:11px var(--mono);width:110px"></div></div>
+          <div class="termbox" id="logbox"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SECURITY ================= -->
+    <section class="view" id="view-security" aria-label="Security">
+      <div class="vhead"><h1>security</h1><p>Nothing here is marketing. Keys have fingerprints, actions have logs, and every exit — Local Mode, Eject — actually works.</p></div>
+      <div class="grid">
+        <div class="card c6" id="cloud-account-card">
+          <div class="chead"><h2>PASSKEYS</h2><div class="right"><button class="btn sm" id="btnAddPk">ADD PASSKEY</button></div></div>
+          <div class="rows">
+            <div class="row"><div class="appicon">⌘</div><div class="grow"><div class="t">MacBook Pro · Touch ID</div><div class="s">added Aug 2 · last used just now</div></div><span class="chip">primary</span></div>
+            <div class="row"><div class="appicon">🔑</div><div class="grow"><div class="t">YubiKey 5C</div><div class="s">added Aug 3 · hardware</div></div><button class="btn sm ghost mockbtn">REMOVE</button></div>
+          </div>
+          <p class="mono" style="font-size:10.5px;color:var(--ink3);margin-top:8px">No passwords exist on this account. There is nothing to phish.</p>
+          <div class="chead" style="margin:16px 0 6px"><h2>SESSIONS</h2></div>
+          <div class="rows">
+            <div class="row"><div class="grow"><div class="t">This Mac · Safari</div><div class="s">10.0.4.31 · now</div></div><span class="chip hi">current</span></div>
+            <div class="row"><div class="grow"><div class="t">iPhone</div><div class="s">cellular · 2 h ago</div></div><button class="btn sm ghost mockbtn">REVOKE</button></div>
+          </div>
+        </div>
+        <div class="card c6" id="local-mode-card">
+          <div class="chead"><h2 id="trust-device-title">ROOT OF TRUST · STUDY</h2></div>
+          <div class="rows">
+            <div class="row"><div class="grow"><div class="t">Devmatrix release key</div><div class="s">ed25519 b7d2…44a1 · factory</div></div><span class="chip">factory</span></div>
+            <div class="row"><div class="grow"><div class="t">Owner signing key</div><div class="s">ed25519 8e01…a91f · enrolled Aug 3</div></div><span class="chip ok">✓ yours</span></div>
+          </div>
+          <p style="font-size:12px;color:var(--ink2);margin-top:8px">Your box accepts firmware signed by either key. Changing this list requires holding the physical button for 5 s — the cloud alone can never do it.</p>
+          <button class="btn sm" style="margin-top:10px" id="btnEnroll">ENROLL ANOTHER KEY</button>
+          <div class="chead" style="margin:16px 0 6px"><h2>LOCAL MODE</h2></div>
+          <button class="toggle" id="tgLocal" role="switch" aria-checked="false"><span class="tk"></span><span id="local-mode-copy">LAN only — disconnect this device's cloud relay</span></button>
+          <p class="mono" style="font-size:10.5px;color:var(--ink3);margin-top:6px">Cloud features pause; the box never does. Everything keeps working with the company unreachable — check us.</p>
+        </div>
+        <div class="card c6" id="snapshots-card">
+          <div class="chead"><h2>SNAPSHOTS</h2><span class="sub" id="snapshot-mode-copy">local file · hosted sync is Cloud</span></div>
+          <div class="rows">
+            <div class="row"><div class="grow"><div class="t" id="snapshot-device-title">Study · latest</div><div class="s">3 h ago · 18 KB · config + apps + layouts</div></div>
+              <button class="btn sm mockbtn">RESTORE</button><button class="btn sm ghost mockbtn">CLONE →</button></div>
+          </div>
+          <p style="font-size:12px;color:var(--ink2);margin-top:8px">Encrypted with keys only you hold. We cannot read your snapshots — and if you lose your keys, neither can you. That's the deal.</p>
+          <button class="btn sm" style="margin-top:10px" id="btnSnap">SNAPSHOT NOW</button>
+          <div class="chead" style="margin:16px 0 6px"><h2>PRIVACY & DATA</h2></div>
+          <button class="toggle" id="tgTel" role="switch" aria-checked="false"><span class="tk"></span>Telemetry (off by default · preview what would be sent)</button>
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <button class="btn sm mockbtn">EXPORT EVERYTHING</button>
+            <button class="btn sm danger mockbtn">DELETE DEVICE DATA</button>
+          </div>
+        </div>
+        <div class="card c6" id="audit-card">
+          <div class="chead"><h2>AUDIT LOG</h2><div class="right"><button class="btn sm" id="btnAudit">EXPORT JSON</button></div></div>
+          <table id="auditlog"><caption class="sr-only">Security audit log</caption><thead><tr><th scope="col">Time</th><th scope="col">Actor</th><th scope="col">Action</th><th scope="col">Target</th></tr></thead><tbody></tbody></table>
+          <div id="guest-access-section">
+            <div class="chead" style="margin:16px 0 6px"><h2>GUEST ACCESS <span class="chip" style="margin-left:6px">cloud</span></h2></div>
+            <div class="rows">
+              <div class="row"><div class="grow"><div class="t">R. Alvarez · Guest Loft</div><div class="s">brightness + quiet hours · expires in 84 d</div></div><button class="btn sm ghost mockbtn">REVOKE</button></div>
+            </div>
+            <button class="btn sm" style="margin-top:10px" id="btnInvite">INVITE A GUEST</button>
+          </div>
+        </div>
+        <div class="card" id="eject-card" style="border-color:var(--acc)">
+          <div class="chead"><h2 style="color:var(--acc)">EJECT</h2></div>
+          <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+            <p style="font-size:12.5px;color:var(--ink2);flex:1;min-width:240px">Take everything and go: point your boxes at your own OTA manifest, export your snapshots, get the self-host guide. No retention tricks — the exit door is load-bearing, so we keep it oiled.</p>
+            <button class="btn" id="btnEject" style="border-color:var(--acc);color:var(--acc)">START EJECT WIZARD</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SETTINGS ================= -->
+    <section class="view" id="view-settings" aria-label="Settings">
+      <div class="vhead"><h1>settings</h1><p>Make it yours.</p></div>
+      <div class="grid">
+        <div class="card c6" id="device-settings-card">
+          <div class="chead"><h2>DEVICE</h2></div>
+          <div style="display:grid;gap:12px">
+            <label class="field">NAME<input id="setname" value="Study" maxlength="24"></label>
+            <label class="field">TIMEZONE<select><option>America/New_York</option><option>UTC</option><option>Europe/Zurich</option></select></label>
+            <div style="display:flex;gap:8px"><button class="btn sm pri" id="btnSave">SAVE</button><button class="btn sm" id="btnIdent2">IDENTIFY</button></div>
+          </div>
+          <div class="chead" style="margin:16px 0 6px"><h2>NETWORK</h2></div>
+          <div class="mono" style="font-size:11.5px;color:var(--ink2);line-height:2">
+            ssid&nbsp;&nbsp;&nbsp;<span id="settings-ssid">chen-iot</span> · <span id="settings-rssi">−52 dBm</span><br>ip&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span id="settings-ip">10.0.4.22</span> <button class="btn sm ghost" id="settings-ip-copy" data-copy="10.0.4.22" style="margin-left:6px">COPY</button><br>
+            mdns&nbsp;&nbsp;&nbsp;<span id="settings-mdns">study.local</span><br>mac&nbsp;&nbsp;&nbsp;&nbsp;<span id="settings-mac">e4:b3:23:81:4e:71</span>
+          </div>
+          <div class="chead" style="margin:16px 0 6px"><h2>PANEL</h2></div>
+          <div style="display:grid;gap:14px">
+            <label class="statuspill" style="gap:9px">GAMMA<input type="range" min="18" max="28" value="22" aria-label="Gamma"><span class="mono">2.2</span></label>
+            <label class="statuspill" style="gap:9px">MAX BRIGHTNESS CAP<input type="range" min="30" max="100" value="85" aria-label="Brightness cap"><span class="mono">85%</span></label>
+            <button class="toggle" role="switch" aria-checked="false" id="tgFlip"><span class="tk"></span>Rotate 180°</button>
+          </div>
+        </div>
+        <div class="card c6" id="plan-card">
+          <div class="chead"><h2>PLAN</h2><span class="sub">docs/MODES.md is the line</span></div>
+          <div class="rows">
+            <div class="row"><div class="grow"><div class="t">Local Mode</div>
+              <div class="s">the complete product · your LAN · no account needed</div></div>
+              <span class="chip ok" id="localplanchip">free forever</span>
+              <button class="btn sm" id="btnUseLocal">USE LOCAL</button></div>
+            <div class="row"><div class="grow"><div class="t">Remote · your way</div>
+              <div class="s">your VPN, Tailscale, NAS, or VPS · no Devmatrix cloud bill</div></div>
+              <span class="chip">self-hosted</span>
+              <button class="btn sm ghost" id="btnByoRemote">GUIDE</button></div>
+            <div class="row"><div class="grow"><div class="t">Managed Cloud Mode</div>
+              <div class="s">remote relay · multi-site fleet · hosted E2EE snapshots · alerts</div></div>
+              <span class="chip hi" id="planchip">preview · paid</span>
+              <button class="btn sm ghost" id="btnCloudPreview">PREVIEW</button></div>
+          </div>
+          <p style="font-size:13px;color:var(--ink2);margin-top:10px"><b>Local owners never subsidize Cloud.</b> Managed Cloud launches only when its subscribers cover it. Price is set at the C0 billing gate; this mock is not an offer.</p>
+          <div id="cloud-notifications">
+            <div class="chead" style="margin:16px 0 6px"><h2>NOTIFICATIONS <span class="chip" style="margin-left:6px">cloud</span></h2></div>
+            <div style="display:grid;gap:10px">
+              <button class="toggle" role="switch" aria-checked="true" id="tgN1"><span class="tk"></span>Device offline &gt; 10 min → email + push</button>
+              <button class="toggle" role="switch" aria-checked="true" id="tgN2" disabled title="Always on"><span class="tk"></span>Security events (always on)</button>
+              <button class="toggle" role="switch" aria-checked="true" id="tgN3"><span class="tk"></span>Update available</button>
+            </div>
+          </div>
+          <div class="chead" style="margin:16px 0 6px"><h2>ACCOUNT</h2></div>
+          <div class="mono" id="accountcopy" style="font-size:11.5px;color:var(--ink2);line-height:2">
+            <span id="accountstatus">maya@example.com · passkeys only · Cloud demo</span><br>
+            <button class="btn sm ghost" id="accountaction" data-goto="security" style="margin-top:4px">MANAGE PASSKEYS →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- sheet + toast + viz tooltip -->
+<div id="sheetback"><div class="sheet" role="dialog" aria-modal="true" aria-label="USB flasher">
+  <h2>USB RECOVERY FLASHER</h2>
+  <ol>
+    <li>Connect the DK-01 over USB-C.</li>
+    <li>Hold <b>BOOT</b> while tapping <b>RESET</b>.</li>
+    <li>Pick a build — stable, beta, or one of yours.</li>
+  </ol>
+  <p class="mono" style="font-size:10.5px;color:var(--ink3)">WebSerial · signature shown before flashing · mock build — needs hardware</p>
+  <div style="display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn sm" id="sheetclose">CLOSE</button>
+    <button class="btn sm pri" disabled title="Needs hardware">CONNECT DEVICE</button>
+  </div>
+</div></div>
+<div id="toasts" aria-live="polite"></div>
+<div id="viztip" role="presentation"></div>
+<div id="searchback">
+  <div class="searchdialog" role="dialog" aria-modal="true" aria-label="Search the Console">
+    <div class="searchinputrow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="globalsearch" type="search" autocomplete="off" spellcheck="false" placeholder="Search devices, apps, settings, and tools…" aria-label="Search the Console">
+    </div>
+    <div class="sr-only" id="searchstatus" aria-live="polite"></div>
+    <div class="searchresults" id="searchresults" aria-label="Search results"></div>
+    <div class="searchfoot" id="searchlabel"><span>↑↓ move</span><span>↵ open</span><span>esc close</span><span>Console-wide search</span></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ================================================================
+   Devmatrix Console — single-file prototype (ADR-0005)
+   Mock data only. Identifiers match docs/USER-STORY.md; the
+   Local/Cloud split follows docs/MODES.md (ADR-0007).
+   ================================================================ */
+
+/* ---------- tiny helpers ---------- */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const esc = s => String(s).replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(msg, sub, kind){
+  const t = document.createElement("div");
+  t.className = "toast" + (kind ? " " + kind : "");
+  t.innerHTML = esc(msg) + (sub ? `<div class="tt">${esc(sub)}</div>` : "");
+  $("#toasts").append(t);
+  setTimeout(() => { t.style.opacity = "0"; t.style.transition = "opacity .4s"; }, 3400);
+  setTimeout(() => t.remove(), 3900);
+}
+function download(name, text, mime){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], {type: mime || "application/json"}));
+  a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+const pad = n => String(n).padStart(2, "0");
+
+/* ---------- 5×7 pixel font (subset) ---------- */
+const GLYPHS = {
+ "0":"0e11131519110e","1":"040c040404040e","2":"0e11010204081f","3":"1f02040201110e",
+ "4":"02060a121f0202","5":"1f101e0101110e","6":"0608101e11110e","7":"1f010204080808",
+ "8":"0e11110e11110e","9":"0e11110f01020c",
+ "A":"0e11111f111111","B":"1e11111e11111e","C":"0e11101010110e","D":"1c12111111121c",
+ "E":"1f10101e10101f","F":"1f10101e101010","G":"0e11101711110f","H":"1111111f111111",
+ "I":"0e04040404040e","J":"0702020202120c","K":"11121418141211","L":"1010101010101f",
+ "M":"111b1515111111","N":"11111915131111","O":"0e11111111110e","P":"1e11111e101010",
+ "Q":"0e11111115120d","R":"1e11111e141211","S":"0f10100e01011e","T":"1f040404040404",
+ "U":"1111111111110e","V":"11111111110a04","W":"1111111515150a","X":"11110a040a1111",
+ "Y":"1111110a040404","Z":"1f01020408101f",
+ ":":"00040000000400",".":"00000000000004","-":"0000000e000000","°":"0c120c00000000",
+ "/":"01010204081010","%":"191a0204080b13","!":"04040404040004","+":"0004041f040400",
+ ">":"10080402040810","?":"0e110102040004",
+ " ":"00000000000000","'":"04040800000000"
+};
+function glyphRows(ch){
+  const h = GLYPHS[ch.toUpperCase()] || GLYPHS[" "];
+  const rows = [];
+  for (let r = 0; r < 7; r++) rows.push(parseInt(h.slice(r*2, r*2+2), 16));
+  return rows;
+}
+const textW = (s, scale) => s.length * 6 * scale - scale;
+
+/* ---------- LED matrix simulator (always dark — it's a light source) ---------- */
+class Matrix {
+  constructor(canvas, cell, gap){
+    this.cv = canvas; this.cell = cell; this.gap = gap;
+    this.W = 64; this.H = 32; this.pitch = cell + gap;
+    this.brightness = 0.72;
+    const w = this.W * this.pitch - gap, h = this.H * this.pitch - gap;
+    canvas.width = w; canvas.height = h;
+    this.ctx = canvas.getContext("2d");
+    this.fb = new Array(this.W * this.H).fill(null);
+    this.sprites = {};
+    this.bgc = document.createElement("canvas");
+    this.bgc.width = w; this.bgc.height = h;
+    const b = this.bgc.getContext("2d");
+    b.fillStyle = "#04060a"; b.fillRect(0, 0, w, h);
+    b.fillStyle = "#0d1219";
+    for (let y = 0; y < this.H; y++)
+      for (let x = 0; x < this.W; x++)
+        b.fillRect(x * this.pitch, y * this.pitch, cell, cell);
+  }
+  sprite(color){
+    if (this.sprites[color]) return this.sprites[color];
+    const s = this.cell * 3, c = document.createElement("canvas");
+    c.width = s; c.height = s;
+    const g = c.getContext("2d");
+    const grad = g.createRadialGradient(s/2, s/2, 1, s/2, s/2, s/2);
+    grad.addColorStop(0, color); grad.addColorStop(.35, color + "66"); grad.addColorStop(1, color + "00");
+    g.fillStyle = grad; g.fillRect(0, 0, s, s);
+    return this.sprites[color] = c;
+  }
+  clear(){ this.fb.fill(null); }
+  set(x, y, color){
+    if (x >= 0 && x < this.W && y >= 0 && y < this.H) this.fb[y * this.W + x] = color;
+  }
+  text(str, x, y, color, scale = 1){
+    let cx = x;
+    for (const ch of str){
+      const rows = glyphRows(ch);
+      for (let r = 0; r < 7; r++)
+        for (let c = 0; c < 5; c++)
+          if (rows[r] & (16 >> c))
+            for (let sy = 0; sy < scale; sy++)
+              for (let sx = 0; sx < scale; sx++)
+                this.set(cx + c*scale + sx, y + r*scale + sy, color);
+      cx += 6 * scale;
+    }
+  }
+  hline(x0, x1, y, color){ for (let x = x0; x <= x1; x++) this.set(x, y, color); }
+  render(){
+    const { ctx, pitch, cell } = this;
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+    ctx.drawImage(this.bgc, 0, 0);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = 0.25 + this.brightness * 0.75;
+    for (let y = 0; y < this.H; y++)
+      for (let x = 0; x < this.W; x++){
+        const col = this.fb[y * this.W + x];
+        if (!col) continue;
+        const px = x * pitch, py = y * pitch;
+        ctx.fillStyle = col;
+        ctx.fillRect(px, py, cell, cell);
+        ctx.drawImage(this.sprite(col), px - cell, py - cell);
+      }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+  }
+}
+
+/* ---------- scenes (panel-internal colors — emissive, unchanged by UI theme) ---------- */
+const AMBER = "#ffb224", WHITE = "#dfe7f2", BLUE = "#3987e5", DIMA = "#8a5f13";
+const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+const DAYS = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+
+function sceneClock(m, t){
+  m.clear();
+  const d = new Date();
+  const hh = pad(d.getHours()), mm = pad(d.getMinutes());
+  const blink = d.getSeconds() % 2 === 0 ? AMBER : "#5a3f0d";
+  let x = Math.floor((64 - textW(hh + ":" + mm, 2)) / 2);
+  m.text(hh, x, 4, WHITE, 2); x += 2 * 12;
+  m.text(":", x, 4, blink, 2); x += 2 * 6;
+  m.text(mm, x, 4, WHITE, 2);
+  m.hline(0, Math.floor(d.getSeconds() / 59 * 63), 20, DIMA);
+  const ds = DAYS[d.getDay()] + " " + MONTHS[d.getMonth()] + " " + pad(d.getDate());
+  m.text(ds, Math.floor((64 - textW(ds, 1)) / 2), 24, AMBER, 1);
+}
+
+const drops = Array.from({length: 14}, () => ({ x: Math.floor(Math.random()*64), y: Math.random()*32, v: .2 + Math.random()*.5 }));
+function sceneAmbient(m, t){
+  m.clear();
+  for (const d of drops){
+    d.y += d.v;
+    if (d.y > 36){ d.y = -4; d.x = Math.floor(Math.random()*64); }
+    const y = Math.floor(d.y);
+    m.set(d.x, y, d.x % 9 === 0 ? BLUE : AMBER);
+    m.set(d.x, y-1, "#7a5510"); m.set(d.x, y-2, "#3d2b08");
+  }
+  m.text("AMBIENT", Math.floor((64-textW("AMBIENT",1))/2), 13, "#4a5a6e", 1);
+}
+
+let scrollMsg = "SHIP IT", scrollX = 64, scrollLoops = 0;
+function sceneText(m, t){
+  m.clear();
+  const w = textW(scrollMsg, 2);
+  scrollX -= reduced ? 0 : 0.9;
+  if (reduced) scrollX = Math.floor((64 - w) / 2);
+  if (scrollX < -w){ scrollX = 64; scrollLoops++; }
+  m.text(scrollMsg, Math.round(scrollX), 9, AMBER, 2);
+  m.hline(0, 63, 26, "#241a06");
+  if (scrollLoops >= 3){ scrollLoops = 0; setScene("clock"); }
+}
+
+/* welcome boot: typed lines, device address, claim code, then possession proof */
+let bootT0 = performance.now(), claimProofActive = false, firstPixelMessage = "", firstPixelX = 64;
+function sceneBoot(m, t){
+  m.clear();
+  const el = (t - bootT0) / 1000;
+  if (claimProofActive){
+    m.text("CLAIM ->", Math.floor((64 - textW("CLAIM ->", 1)) / 2), 7, WHITE, 1);
+    m.text("7F2Q?", Math.floor((64 - textW("7F2Q?", 1)) / 2), 19, AMBER, 1);
+    return;
+  }
+  if (firstPixelMessage){
+    const w = textW(firstPixelMessage, 1);
+    if (reduced) firstPixelX = Math.floor((64 - w) / 2);
+    else firstPixelX -= .55;
+    if (firstPixelX < -w) firstPixelX = 64;
+    m.text(firstPixelMessage, Math.round(firstPixelX), 13, AMBER, 1);
+    m.hline(0, 63, 23, "#241a06");
+    return;
+  }
+  const l1 = "WELCOME TO", l2 = "DEV KIT", by = "BY FLIGHTTRACKERLED   ";
+  const n1 = reduced ? l1.length : Math.min(l1.length, Math.floor(el * 12));
+  m.text(l1.slice(0, n1), Math.floor((64 - textW(l1,1))/2), 1, WHITE, 1);
+  if (el > 1 || reduced){
+    const n2 = reduced ? l2.length : Math.min(l2.length, Math.floor((el - 1) * 12));
+    m.text(l2.slice(0, n2), Math.floor((64 - textW(l2,1))/2), 10, AMBER, 1);
+  }
+  if (el > 2 || reduced){
+    const address = "DMX-0952.LOCAL   ";
+    const w = textW(address, 1), off = reduced ? 0 : Math.floor((el - 2) * 14) % (w + 64);
+    m.text(address, 64 - off, 18, "#4a5a6e", 1);
+  }
+  if (el > 3 || reduced){
+    const code = "H7Q-4KD";
+    const on = reduced || Math.floor(el * 2) % 2 === 0;
+    m.text(code, Math.floor((64 - textW(code,1))/2), 25, on ? AMBER : "#5a3f0d", 1);
+  }
+}
+
+/* identify: full-panel pulse */
+let identUntil = 0;
+function sceneIdentify(m, t){
+  m.clear();
+  const on = Math.floor(t / 220) % 2 === 0;
+  if (on) for (let y = 0; y < 32; y++) for (let x = 0; x < 64; x++)
+    if ((x + y) % 2 === 0) m.set(x, y, AMBER);
+  const label = state.device().name.toUpperCase().slice(0, 9);
+  m.text(label, Math.floor((64-textW(label,1))/2), 13, on ? "#04060a" : AMBER, 1);
+  if (t > identUntil) setScene("clock");
+}
+
+/* reboot: brief black + boot text */
+let rebootT0 = 0;
+function sceneReboot(m, t){
+  m.clear();
+  const el = (t - rebootT0) / 1000;
+  if (el < .8) return;
+  const s = "DEVMATRIX " + state.device().fw;
+  m.text(s.slice(0, Math.floor((el - .8) * 14)), 2, 13, WHITE, 1);
+  if (el > 2.4) setScene("clock");
+}
+
+/* ---------- panel wiring ---------- */
+const mirror = new Matrix($("#mirror"), 8, 2);
+const wpanel = new Matrix($("#wpanel"), 7, 2);
+const SCENES = { clock: sceneClock, ambient: sceneAmbient, text: sceneText, identify: sceneIdentify, reboot: sceneReboot };
+let scene = "clock";
+function setScene(s){
+  scene = s;
+  $$(".scenechips .chip").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.scene === s)));
+}
+let welcomeAlive = true;
+function loop(t){
+  if (deviceReachable()){ SCENES[scene](mirror, t); mirror.render(); }
+  if (welcomeAlive){ sceneBoot(wpanel, t); wpanel.render(); }
+  requestAnimationFrame(loop);
+}
+
+/* ---------- mock state ---------- */
+const state = {
+  devices: [
+    { id: "study", name: "Study", serial: "DMX-4E71-0952", ip: "10.0.4.22", fw: "0.4.2", chan: "stable", autoUpdate: true, lastCheck: "checked 2 min ago", online: true, onLan: true, relay: true, group: "home", mdns: "study.local",
+      metrics: { uptime:"12d 04:11", uptimeNote:"since Jul 23 · 3 restarts · watchdog 0", heap:148, rssi:-52, channel:44, temp:38.2, ssid:"chen-iot", mac:"e4:b3:23:81:4e:71" },
+      fwhist: [{ v:"0.4.2", d:"Jul 28", ok:true, note:"healthy in 41 s" }, { v:"0.4.1", d:"Jul 12", ok:true, note:"healthy in 39 s" }] },
+    { id: "workshop", name: "Workshop", serial: "DMX-4E71-1108", ip: "10.0.4.23", fw: "0.4.2", chan: "stable", autoUpdate: false, lastCheck: "checked 18 min ago", online: true, onLan: true, relay: true, group: "home", mdns: "workshop.local",
+      metrics: { uptime:"6d 18:42", uptimeNote:"since Jul 29 · 1 restart · watchdog 0", heap:154, rssi:-61, channel:36, temp:41.0, ssid:"chen-iot", mac:"e4:b3:23:81:51:08" },
+      fwhist: [{ v:"0.4.2", d:"Jul 28", ok:true, note:"healthy in 44 s" }, { v:"0.4.2-beta.1", d:"Jul 20", ok:false, note:"auto-rollback · boot health failed" }, { v:"0.4.1", d:"Jul 12", ok:true, note:"healthy in 42 s" }] },
+    { id: "loft", name: "Guest Loft", serial: "DMX-3C22-0417", ip: "—", fw: "0.4.1", chan: "stable", autoUpdate: true, lastCheck: "checked 2 d ago", online: false, onLan: false, relay: true, group: "chalet", mdns: "guest-loft.local",
+      metrics: { uptime:"0d 00:00", uptimeNote:"last known · offline 2 d", heap:139, rssi:-73, channel:6, temp:34.7, ssid:"chalet-iot", mac:"3c:22:fb:10:04:17" },
+      fwhist: [{ v:"0.4.1", d:"Jul 12", ok:true, note:"healthy in 39 s" }] }
+  ],
+  current: "study",
+  device(){ return this.devices.find(d => d.id === this.current); },
+  cloudPreview: true,
+  appsByDevice: {
+    study: [
+      { name: "Clock", ver: "system", icon: "◷", running: true, perms: [], mem: 12, you: false, system: true },
+      { name: "GitHub Stars", ver: "v1.3", icon: "★", running: true, perms: ["net: api.github.example", "storage 4 KB"], mem: 38, you: false },
+      { name: "Mars Weather", ver: "v0.3", icon: "♦", running: true, perms: ["net: api.nasa.example", "storage 2 KB"], mem: 22, you: true }
+    ],
+    workshop: [
+      { name: "Clock", ver: "system", icon: "◷", running: true, perms: [], mem: 12, you: false, system: true },
+      { name: "Build Queue", ver: "v0.8", icon: "▤", running: true, perms: ["net: ci.example", "storage 2 KB"], mem: 27, you: true }
+    ],
+    loft: [
+      { name: "Clock", ver: "system", icon: "◷", running: true, perms: [], mem: 12, you: false, system: true }
+    ]
+  },
+  deviceApps(id = this.current){ return this.appsByDevice[id] || []; },
+  keysByDevice: {
+    study: [
+      { name: "home-assistant", scopes: ["control"], last: "4 m ago", key: "dmx_live_2h••••9na" },
+      { name: "ci-deploy", scopes: ["deploy"], last: "2 h ago", key: "dmx_live_9f••••4c2" }
+    ],
+    workshop: [{ name: "workshop-monitor", scopes: ["read"], last: "18 m ago", key: "dmx_live_7w••••2kp" }],
+    loft: []
+  },
+  deviceKeys(id = this.current){ return this.keysByDevice[id] || []; },
+  audit: [
+    { t: "21:42", who: "you",  act: "app.install", tgt: "mars-weather v0.3 → Study" },
+    { t: "21:40", who: "you",  act: "display.text", tgt: '"SHIP IT" → Study' },
+    { t: "19:12", who: "auto", act: "ota.check", tgt: "stable · up to date" },
+    { t: "18:03", who: "guest",act: "display.brightness", tgt: "40% → Guest Loft" },
+    { t: "Aug 3", who: "you",  act: "trust.enroll_key", tgt: "ed25519 8e01…a91f · button held 5 s" },
+    { t: "Aug 3", who: "you",  act: "passkey.add", tgt: "YubiKey 5C" },
+    { t: "Aug 2", who: "you",  act: "device.claim", tgt: "Study · possession verified" }
+  ]
+};
+function deviceReachable(d = state.device()){
+  return Boolean(d.online && (d.onLan || (state.cloudPreview && d.relay)));
+}
+function visibleDevices(){
+  return state.cloudPreview ? state.devices : state.devices.filter(d => d.onLan);
+}
+function renderDeviceOptions(){
+  const devices = visibleDevices();
+  $("#devsel").innerHTML = devices.map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join("");
+  $("#devsel").value = state.current;
+}
+function pushAudit(act, tgt){
+  const d = new Date();
+  state.audit.unshift({ t: pad(d.getHours()) + ":" + pad(d.getMinutes()), who: "you", act, tgt });
+  renderAudit(); renderActivity();
+}
+
+/* ---------- sparklines (dataviz: 2px line, end dot + surface ring, hover tip) ---------- */
+const SPARKS = {
+  heap: { unit: " KB", data: Array.from({length: 40}, (_, i) => 142 + ((i * 7) % 13) + (i > 30 ? 2 : 0)) },
+  rssi: { unit: " dBm", data: Array.from({length: 40}, (_, i) => -52 + Math.round(Math.sin(i / 3) * 2 + ((i * 5) % 3) - 1) ) },
+  temp: { unit: " °C", data: Array.from({length: 40}, (_, i) => +(34 + i * 0.11 + Math.sin(i / 5)).toFixed(1)) }
+};
+function hexToRgba(h, a){
+  h = h.replace("#", "");
+  if (h.length === 3) h = h.split("").map(c => c + c).join("");
+  const n = parseInt(h, 16);
+  return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`;
+}
+function drawSpark(cv){
+  const conf = SPARKS[cv.dataset.spark];
+  const css = getComputedStyle(document.documentElement);
+  const SER = (css.getPropertyValue("--series") || "#2a78d6").trim();
+  const SRF = (css.getPropertyValue("--srf") || "#fcfbf8").trim();
+  const dpr = devicePixelRatio || 1;
+  const w = cv.clientWidth || 200, h = 40;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext("2d"); g.scale(dpr, dpr);
+  const d = conf.data, min = Math.min(...d), max = Math.max(...d), span = (max - min) || 1;
+  const X = i => 2 + i / (d.length - 1) * (w - 8);
+  const Y = v => 4 + (1 - (v - min) / span) * (h - 12);
+  g.clearRect(0, 0, w, h);
+  g.beginPath();
+  d.forEach((v, i) => i ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v)));
+  g.strokeStyle = SER; g.lineWidth = 2; g.lineJoin = "round"; g.stroke();
+  g.lineTo(X(d.length - 1), h); g.lineTo(X(0), h); g.closePath();
+  const grad = g.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, hexToRgba(SER, .15)); grad.addColorStop(1, hexToRgba(SER, 0));
+  g.fillStyle = grad; g.fill();
+  const lx = X(d.length - 1), ly = Y(d[d.length - 1]);
+  g.beginPath(); g.arc(lx, ly, 4, 0, 7); g.fillStyle = SRF; g.fill();   // 2px surface ring
+  g.beginPath(); g.arc(lx, ly, 2.5, 0, 7); g.fillStyle = SER; g.fill();
+  cv.onmousemove = e => {
+    const r = cv.getBoundingClientRect();
+    const i = Math.max(0, Math.min(d.length - 1, Math.round((e.clientX - r.left - 2) / (w - 8) * (d.length - 1))));
+    const tip = $("#viztip");
+    tip.style.display = "block";
+    tip.textContent = d[i] + conf.unit + " · " + (40 - i) + " min ago";
+    tip.style.left = (e.clientX + 12) + "px"; tip.style.top = (e.clientY - 26) + "px";
+  };
+  cv.onmouseleave = () => $("#viztip").style.display = "none";
+}
+
+/* ---------- renderers ---------- */
+function visibleAudit(){
+  if (state.cloudPreview) return state.audit;
+  return state.audit.filter(a => a.who !== "guest" && a.act !== "passkey.add" && !a.tgt.includes("Guest Loft"));
+}
+function renderActivity(){
+  $("#activity tbody").innerHTML = visibleAudit().slice(0, 5).map(a => `
+    <tr><td class="mono num" style="width:64px">${a.t}</td>
+    <td style="width:70px"><span class="chip ${a.who === "you" ? "hi" : ""}">${a.who}</span></td>
+    <td class="mono">${esc(a.act)}</td><td class="strong">${esc(a.tgt)}</td></tr>`).join("");
+}
+function renderAudit(){
+  $("#auditlog tbody").innerHTML = visibleAudit().slice(0, 7).map(a => `
+    <tr><td class="mono num" style="width:64px">${a.t}</td>
+    <td style="width:70px"><span class="chip ${a.who === "you" ? "hi" : ""}">${a.who}</span></td>
+    <td class="mono">${esc(a.act)}</td><td>${esc(a.tgt)}</td></tr>`).join("");
+}
+function renderApps(){
+  const apps = state.deviceApps();
+  $("#apps-summary").textContent = `${apps.length} app${apps.length === 1 ? "" : "s"} · device storage`;
+  $("#applist").innerHTML = apps.map((a, i) => `
+    <div class="row">
+      <div class="appicon">${a.icon}</div>
+      <div class="grow"><div class="t">${esc(a.name)} <span class="mono" style="color:var(--ink3);font-size:11px">${esc(a.ver)}</span>
+        ${a.you ? '<span class="chip hi" style="margin-left:6px">yours</span>' : ""}
+        ${a.system ? '<span class="chip" style="margin-left:6px">system</span>' : ""}</div>
+      <div class="s">${a.perms.length ? a.perms.map(p => `<span class="chip" style="margin-right:4px">${esc(p)}</span>`).join("") : "no permissions requested"}</div></div>
+      <div class="meter" title="memory"><i style="width:${a.mem}%"></i></div>
+      <span class="chip ${a.running ? "ok" : ""}">${a.running ? "running" : "stopped"}</span>
+      ${a.system ? "" : `<button class="btn sm ghost" data-appstop="${i}">${a.running ? "STOP" : "START"}</button>`}
+    </div>`).join("");
+  $$("[data-appstop]").forEach(b => b.onclick = () => {
+    const d = state.device();
+    if (!deviceReachable(d)){ toast(`${d.name} is unavailable`, "app state was not changed", "warn"); return; }
+    const a = state.deviceApps()[+b.dataset.appstop];
+    a.running = !a.running;
+    toast(`${a.name} ${a.running ? "started" : "stopped"}`, "sandbox " + (a.running ? "armed" : "released"));
+    pushAudit(a.running ? "app.start" : "app.stop", a.name + " → " + state.device().name);
+    renderApps();
+  });
+}
+function renderKeys(){
+  const keys = state.deviceKeys();
+  $("#keylist").innerHTML = keys.length ? keys.map((k, i) => `
+    <div class="row">
+      <div class="grow"><div class="t">${esc(k.name)}</div>
+      <div class="s"><code>${esc(k.key)}</code> · last used ${esc(k.last)}</div></div>
+      ${k.scopes.map(s => `<span class="chip">${s}</span>`).join("")}
+      <button class="btn sm ghost" data-copy="${k.key}">COPY</button>
+      <button class="btn sm danger" data-revoke="${i}">REVOKE</button>
+    </div>`).join("") : '<div class="row"><div class="grow"><div class="t">No API keys on this device</div><div class="s">Create a scoped key when the device is reachable.</div></div></div>';
+  $$("[data-revoke]").forEach(b => b.onclick = () => {
+    const d = state.device();
+    if (!deviceReachable(d)){ toast(`${d.name} is unavailable`, "key was not revoked", "warn"); return; }
+    const k = state.deviceKeys().splice(+b.dataset.revoke, 1)[0];
+    toast(`Key "${k.name}" revoked`, "dead everywhere within 30 s", "warn");
+    pushAudit("key.revoke", `${k.name} → ${d.name}`); renderKeys();
+  });
+  bindCopy();
+}
+function renderFwHistory(){
+  const d = state.device();
+  $("#fwhistory tbody").innerHTML = d.fwhist.map((h, i) => `
+    <tr><td class="mono strong" style="width:110px">v${h.v}</td>
+    <td class="mono num" style="width:70px">${h.d}</td>
+    <td>${h.ok ? '<span class="chip ok">✓ healthy</span>' : '<span class="chip warn">⟲ rolled back</span>'}
+      <span class="mono" style="color:var(--ink3);font-size:10.5px;margin-left:6px">${h.note}</span></td>
+    <td style="text-align:right">${i === 0 || !h.ok ? "" : `<button class="btn sm ghost" data-rb="${h.v}">ROLL BACK</button>`}</td></tr>`).join("");
+  $$("[data-rb]").forEach(b => b.onclick = () => {
+    const d = state.device();
+    d.fw = b.dataset.rb; d.chan = d.fw.includes("beta") ? "beta" : "stable";
+    toast(`Rolling ${d.name} back to v${b.dataset.rb}`, "slot B → verified → reboot", "warn");
+    pushAudit("ota.rollback", "v" + b.dataset.rb + " → " + d.name);
+    switchDevice(d.id);
+  });
+}
+function renderDevices(){
+  const devices = visibleDevices();
+  $("#device-all-count").textContent = `all · ${devices.length}`;
+  $("#device-home-count").textContent = `home · ${devices.filter(d => d.group === "home").length}`;
+  const chaletCount = devices.filter(d => d.group === "chalet").length;
+  $("#device-chalet-count").textContent = `chalet · ${chaletCount}`;
+  $("#device-chalet-count").hidden = chaletCount === 0;
+  const cards = devices.map(d => `
+    <div class="devcard">
+      <div class="thumb"><canvas data-thumb="${d.id}" width="190" height="94"></canvas></div>
+      <h3><i class="led ${d.online ? "" : "off"}" style="width:6px;height:6px"></i>${esc(d.name)}
+        <span class="chip" style="margin-left:auto">${d.group}</span><span class="chip ${!d.relay ? "ok" : ""}">${d.relay ? "cloud relay" : "local"}</span></h3>
+      <div class="meta">
+        <span>DK-01 · ${d.serial} <button class="btn sm ghost" data-copy="${d.serial}" style="padding:1px 6px;margin-left:4px">COPY</button></span>
+        <span>fw v${d.fw} · ${d.chan} · ${d.online ? d.ip + " · " + d.mdns : "offline · last seen 2 d ago"}</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:auto">
+        <button class="btn sm" data-open="${d.id}">OPEN</button>
+        ${state.cloudPreview ? '<button class="btn sm ghost mockbtn">GUEST</button><button class="btn sm ghost mockbtn">TRANSFER</button>' : ""}
+      </div>
+    </div>`).join("");
+  $("#devcards").innerHTML = cards + `
+    <div class="devcard claimnew" id="claimnew" role="button" tabindex="0">
+      <div style="font-size:22px">↻</div><b style="font:600 11px var(--mono);letter-spacing:.14em">REPLAY CLAIM DEMO</b>
+      <span class="mono" style="font-size:10.5px;color:var(--ink3)">enter the address + code shown on the panel</span>
+    </div>`;
+  $$("[data-thumb]").forEach(cv => {
+    const g = cv.getContext("2d"); const on = state.devices.find(d => d.id === cv.dataset.thumb).online;
+    g.fillStyle = "#04060a"; g.fillRect(0, 0, 190, 94);
+    for (let y = 0; y < 32; y++) for (let x = 0; x < 64; x++){
+      const lit = on && ((x * 7 + y * 13) % 29 === 0);
+      g.fillStyle = lit ? (Math.random() < .8 ? "#8a5f13" : "#ffb224") : "#0d1219";
+      g.fillRect(x * 3, y * 3, 2, 2);
+    }
+  });
+  $$("[data-open]").forEach(b => b.onclick = () => { switchDevice(b.dataset.open); go("dashboard"); });
+  $("#claimnew").onclick = () => {
+    switchDevice("study");
+    claimStep(0);
+    $("#claimaddress").value = "dmx-0952.local";
+    $("#claimcode").value = "H7Q-4KD";
+    $("#holdfill").style.width = "0%";
+    $("#holdhint").textContent = "waiting for device…";
+    $("#firstpixelname").value = state.device().name;
+    $("#firstpixeltext").value = "SHIP IT";
+    $("#firstpixelstatus").textContent = "";
+    $("#btnFirstPixel").disabled = false;
+    $("#btnFirstPixel").dataset.complete = "false";
+    $("#firstpixelname").readOnly = false; $("#firstpixeltext").readOnly = false;
+    firstPixelMessage = ""; firstPixelX = 64;
+    updateFirstPixelCommand();
+    $("#welcome").classList.remove("gone"); $("#shell").inert = true;
+    welcomeAlive = true; claimProofActive = false; bootT0 = performance.now();
+    requestAnimationFrame(() => $("#claimaddress").focus());
+  };
+  bindCopy();
+}
+function bindCopy(){
+  $$("[data-copy]").forEach(b => b.onclick = async () => {
+    try {
+      if (!navigator.clipboard) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(b.dataset.copy);
+      toast("Copied", b.dataset.copy, "ok");
+    } catch {
+      toast("Copy failed", "select and copy the value manually", "warn");
+    }
+  });
+}
+
+/* ---------- four-pane device workbench ---------- */
+const TERMINAL_PROFILES = {
+  rest: {
+    label: "REST", placeholder: "get /info"
+  },
+  mqtt: {
+    label: "MQTT", placeholder: "sub devmatrix/DEVICE/#"
+  },
+  logs: {
+    label: "LOGS", placeholder: "tail warn"
+  },
+  repl: {
+    label: "APP REPL", placeholder: 'draw("HELLO")'
+  }
+};
+const WORKBENCH_DEFAULTS = [
+  { id: "pane-rest", profile: "rest" },
+  { id: "pane-mqtt", profile: "mqtt" },
+  { id: "pane-logs", profile: "logs" },
+  { id: "pane-repl", profile: "repl" }
+];
+function terminalSeed(profile){
+  const d = state.device();
+  const access = deviceReachable(d) ? (d.onLan ? "LAN token attached" : "Cloud relay session") : "device unavailable";
+  return ({
+    rest: [`Devmatrix CLI · ${access}`, "type help for mock commands"],
+    mqtt: [`broker 10.0.4.2:1883 · ${deviceReachable(d) ? "connected" : "disconnected"}`, `root devmatrix/${d.serial}/`],
+    logs: [`${d.name.toLowerCase()} · device log`, deviceReachable(d) ? "02:38:12 info  compositor: 30 fps" : "503 device unavailable"],
+    repl: [deviceReachable(d) ? "mars-weather · sandbox ready" : "mars-weather · device unavailable", `> device.name  // ${d.name}`]
+  })[profile].map(text => ({ text, type: "" }));
+}
+function freshPane(spec){
+  const profile = TERMINAL_PROFILES[spec.profile] ? spec.profile : "rest";
+  return { id: spec.id, profile, lines: terminalSeed(profile), history: [], historyIndex: 0 };
+}
+let workspacePanes = WORKBENCH_DEFAULTS.map(freshPane);
+try {
+  const saved = JSON.parse(localStorage.getItem("dmx-workbench") || "null");
+  if (Array.isArray(saved) && saved.length <= 4){
+    const valid = saved.filter((p, i, all) => p && WORKBENCH_DEFAULTS.some(d => d.id === p.id)
+      && TERMINAL_PROFILES[p.profile] && all.findIndex(x => x.id === p.id) === i);
+    if (valid.length || saved.length === 0) workspacePanes = valid.map(freshPane);
+  }
+} catch {}
+function terminalContext(profile){
+  const d = state.device();
+  return ({
+    rest: `${d.mdns} /api/v1`,
+    mqtt: `devmatrix/${d.serial}/#`,
+    logs: `${d.name.toLowerCase()} · live`,
+    repl: "mars-weather · sandbox"
+  })[profile];
+}
+function saveWorkbench(){
+  try { localStorage.setItem("dmx-workbench", JSON.stringify(workspacePanes.map(({id, profile}) => ({id, profile})))); } catch {}
+}
+function appendTerminalLine(pane, text, type){
+  pane.lines.push({ text: String(text), type: type || "" });
+  if (pane.lines.length > 40) pane.lines.splice(0, pane.lines.length - 40);
+}
+function renderWorkbench(focusPane){
+  const root = $("#workbench");
+  $("#workbench-count").textContent = `${workspacePanes.length} pane${workspacePanes.length === 1 ? "" : "s"} · mock only`;
+  $("#btnAddPane").disabled = workspacePanes.length >= 4;
+  if (!workspacePanes.length){
+    root.innerHTML = '<div class="workbench-empty"><span>No terminals open.</span><button class="btn sm" data-empty-add>+ ADD A PANE</button></div>';
+    root.querySelector("[data-empty-add]").onclick = addWorkbenchPane;
+    return;
+  }
+  root.innerHTML = workspacePanes.map((pane, index) => {
+    const profile = TERMINAL_PROFILES[pane.profile];
+    return `<section class="terminal-pane" data-pane="${esc(pane.id)}" aria-label="${esc(profile.label)} terminal">
+      <div class="terminal-head">
+        <span class="draghandle" title="Drag to move" aria-hidden="true">⠿</span>
+        <select class="terminal-profile" data-pane-profile="${esc(pane.id)}" aria-label="Terminal profile">
+          ${Object.entries(TERMINAL_PROFILES).map(([id, p]) => `<option value="${id}"${id === pane.profile ? " selected" : ""}>${esc(p.label)}</option>`).join("")}
+        </select>
+        <span class="terminal-context" title="${esc(terminalContext(pane.profile))}">${esc(terminalContext(pane.profile))}</span>
+        <span class="terminal-tools">
+          <button data-pane-move="-1" data-pane-id="${esc(pane.id)}" aria-label="Move ${esc(profile.label)} pane before"${index === 0 ? " disabled" : ""}>←</button>
+          <button data-pane-move="1" data-pane-id="${esc(pane.id)}" aria-label="Move ${esc(profile.label)} pane after"${index === workspacePanes.length - 1 ? " disabled" : ""}>→</button>
+          <button data-pane-remove="${esc(pane.id)}" aria-label="Remove ${esc(profile.label)} pane">×</button>
+        </span>
+      </div>
+      <div class="terminal-out" data-pane-output="${esc(pane.id)}" aria-live="polite">${pane.lines.map(line => `<div class="${line.type ? "terminal-" + line.type : ""}">${esc(line.text)}</div>`).join("")}</div>
+      <div class="terminal-inputrow"><span class="terminal-prompt">❯</span>
+        <input class="terminal-input" data-pane-input="${esc(pane.id)}" aria-label="Command for ${esc(profile.label)} terminal" placeholder="${esc(profile.placeholder)}" maxlength="160" autocomplete="off" spellcheck="false">
+      </div>
+    </section>`;
+  }).join("");
+  bindWorkbench();
+  root.querySelectorAll(".terminal-out").forEach(out => out.scrollTop = out.scrollHeight);
+  if (focusPane) root.querySelector(`[data-pane-input="${focusPane}"]`)?.focus();
+}
+function addWorkbenchPane(){
+  const next = WORKBENCH_DEFAULTS.find(spec => !workspacePanes.some(p => p.id === spec.id));
+  if (!next) return;
+  workspacePanes.push(freshPane(next));
+  saveWorkbench(); renderWorkbench(next.id);
+}
+function moveWorkbenchPane(id, delta){
+  const from = workspacePanes.findIndex(p => p.id === id);
+  const to = from + delta;
+  if (from < 0 || to < 0 || to >= workspacePanes.length) return;
+  const [pane] = workspacePanes.splice(from, 1); workspacePanes.splice(to, 0, pane);
+  saveWorkbench(); renderWorkbench(id);
+}
+function runTerminalCommand(id, raw){
+  const pane = workspacePanes.find(p => p.id === id);
+  const command = raw.trim();
+  if (!pane || !command) return;
+  if (command.length > 160){
+    appendTerminalLine(pane, "400 command too long · maximum 160 characters", "error");
+    renderWorkbench(id); return;
+  }
+  pane.history.push(command); pane.historyIndex = pane.history.length;
+  if (command.toLowerCase() === "clear"){
+    pane.lines = []; renderWorkbench(id); return;
+  }
+  appendTerminalLine(pane, `❯ ${command}`, "command");
+  const lower = command.toLowerCase();
+  if (lower === "help"){
+    const help = {
+      rest: "get /info · get /metrics · post /display/text HELLO",
+      mqtt: "sub <topic> · pub display/text HELLO",
+      logs: "tail · tail warn · filter <text>",
+      repl: 'device.name · apps · draw("HELLO") · restart'
+    }[pane.profile];
+    appendTerminalLine(pane, `${help}\nuniversal: push <text> · device · clear`, "ok");
+  } else if (lower === "device"){
+    appendTerminalLine(pane, `${state.device().name} · ${state.device().serial} · ${state.device().online ? "online" : "offline"}`, "ok");
+  } else if (!deviceReachable()){
+    appendTerminalLine(pane, `503 device unavailable · ${state.device().name} is not reachable on this LAN or relay`, "error");
+  } else if (lower.startsWith("push ")){
+    const msg = command.slice(5).trim(); pushText(msg);
+    appendTerminalLine(pane, `200 · display.text → ${state.device().name}`, "ok");
+  } else if (pane.profile === "rest"){
+    if (lower === "get /info") appendTerminalLine(pane, JSON.stringify(cannedResponse("info"), null, 2), "ok");
+    else if (lower === "get /metrics") appendTerminalLine(pane, JSON.stringify(cannedResponse("metrics"), null, 2), "ok");
+    else if (lower.startsWith("post /display/text")){
+      const quoted = command.match(/"text"\s*:\s*"([^"]+)"/) || command.match(/display\/text\s+(.+)/i);
+      const msg = quoted ? quoted[1] : "HELLO"; pushText(msg);
+      appendTerminalLine(pane, JSON.stringify(cannedResponse("text"), null, 2), "ok");
+    } else appendTerminalLine(pane, "404 mock route · type help");
+  } else if (pane.profile === "mqtt"){
+    if (lower.startsWith("sub ")) appendTerminalLine(pane, `subscribed · ${command.slice(4)}`, "ok");
+    else if (lower.startsWith("pub display/text ")){
+      const msg = command.slice(17).trim(); pushText(msg);
+      appendTerminalLine(pane, `published · devmatrix/${state.device().serial}/display/text`, "ok");
+    } else appendTerminalLine(pane, "broker mock · type help");
+  } else if (pane.profile === "logs"){
+    if (lower === "tail" || lower.startsWith("tail ") || lower.startsWith("filter ")){
+      const filter = lower.replace(/^(tail|filter)\s*/, "");
+      const rows = LOG_LINES.filter(([lv, msg]) => !filter || lv.includes(filter) || msg.toLowerCase().includes(filter));
+      appendTerminalLine(pane, rows.length ? rows.map(([lv, msg]) => `${lv.padEnd(5)} ${msg}`).join("\n") : "no matching log lines", rows.length ? "ok" : "");
+    } else appendTerminalLine(pane, "log mock · type help");
+  } else if (pane.profile === "repl"){
+    if (lower === "device.name" || lower === "print(device.name)") appendTerminalLine(pane, state.device().name, "ok");
+    else if (lower === "apps") appendTerminalLine(pane, state.deviceApps().map(a => `${a.name} · ${a.running ? "running" : "stopped"}`).join("\n"), "ok");
+    else if (/^draw\(/i.test(command)){
+      const match = command.match(/draw\(["'](.+?)["']\)/i); const msg = match ? match[1] : "HELLO";
+      pushText(msg); appendTerminalLine(pane, `frame queued · ${msg.length * 12}px`, "ok");
+    } else if (lower === "restart") appendTerminalLine(pane, "mars-weather restarted · watchdog armed", "ok");
+    else appendTerminalLine(pane, "sandbox mock · type help");
+  }
+  renderWorkbench(id);
+}
+let draggedPaneId = null, pointerTargetId = null;
+function bindWorkbench(){
+  $$("[data-pane-profile]").forEach(sel => sel.onchange = () => {
+    const pane = workspacePanes.find(p => p.id === sel.dataset.paneProfile);
+    if (!pane) return;
+    pane.profile = sel.value; pane.lines = terminalSeed(pane.profile); pane.history = []; pane.historyIndex = 0;
+    saveWorkbench(); renderWorkbench(pane.id);
+  });
+  $$("[data-pane-remove]").forEach(b => b.onclick = () => {
+    const index = workspacePanes.findIndex(p => p.id === b.dataset.paneRemove);
+    workspacePanes = workspacePanes.filter(p => p.id !== b.dataset.paneRemove);
+    const focusId = workspacePanes[Math.min(index, workspacePanes.length - 1)]?.id;
+    saveWorkbench(); renderWorkbench(focusId);
+  });
+  $$("[data-pane-move]").forEach(b => b.onclick = () => moveWorkbenchPane(b.dataset.paneId, Number(b.dataset.paneMove)));
+  $$("[data-pane-input]").forEach(input => input.onkeydown = e => {
+    const pane = workspacePanes.find(p => p.id === input.dataset.paneInput);
+    if (e.key === "Enter"){ e.preventDefault(); runTerminalCommand(pane.id, input.value); }
+    else if (e.key === "ArrowUp" && pane.history.length){
+      e.preventDefault(); pane.historyIndex = Math.max(0, pane.historyIndex - 1); input.value = pane.history[pane.historyIndex] || "";
+    } else if (e.key === "ArrowDown" && pane.history.length){
+      e.preventDefault(); pane.historyIndex = Math.min(pane.history.length, pane.historyIndex + 1); input.value = pane.history[pane.historyIndex] || "";
+    }
+  });
+  $$(".terminal-pane").forEach(pane => {
+    const handle = pane.querySelector(".draghandle");
+    handle.onpointerdown = e => {
+      if (e.button !== 0) return;
+      draggedPaneId = pane.dataset.pane; pointerTargetId = draggedPaneId;
+      pane.classList.add("dragging"); handle.setPointerCapture?.(e.pointerId);
+    };
+    handle.onpointermove = e => {
+      if (draggedPaneId !== pane.dataset.pane) return;
+      const target = document.elementFromPoint(e.clientX, e.clientY)?.closest(".terminal-pane");
+      $$(".terminal-pane").forEach(p => p.classList.toggle("drag-target", Boolean(target) && p === target && p.dataset.pane !== draggedPaneId));
+      pointerTargetId = target ? target.dataset.pane : null;
+    };
+    handle.onpointerup = e => {
+      handle.releasePointerCapture?.(e.pointerId);
+      const targetId = pointerTargetId;
+      if (!draggedPaneId || !targetId || draggedPaneId === targetId){
+        draggedPaneId = null; pointerTargetId = null;
+        $$(".terminal-pane").forEach(p => p.classList.remove("dragging", "drag-target"));
+        return;
+      }
+      const from = workspacePanes.findIndex(p => p.id === draggedPaneId);
+      const to = workspacePanes.findIndex(p => p.id === targetId);
+      const [moved] = workspacePanes.splice(from, 1); workspacePanes.splice(to, 0, moved);
+      const movedId = draggedPaneId; draggedPaneId = null; pointerTargetId = null;
+      saveWorkbench(); renderWorkbench(movedId);
+    };
+    handle.onpointercancel = () => {
+      draggedPaneId = null; pointerTargetId = null;
+      $$(".terminal-pane").forEach(p => p.classList.remove("dragging", "drag-target"));
+    };
+  });
+}
+$("#btnAddPane").onclick = addWorkbenchPane;
+
+/* ---------- device switching / status ---------- */
+function syncModeUi(){
+  const d = state.device();
+  const local = !state.cloudPreview || !d.relay;
+  const hasCloudAccount = state.cloudPreview;
+  const chip = $("#modechip");
+  chip.textContent = local ? "LOCAL · FREE" : "CLOUD · DEMO";
+  chip.classList.toggle("local", local);
+  const transport = $("#transportchip");
+  if (!d.online){
+    transport.textContent = "OFFLINE"; transport.className = "chip warn";
+  } else if (d.onLan){
+    transport.textContent = "CONNECTED · LAN"; transport.className = "chip ok";
+  } else if (hasCloudAccount && d.relay){
+    transport.textContent = "CONNECTED · RELAY"; transport.className = "chip ok";
+  } else {
+    transport.textContent = "NO ACTIVE ROUTE"; transport.className = "chip warn";
+  }
+  transport.setAttribute("aria-label", "Active transport: " + transport.textContent.toLowerCase());
+  $("#tgLocal").setAttribute("aria-checked", String(local));
+  $("#local-mode-copy").textContent = local
+    ? `LAN only — ${d.name}'s cloud relay is disconnected`
+    : `Turn on Local Mode — disconnect ${d.name}'s cloud relay`;
+  $("#localplanchip").textContent = local ? "current · free" : "free forever";
+  $("#planchip").textContent = local ? "preview · paid" : "active demo · not billed";
+  $("#btnUseLocal").disabled = local;
+  $("#btnCloudPreview").disabled = !local;
+  $("#accountstatus").textContent = hasCloudAccount
+    ? "maya@example.com · passkeys only · Cloud demo"
+    : "No account · Local Mode · no subscription";
+  $("#railavatar").textContent = hasCloudAccount ? "MC" : "LO";
+  $("#topavatar").textContent = hasCloudAccount ? "MC" : "LO";
+  $("#railusername").textContent = hasCloudAccount ? "Maya Chen" : "Local Owner";
+  $("#railrole").textContent = hasCloudAccount ? "owner" : "device owner";
+  $("#cloud-account-card").hidden = !hasCloudAccount;
+  $("#guest-access-section").hidden = !hasCloudAccount;
+  $("#cloud-rollout-section").hidden = !hasCloudAccount;
+  $("#cloud-notifications").hidden = !hasCloudAccount;
+  $("#accountaction").hidden = !hasCloudAccount;
+  $("#btnInvite").disabled = !hasCloudAccount;
+  $("#tgStaged").disabled = !hasCloudAccount;
+  $("#snapshot-mode-copy").textContent = hasCloudAccount
+    ? "E2E encrypted · hosted sync is Cloud"
+    : "local encrypted file · no Cloud upload";
+  ["#tgN1", "#tgN3"].forEach(sel => { $(sel).disabled = local; });
+  renderActivity(); renderAudit();
+  renderDeviceOptions();
+}
+function setLocalMode(local, announce = true){
+  const d = state.device();
+  if (!local) state.cloudPreview = true;
+  d.relay = !local;
+  switchDevice(d.id); renderDevices();
+  if (announce){
+    toast(local ? `Local Mode on for ${d.name}` : `Cloud demo on for ${d.name}`,
+      local ? "relay disconnected · LAN features keep working" : "optional remote preview · no charge or offer", "ok");
+    pushAudit(local ? "mode.local" : "mode.cloud_preview", d.name);
+  }
+}
+function switchDevice(id){
+  if (!state.devices.some(d => d.id === id)) return;
+  const previousId = state.current;
+  state.current = id;
+  const d = state.device();
+  const reachable = deviceReachable(d);
+  $("#devsel").value = id;
+  $("#statusled").className = "led" + (reachable ? "" : " off");
+  $("#statustext").textContent = reachable ? `online · ${d.ip}` : (d.online ? "not reachable in this mode" : "offline · last seen 2 d ago");
+  $("#dashsub").textContent = `${d.name} · ` + (reachable ? "everything your box is doing, live." : "unavailable — showing last known state.");
+  $("#mirroroffline").classList.toggle("show", !reachable);
+  $("#mirrorsub").textContent = reachable ? "live · 30 fps · 18 ms" : "stale · " + d.name;
+  $("#btnPush").disabled = !reachable;
+  $("#fwver").textContent = "v" + d.fw; $("#depver").textContent = "v" + d.fw;
+  $("#chansel").value = d.chan;
+  $("#fwchan").textContent = d.chan;
+  $("#fwstate").textContent = d.chan !== "stable" && d.fw !== "0.5.0-beta.2" ? "update available"
+    : d.fw === "0.5.0-beta.2" ? "✓ healthy" : "✓ up to date";
+  $("#tgAuto").setAttribute("aria-checked", String(d.autoUpdate));
+  $("#lastcheck").textContent = d.lastCheck;
+  $("#updrow").style.display = d.chan !== "stable" && d.fw !== "0.5.0-beta.2" ? "block" : "none";
+  $("#setname").value = d.name;   // keep Settings in sync with the selected device
+  $("#apps-device-title").textContent = `INSTALLED ON ${d.name.toUpperCase()}`;
+  $("#deploy-device-title").textContent = `FIRMWARE · ${d.name.toUpperCase()}`;
+  $("#btnUpdate").textContent = `UPDATE ${d.name.toUpperCase()}`;
+  const route = d.onLan ? "LAN token" : (state.cloudPreview && d.relay ? "Cloud relay" : "no active route");
+  $("#api-device-sub").textContent = `${d.mdns} · /api/v1 · ${route}`;
+  $("#mqtt-root").textContent = `devmatrix/${d.serial}/`;
+  $("#mqtt-availability").textContent = reachable ? "online" : "unavailable";
+  $("#mqtt-availability").classList.toggle("ok", reachable);
+  $("#mqtt-availability").classList.toggle("warn", !reachable);
+  $("#trust-device-title").textContent = `ROOT OF TRUST · ${d.name.toUpperCase()}`;
+  $("#snapshot-device-title").textContent = `${d.name} · latest`;
+  const metrics = d.metrics;
+  const rssi = String(metrics.rssi).replace("-", "−");
+  $("#t-up").textContent = metrics.uptime;
+  $("#t-up-note").textContent = metrics.uptimeNote;
+  $("#t-heap").textContent = metrics.heap;
+  $("#t-rssi").textContent = rssi;
+  $("#t-rssi-note").textContent = `${metrics.ssid} · ch ${metrics.channel}`;
+  $("#t-temp").textContent = metrics.temp.toFixed(1);
+  $("[data-spark=\"heap\"]").setAttribute("aria-label", `Heap free, last hour: steady around ${metrics.heap} kilobytes`);
+  $("[data-spark=\"rssi\"]").setAttribute("aria-label", `WiFi signal, last hour: steady around ${metrics.rssi} dBm`);
+  $("[data-spark=\"temp\"]").setAttribute("aria-label", `Panel temperature, last hour: around ${metrics.temp.toFixed(1)} degrees`);
+  $("#settings-ssid").textContent = metrics.ssid;
+  $("#settings-rssi").textContent = rssi + " dBm";
+  $("#settings-mac").textContent = metrics.mac;
+  $("#settings-ip").textContent = d.ip;
+  $("#settings-mdns").textContent = d.mdns;
+  $("#settings-ip-copy").dataset.copy = d.ip;
+  bindCopy();
+  renderApps();
+  renderKeys();
+  syncModeUi();
+  if (!reachable){ mirror.clear(); mirror.render(); }
+  if (previousId !== id){
+    workspacePanes = workspacePanes.map(p => freshPane(p));
+    $("#respbadge").style.display = "none";
+    $("#resp").textContent = `// response cleared — now targeting ${d.name}`;
+  }
+  if ($("#workbench").children.length) renderWorkbench();
+  renderFwHistory();
+  if (previousId !== id) resetDeviceStreams();
+}
+$("#devsel").onchange = e => switchDevice(e.target.value);
+
+/* ---------- router ---------- */
+function go(view, updateHash = true){
+  if (!$("#view-" + view)) return;
+  $$(".view").forEach(v => v.classList.remove("active"));
+  $("#view-" + view).classList.add("active");
+  $$("nav button").forEach(b => b.dataset.view === view
+    ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  if (updateHash && location.hash.slice(1) !== view) location.hash = view;
+  const h1 = $("#view-" + view + " h1");
+  if (h1){ h1.tabIndex = -1; h1.focus({ preventScroll: true }); }
+  if (view === "dashboard") requestAnimationFrame(() => $$("[data-spark]").forEach(drawSpark));
+}
+$$("nav button").forEach(b => b.onclick = () => go(b.dataset.view));
+$$("[data-goto]").forEach(b => b.onclick = () => go(b.dataset.goto));
+addEventListener("hashchange", () => {
+  const view = location.hash.slice(1);
+  const target = $("#view-" + view);
+  if (target && !target.classList.contains("active")) go(view, false);
+});
+
+/* ---------- console-wide search / command palette ---------- */
+const SEARCH_SECTIONS = [
+  { label: "Dashboard", detail: "Mirror, status, firmware, and quick actions", kind: "page", view: "dashboard", keywords: "home panel push text brightness scene" },
+  { label: "Devices", detail: "Same-LAN devices and optional remote fleet", kind: "page", view: "devices", keywords: "fleet claim guest transfer" },
+  { label: "Apps", detail: "Installed apps, upload, and Registry", kind: "page", view: "apps", keywords: "runtime sandbox dmapp registry permissions" },
+  { label: "Deploy", detail: "Firmware, rollback, USB, and owner builds", kind: "page", view: "deploy", keywords: "ota flash channel recovery signing" },
+  { label: "Dev Console", detail: "Workbench, APIs, streams, and logs", kind: "page", view: "devconsole", keywords: "developer code terminal cli" },
+  { label: "Security", detail: "Trust, audit, privacy, ownership, and optional account security", kind: "page", view: "security", keywords: "passkeys local mode snapshot guest keys" },
+  { label: "Settings", detail: "Device, network, panel, and plan", kind: "page", view: "settings", keywords: "timezone gamma brightness notifications account" },
+  { label: "Device workbench", detail: "Four movable REST, MQTT, log, and app CLIs", kind: "tool", view: "devconsole", target: "#workbench-card", keywords: "coding area panes terminal repl move delete" },
+  { label: "API playground", detail: "Try /api/v1 routes against the mock panel", kind: "tool", view: "devconsole", target: "#api-playground", keywords: "rest endpoint request json" },
+  { label: "API keys", detail: "Create, copy, scope, or revoke a key", kind: "tool", view: "devconsole", target: "#api-keys", keywords: "token credential auth" },
+  { label: "MQTT broker", detail: "Your broker and device topic tree", kind: "tool", view: "devconsole", target: "#api-keys", keywords: "home assistant topic publish subscribe" },
+  { label: "Event stream", detail: "Live WebSocket device events", kind: "tool", view: "devconsole", target: "#event-stream", keywords: "websocket wss tail pause" },
+  { label: "Device log", detail: "Live, filterable device output", kind: "tool", view: "devconsole", target: "#device-log", keywords: "debug warn filter tail" },
+  { label: "Local Mode", detail: "Disconnect the cloud relay; keep every LAN feature", kind: "setting", view: "security", target: "#local-mode-card", keywords: "offline free local first cloud disconnect" },
+  { label: "Cloud Mode", detail: "Optional paid remote reach, fleet, snapshots, and alerts", kind: "setting", view: "settings", target: "#plan-card", keywords: "remote relay paid preview subscription" },
+  { label: "Eject", detail: "Export and self-host the full device stack", kind: "setting", view: "security", target: "#eject-card", keywords: "leave export ownership manifest" },
+  { label: "Audit log", detail: "Inspect and export every owner or system action", kind: "tool", view: "security", target: "#audit-card", keywords: "history security json" },
+  { label: "USB recovery", detail: "Flash a build locally from the browser", kind: "tool", view: "deploy", keywords: "webserial never brick firmware" }
+];
+function allSearchItems(){
+  const devices = visibleDevices();
+  const visibleIds = new Set(devices.map(d => d.id));
+  return SEARCH_SECTIONS.concat(
+    devices.map(d => ({ label: d.name, detail: `${d.serial} · ${d.online ? d.ip : "offline"}`, kind: "device", view: "dashboard", device: d.id, keywords: `${d.serial} ${d.group} ${d.mdns}` })),
+    Object.entries(state.appsByDevice).filter(([deviceId]) => visibleIds.has(deviceId)).flatMap(([deviceId, apps]) => apps.map(a => {
+      const d = state.devices.find(device => device.id === deviceId);
+      return { label: a.name, detail: `${a.ver} · ${d.name} · ${a.running ? "running" : "stopped"}`, kind: "app", view: "apps", device: deviceId, keywords: a.perms.join(" ") };
+    })),
+    devices.flatMap(d => state.deviceKeys(d.id).map(k => ({ label: k.name, detail: `${k.scopes.join(", ")} · ${d.name} · last used ${k.last}`, kind: "key", view: "devconsole", device: d.id, target: "#api-keys", keywords: k.key })))
+  );
+}
+let searchMatches = [], searchActive = 0, searchOpener = null;
+function renderGlobalSearch(){
+  const q = $("#globalsearch").value.trim().toLowerCase();
+  const tokens = q.split(/\s+/).filter(Boolean);
+  searchMatches = allSearchItems().map((item, order) => {
+    const haystack = `${item.label} ${item.detail} ${item.kind} ${item.keywords || ""}`.toLowerCase();
+    if (!tokens.every(token => haystack.includes(token))) return null;
+    const label = item.label.toLowerCase();
+    const score = !q ? order : label === q ? -30 : label.startsWith(q) ? -20 : label.includes(q) ? -10 : order;
+    return { item, score, order };
+  }).filter(Boolean).sort((a, b) => a.score - b.score || a.order - b.order).slice(0, 9).map(x => x.item);
+  searchActive = Math.min(searchActive, Math.max(0, searchMatches.length - 1));
+  $("#searchresults").innerHTML = searchMatches.length ? searchMatches.map((item, i) => `
+    <button class="searchresult${i === searchActive ? " active" : ""}"${i === searchActive ? ' aria-current="true"' : ""} data-search-index="${i}">
+      <strong>${esc(item.label)}</strong><small>${esc(item.detail)}</small><span class="searchkind">${esc(item.kind)}</span>
+    </button>`).join("") : `<div class="searchempty">No Console result matches “${esc(q)}”.</div>`;
+  $("#searchstatus").textContent = searchMatches.length
+    ? `Selected ${searchMatches[searchActive].label}, ${searchActive + 1} of ${searchMatches.length}`
+    : `No Console results for ${q || "this search"}`;
+  requestAnimationFrame(() => $("#searchresults .active")?.scrollIntoView({block:"nearest"}));
+}
+function openGlobalSearch(){
+  if (!$("#welcome").classList.contains("gone") || $("#sheetback").classList.contains("show")) return;
+  searchOpener = document.activeElement; searchActive = 0;
+  $("#searchback").classList.add("show"); $("#shell").inert = true;
+  $("#globalsearch").value = ""; renderGlobalSearch(); $("#globalsearch").focus();
+}
+function closeGlobalSearch(){
+  $("#searchback").classList.remove("show"); $("#shell").inert = false;
+  if (searchOpener?.focus) searchOpener.focus();
+}
+function activateSearchItem(item){
+  closeGlobalSearch();
+  if (item.device) switchDevice(item.device);
+  go(item.view);
+  if (item.target) requestAnimationFrame(() => {
+    const target = document.querySelector(item.target);
+    if (!target) return;
+    target.scrollIntoView({block:"center", behavior:reduced ? "auto" : "smooth"});
+    target.tabIndex = -1; target.focus({preventScroll:true});
+  });
+}
+$("#openSearch").onclick = openGlobalSearch;
+$("#globalsearch").oninput = () => { searchActive = 0; renderGlobalSearch(); };
+$("#globalsearch").onkeydown = e => {
+  if (e.key === "Escape"){ e.preventDefault(); closeGlobalSearch(); }
+  else if (e.key === "ArrowDown" && searchMatches.length){ e.preventDefault(); searchActive = (searchActive + 1) % searchMatches.length; renderGlobalSearch(); }
+  else if (e.key === "ArrowUp" && searchMatches.length){ e.preventDefault(); searchActive = (searchActive - 1 + searchMatches.length) % searchMatches.length; renderGlobalSearch(); }
+  else if (e.key === "Enter" && searchMatches[searchActive]){ e.preventDefault(); activateSearchItem(searchMatches[searchActive]); }
+};
+$("#searchresults").onclick = e => {
+  const result = e.target.closest("[data-search-index]");
+  if (result) activateSearchItem(searchMatches[Number(result.dataset.searchIndex)]);
+};
+$("#searchback").onclick = e => { if (e.target.id === "searchback") closeGlobalSearch(); };
+$("#searchback").addEventListener("keydown", e => {
+  if (e.key !== "Tab" || !$("#searchback").classList.contains("show")) return;
+  const focusable = [$("#globalsearch"), ...$$("#searchresults button")];
+  if (!focusable.length) return;
+  const first = focusable[0], last = focusable.at(-1);
+  if (e.shiftKey && (document.activeElement === first || !focusable.includes(document.activeElement))){
+    e.preventDefault(); last.focus();
+  } else if (!e.shiftKey && (document.activeElement === last || !focusable.includes(document.activeElement))){
+    e.preventDefault(); first.focus();
+  }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && $("#searchback").classList.contains("show")){
+    e.preventDefault(); closeGlobalSearch(); return;
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k"){
+    e.preventDefault(); $("#searchback").classList.contains("show") ? closeGlobalSearch() : openGlobalSearch();
+  }
+});
+
+/* ---------- dashboard interactions ---------- */
+$("#bright").oninput = e => {
+  mirror.brightness = e.target.value / 100;
+  $("#brightval").textContent = e.target.value + "%";
+};
+$("#bright").onchange = e => pushAudit("display.brightness", e.target.value + "% → " + state.device().name);
+$$(".scenechips .chip").forEach(c => c.onclick = () => {
+  setScene(c.dataset.scene);
+  pushAudit("scene.set", c.dataset.scene + " → " + state.device().name);
+});
+function normalizePanelText(txt){
+  return String(txt ?? "").trim().toUpperCase().replace(/[^A-Z0-9 :.\-°/%!+'>?]/g, "").trim();
+}
+function pushText(txt){
+  const d = state.device();
+  if (!deviceReachable(d)){
+    toast(`${d.name} is unavailable`, "503 · not reachable on this LAN or Cloud relay", "warn");
+    return false;
+  }
+  const normalized = normalizePanelText(txt).slice(0, 40);
+  if (!normalized){
+    toast("Enter panel text", "use 1–40 supported characters", "warn");
+    return false;
+  }
+  scrollMsg = normalized;
+  scrollX = 64; scrollLoops = 0; setScene("text");
+  toast("Sent to " + d.name, "POST /display/text · 12 ms", "ok");
+  pushAudit("display.text", `"${scrollMsg}" → ` + d.name);
+  return true;
+}
+$("#btnPush").onclick = () => pushText($("#pushtext").value);
+$("#pushtext").addEventListener("keydown", e => { if (e.key === "Enter" && !$("#btnPush").disabled) pushText(e.target.value); });
+$("#qaShot").onclick = () => {
+  const d = state.device();
+  if (!deviceReachable(d)){ toast(`${d.name} is unavailable`, "no live framebuffer to save", "warn"); return; }
+  const a = document.createElement("a");
+  a.href = $("#mirror").toDataURL("image/png");
+  const filename = d.id + "-framebuffer.png";
+  a.download = filename; a.click();
+  toast("Framebuffer saved", "GET /screenshot → " + filename, "ok");
+};
+$("#qaIdent").onclick = () => {
+  const d = state.device();
+  if (!deviceReachable(d)){ toast(`${d.name} is unavailable`, "identify needs a live connection", "warn"); return; }
+  identUntil = performance.now() + 2600; setScene("identify"); toast("Identifying " + d.name, "panel is flashing");
+};
+$("#btnIdent2") && ($("#btnIdent2").onclick = () => {
+  if (!deviceReachable()){ toast(`${state.device().name} is unavailable`, "identify needs a live connection", "warn"); return; }
+  go("dashboard"); identUntil = performance.now() + 2600; setScene("identify");
+});
+$("#qaReboot").onclick = () => {
+  const d = state.device();
+  if (!deviceReachable(d)){ toast(`${d.name} is unavailable`, "reboot was not sent", "warn"); return; }
+  rebootT0 = performance.now(); setScene("reboot"); toast("Rebooting " + d.name, "expected back in ~3 s", "warn"); pushAudit("device.reboot", d.name);
+};
+$("#btnCheck").onclick = () => {
+  const d = state.device();
+  if (!deviceReachable(d)){ toast(`${d.name} is unavailable`, "update check was not sent", "warn"); return; }
+  $("#lastcheck").textContent = "checking…";
+  setTimeout(() => {
+    d.lastCheck = "checked just now";
+    if (state.current === d.id) $("#lastcheck").textContent = d.lastCheck;
+    const available = d.chan !== "stable" && d.fw !== "0.5.0-beta.2";
+    toast(available ? "Update available" : "Up to date",
+      available ? `${d.chan} · v0.5.0-beta.2 for ${d.name}` : `${d.chan} · v${d.fw} is current`, available ? undefined : "ok");
+  }, 900);
+};
+
+/* toggles (generic) */
+[["#tgQuiet", "quiet hours"], ["#tgStaged", "staged rollout"],
+ ["#tgTel", "telemetry"], ["#tgFlip", "rotate 180°"], ["#tgN1", "offline alerts"], ["#tgN3", "update alerts"]]
+.forEach(([sel, name]) => {
+  const el = $(sel); if (!el) return;
+  el.onclick = () => {
+    const on = el.getAttribute("aria-checked") !== "true";
+    el.setAttribute("aria-checked", String(on));
+    toast(name + (on ? " on" : " off"));
+  };
+});
+$("#tgAuto").onclick = () => {
+  const d = state.device(); d.autoUpdate = !d.autoUpdate;
+  $("#tgAuto").setAttribute("aria-checked", String(d.autoUpdate));
+  toast("auto-update " + (d.autoUpdate ? "on" : "off"), d.name);
+  pushAudit("ota.auto_update", `${d.autoUpdate ? "on" : "off"} → ${d.name}`);
+};
+$("#tgLocal").onclick = () => {
+  const local = $("#tgLocal").getAttribute("aria-checked") !== "true";
+  setLocalMode(local);
+};
+
+/* ---------- apps ---------- */
+function fakeProgress(bar, stepsEl, steps, done){
+  if (bar.classList.contains("show")) return;   // re-entry guard
+  bar.classList.add("show");
+  const fill = bar.querySelector("i");
+  let i = 0;
+  const tick = () => {
+    fill.style.width = ((i + 1) / steps.length * 100) + "%";
+    stepsEl.textContent = steps[i];
+    if (++i < steps.length) setTimeout(tick, 520);
+    else setTimeout(() => { bar.classList.remove("show"); fill.style.width = "0%"; stepsEl.textContent = ""; done(); }, 480);
+  };
+  tick();
+}
+function installApp(name){
+  const d = state.device();
+  if (!deviceReachable(d)){ toast(`${d.name} is unavailable`, "app install was not sent", "warn"); return; }
+  const apps = state.deviceApps(d.id);
+  fakeProgress($("#appprog"), $("#appsteps"),
+    ["uploading bundle…", "verifying manifest + permissions…", `hot-installing on ${d.name}…`],
+    () => {
+      apps.push({ name, ver: "v0.1", icon: "▣", running: true, perms: ["net: declared hosts", "storage 2 KB"], mem: 18, you: true });
+      if (state.current === d.id) renderApps();
+      toast(name + " installed on " + d.name, "over the air · 1.4 s", "ok");
+      pushAudit("app.install", name + " → " + d.name);
+    });
+}
+$("#drop").onclick = () => installApp("my-first-app");
+$("#drop").addEventListener("dragover", e => { e.preventDefault(); $("#drop").classList.add("over"); });
+$("#drop").addEventListener("dragleave", () => $("#drop").classList.remove("over"));
+$("#drop").addEventListener("drop", e => { e.preventDefault(); $("#drop").classList.remove("over"); installApp("dropped-app"); });
+$$(".reginstall").forEach(b => b.onclick = () => installApp(b.closest(".row").querySelector(".t").textContent.trim()));
+$("#btnTemplate").onclick = () => toast("applet-template", "github.example/devmatrix/applet-template — CI wired", "ok");
+$("#btnSdk").onclick = () => toast("SDKs", "pip install devmatrix · npm i devmatrix");
+$("#btnRegistry").onclick = () => toast("Registry", "community repo — apps land by PR, reviewed in the open · free in both modes");
+
+/* ---------- deploy ---------- */
+$("#chansel").onchange = e => {
+  const d = state.device();
+  d.chan = e.target.value;
+  const beta = e.target.value !== "stable";
+  $("#updrow").style.display = beta && d.fw !== "0.5.0-beta.2" ? "block" : "none";
+  $("#fwchan").textContent = e.target.value;
+  $("#fwstate").textContent = beta && d.fw !== "0.5.0-beta.2" ? "update available" : "✓ up to date";
+  renderDevices();
+  pushAudit("ota.channel", `${d.chan} → ${d.name}`);
+  if (beta) toast("Channel: " + e.target.value, "v0.5.0-beta.2 is available for " + d.name);
+};
+$("#btnUpdate").onclick = () => {
+  const d = state.device();   // capture target at click, not at completion
+  if (!deviceReachable(d)){ toast(`${d.name} is unavailable`, "firmware update was not started", "warn"); return; }
+  fakeProgress($("#otaprog"), $("#otasteps"),
+    ["downloading 1.9 MB…", "verifying sha256 + signature…", "writing slot B…", "rebooting into new build…", "boot health check…"],
+    () => {
+      d.fw = "0.5.0-beta.2"; d.chan = "beta";
+      if (state.current === d.id){
+        $("#depver").textContent = "v0.5.0-beta.2"; $("#fwver").textContent = "v0.5.0-beta.2";
+        $("#fwstate").textContent = "✓ healthy"; $("#updrow").style.display = "none";
+      }
+      d.fwhist.unshift({ v: "0.5.0-beta.2", d: "now", ok: true, note: "healthy in 38 s" });
+      if (state.current === d.id) renderFwHistory();
+      renderDevices();
+      toast(d.name + " updated to v0.5.0-beta.2", "slot B live · rollback armed for 24 h", "ok");
+      pushAudit("ota.update", "v0.5.0-beta.2 → " + d.name);
+    });
+};
+let sheetOpener = null;
+function openSheet(){
+  sheetOpener = document.activeElement;
+  $("#sheetback").classList.add("show"); $("#shell").inert = true; $("#sheetclose").focus();
+}
+function closeSheet(){
+  if (!$("#sheetback").classList.contains("show")) return;
+  $("#sheetback").classList.remove("show"); $("#shell").inert = false;
+  if (sheetOpener && sheetOpener.focus) sheetOpener.focus();
+}
+$("#btnUsb").onclick = openSheet;
+$("#sheetclose").onclick = closeSheet;
+$("#sheetback").onclick = e => { if (e.target.id === "sheetback") closeSheet(); };
+document.addEventListener("keydown", e => {
+  if (!$("#sheetback").classList.contains("show")) return;
+  if (e.key === "Escape") closeSheet();
+  if (e.key === "Tab"){ e.preventDefault(); $("#sheetclose").focus(); }   // single-stop trap: one enabled control
+});
+$("#btnByo").onclick = () => {
+  const d = state.device();
+  if (!deviceReachable(d)){ toast(`${d.name} is unavailable`, "build was not deployed", "warn"); return; }
+  toast("Deploying build #42 to " + d.name, "signed with YOUR key · Devmatrix never saw the source", "ok");
+  pushAudit("ota.deploy_own", "owner/dmx-fw #42 → " + d.name);
+};
+
+/* ---------- dev console ---------- */
+const CANNED = {
+  text: { ok: true, rendered_px: 118, scene: "text" },
+  notify: { ok: true, queued: true, priority: "normal", returns_to: "clock" },
+  metrics: { fps: 30, frame_ms: 1.8, temp_c: 38.2, psram_free: 1441792 },
+  screenshot: { note: "binary PNG omitted in mock — use the Dashboard quick action" }
+};
+function cannedResponse(endpoint){
+  const d = state.device();
+  if (endpoint === "info") return {
+    model: "DK-01", serial: d.serial, name: d.name, fw: d.fw, uptime_s: 1051876,
+    heap_free: d.metrics.heap * 1024, wifi: { ssid: d.metrics.ssid, rssi: d.metrics.rssi, ip: d.ip }
+  };
+  if (endpoint === "metrics") return {
+    fps: 30, frame_ms: 1.8, temp_c: d.metrics.temp, heap_free: d.metrics.heap * 1024
+  };
+  return CANNED[endpoint];
+}
+const BODIES = {
+  info: "", metrics: "", screenshot: "",
+  text: '{ "text": "HELLO FROM THE API", "scroll": true }',
+  notify: '{ "text": "MEETING IN 5", "icon": "bell", "seconds": 10, "priority": "high" }'
+};
+$("#epsel").onchange = e => $("#epbody").value = BODIES[e.target.value];
+function showApiResponse(status, body, ms){
+  const badge = $("#respbadge");
+  badge.style.display = "inline-flex";
+  badge.className = "chip " + (status < 400 ? "ok" : "warn");
+  badge.textContent = status + (ms ? " · " + ms + " ms" : "");
+  $("#resp").textContent = JSON.stringify(body, null, 2);
+}
+$("#btnSend").onclick = () => {
+  const ep = $("#epsel").value;
+  const ms = 8 + Math.floor(Math.random() * 12);
+  const d = state.device();
+  if (!deviceReachable(d)){
+    showApiResponse(503, { ok: false, error: "device_unavailable", device: d.name });
+    toast(`${d.name} is unavailable`, "API request returned 503", "warn"); return;
+  }
+  if (ep === "text"){
+    try {
+      const body = JSON.parse($("#epbody").value);
+      if (typeof body.text !== "string" || body.text.trim().length < 1 || body.text.length > 40 || !normalizePanelText(body.text))
+        throw new Error("text must be 1–40 supported characters");
+      pushText(body.text); showApiResponse(200, cannedResponse(ep), ms);
+    } catch (error) {
+      showApiResponse(400, { ok: false, error: "invalid_request", detail: error.message }); return;
+    }
+    go("dashboard");
+  } else if (ep === "notify"){
+    try {
+      const body = JSON.parse($("#epbody").value);
+      if (typeof body.text !== "string" || body.text.trim().length < 1 || body.text.length > 40 || !normalizePanelText(body.text))
+        throw new Error("text must be 1–40 supported characters");
+      pushText(body.text); showApiResponse(200, cannedResponse(ep), ms);
+    } catch (error) {
+      showApiResponse(400, { ok: false, error: "invalid_request", detail: error.message }); return;
+    }
+  } else {
+    showApiResponse(200, cannedResponse(ep), ms);
+    toast("GET /" + ep, "200 · " + ms + " ms", "ok");
+  }
+};
+$("#btnNewKey").onclick = () => {
+  const d = state.device();
+  if (!deviceReachable(d)){ toast(`${d.name} is unavailable`, "key was not created", "warn"); return; }
+  const keys = state.deviceKeys();
+  keys.unshift({ name: "new-key-" + (keys.length + 1), scopes: ["read"], last: "never", key: "dmx_live_" + Math.random().toString(36).slice(2, 6) + "••••" + Math.random().toString(36).slice(2, 5) });
+  renderKeys(); toast("Key created", "scope: read — tighten or broaden anytime", "ok");
+  pushAudit("key.create", `${keys[0].name} → ${d.name}`);
+};
+
+/* ws tail + log tail */
+const WS_LINES = [
+  '{"t":"metrics.tick","fps":30,"heap":151552}',
+  '{"t":"scene.change","to":"clock"}',
+  '{"t":"mqtt.state","topic":"devmatrix/DMX-4E71-0952/scene","v":"clock"}',
+  '{"t":"button.press","which":"top","ms":180}',
+  '{"t":"app.tick","app":"mars-weather","ms":3.1}'
+];
+const LOG_LINES = [
+  ["info",  "wifi: rssi -52 dBm ch44"],
+  ["info",  "compositor: 30 fps · 1.8 ms/frame"],
+  ["debug", "app[mars-weather]: fetch ok · 2.1 KB · 210 ms"],
+  ["info",  "mqtt: publish scene=clock"],
+  ["warn",  "app[github-stars]: rate limited · backing off 60 s"],
+  ["debug", "ota: manifest checked · stable · up to date"]
+];
+let wsPaused = false, wsI = 0, logI = 0, logEntries = [];
+function appendSafeLine(box, text){
+  const row = document.createElement("div");
+  row.textContent = text; box.append(row);
+  while (box.children.length > 9) box.firstChild.remove();
+  box.scrollTop = box.scrollHeight;
+}
+function renderDeviceLog(){
+  const filter = ($("#logfilter").value || "").toLowerCase();
+  const box = $("#logbox"); box.replaceChildren();
+  logEntries.filter(entry => !filter || entry.lv.includes(filter) || entry.msg.toLowerCase().includes(filter))
+    .slice(-9).forEach(entry => appendSafeLine(box, `${entry.time} ${entry.lv.padEnd(5)} ${entry.msg}`));
+}
+function resetDeviceStreams(){
+  wsI = 0; logI = 0; logEntries = [];
+  $("#wsbox").replaceChildren(); $("#logbox").replaceChildren();
+}
+setInterval(() => {
+  if (!wsPaused && deviceReachable() && $("#view-devconsole").classList.contains("active")){
+    const box = $("#wsbox");
+    const d = state.device();
+    const event = WS_LINES[wsI++ % WS_LINES.length].replace("DMX-4E71-0952", d.serial)
+      .replace('"heap":151552', `"heap":${d.metrics.heap * 1024}`);
+    appendSafeLine(box, `${new Date().toTimeString().slice(0,8)} ◂ ${event}`);
+  }
+}, 1300);
+setInterval(() => {
+  if (deviceReachable() && $("#view-devconsole").classList.contains("active")){
+    const [lv, template] = LOG_LINES[logI++ % LOG_LINES.length];
+    const d = state.device();
+    const msg = template.startsWith("wifi:") ? `wifi: rssi ${d.metrics.rssi} dBm ch${d.metrics.channel}` : template;
+    logEntries.push({ time: new Date().toTimeString().slice(0,8), lv, msg });
+    if (logEntries.length > 40) logEntries.shift();
+    renderDeviceLog();
+  }
+}, 1700);
+$("#btnWs").onclick = () => { wsPaused = !wsPaused; $("#btnWs").textContent = wsPaused ? "RESUME" : "PAUSE"; };
+$("#logfilter").oninput = renderDeviceLog;
+
+/* ---------- security ---------- */
+$("#btnAudit").onclick = () => {
+  download("devmatrix-audit.json", JSON.stringify(visibleAudit(), null, 2));
+  toast("Audit log exported", "devmatrix-audit.json — it's your data", "ok");
+};
+$("#btnAddPk").onclick = () => toast("Add a passkey", "would invoke WebAuthn — mock build");
+$("#btnEnroll").onclick = () => toast("Enrollment ceremony", state.cloudPreview
+  ? "passkey re-auth confirmed · now hold the device button 5 s — mock build"
+  : "device-local owner session confirmed · now hold the device button 5 s — mock build");
+$("#btnSnap").onclick = () => {
+  const d = state.device();
+  if (!deviceReachable(d)){ toast(`${d.name} is unavailable`, "snapshot was not created", "warn"); return; }
+  toast("Snapshot taken", state.cloudPreview && d.relay ? "encrypted client-side before hosted sync" : "saved locally · no Cloud upload", "ok");
+  pushAudit("snapshot.create", `${d.name} · 18 KB · E2EE`);
+};
+$("#btnInvite").onclick = () => state.cloudPreview
+  ? toast("Guest invite", "pick scopes + expiry, send a link — Cloud feature, mock build")
+  : toast("Cloud preview required", "guest links need an optional remote relay", "warn");
+$("#btnEject").onclick = () => toast("Eject wizard", "own manifest URL + snapshot export + self-host guide — mock build", "warn");
+document.addEventListener("click", e => {
+  const button = e.target.closest(".mockbtn");
+  if (button) toast("Mock build", "this action is intentionally simulated in the static prototype");
+});
+
+/* ---------- settings ---------- */
+$("#btnSave").onclick = () => {
+  const d = state.device(); d.name = $("#setname").value || d.name;
+  $$("#devsel option").forEach(o => { if (o.value === d.id) o.textContent = d.name; });
+  toast("Saved", d.name + " · settings survive updates", "ok");
+  pushAudit("settings.update", d.name);
+  renderDevices(); switchDevice(d.id);
+};
+$("#btnUseLocal").onclick = () => setLocalMode(true);
+$("#btnCloudPreview").onclick = () => setLocalMode(false);
+$("#btnByoRemote").onclick = () => toast("Bring your own remote access", "use a VPN, Tailscale, NAS, Raspberry Pi, or VPS · no Devmatrix cloud bill", "ok");
+
+/* ---------- welcome flow ---------- */
+const dots = $$("#claimdots i");
+let claimTimer = null, requestedView = null;
+function firstPixelSlug(){
+  return $("#firstpixelname").value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 32) || "study";
+}
+function updateFirstPixelCommand(){
+  const text = $("#firstpixeltext").value.trim() || "SHIP IT";
+  const payload = JSON.stringify({ text });
+  $("#firstpixelcmd").textContent = `curl -X POST https://${firstPixelSlug()}.local/api/v1/display/text -H "Authorization: Bearer dmx_lan_demo" -d ${JSON.stringify(payload)}`;
+  if ($("#btnFirstPixel").dataset.complete !== "true")
+    $("#btnFirstPixel").textContent = `SEND “${text.slice(0, 18).toUpperCase()}${text.length > 18 ? "…" : ""}” TO THE PANEL`;
+}
+function claimStep(n){
+  dots.forEach((d, i) => d.classList.toggle("on", i <= n));
+  ["#claimstep1", "#claimstep2", "#claimstep3", "#claimstep4"].forEach((s, i) => $(s).hidden = i !== n);
+  [...$("#claimsteps").children].forEach((label, i) => {
+    label.classList.toggle("on", i <= n);
+    i === n ? label.setAttribute("aria-current", "step") : label.removeAttribute("aria-current");
+  });
+  claimProofActive = n === 1;
+  $("#skipwelcome").hidden = n >= 2;
+  if (n === 2) updateFirstPixelCommand();
+  const panelLabels = [
+    "Boot screen showing the device address and claim code",
+    "Panel possession prompt: CLAIM, arrow, 7F2Q, question mark",
+    firstPixelMessage ? `Panel displaying ${firstPixelMessage}` : "Panel ready for the first text command",
+    firstPixelMessage ? `Panel displaying ${firstPixelMessage}` : "Claimed panel ready"
+  ];
+  $("#wpanel").setAttribute("aria-label", panelLabels[n]);
+  requestAnimationFrame(() => $(["#claimstep1 h2", "#claimstep2 h2", "#claimstep3 h2", "#claimstep4 h2"][n])?.focus());
+}
+$("#btnClaim").onclick = () => {
+  const address = $("#claimaddress").value.trim().toLowerCase();
+  const code = $("#claimcode").value.trim().toUpperCase();
+  $("#claimaddress").value = address; $("#claimcode").value = code;
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.local$/.test(address)){
+    toast("Check the device address", "enter the .local address shown on the panel", "warn");
+    $("#claimaddress").focus(); return;
+  }
+  if (!/^[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(code)){
+    toast("Check the claim code", "enter the 7-character code shown on the panel", "warn");
+    $("#claimcode").focus(); return;
+  }
+  if (address !== "dmx-0952.local" || code !== "H7Q-4KD"){
+    toast("Demo kit not found", "this static mock recognizes dmx-0952.local · H7Q-4KD", "warn");
+    (address !== "dmx-0952.local" ? $("#claimaddress") : $("#claimcode")).focus(); return;
+  }
+  if (claimTimer) clearInterval(claimTimer);
+  claimStep(1);
+  let p = 0;
+  $("#holdhint").textContent = "waiting for device…";
+  claimTimer = setInterval(() => {
+    p += 8; $("#holdfill").style.width = p + "%";
+    if (p === 40) $("#holdhint").textContent = "button held — keep holding…";
+    if (p >= 100){
+      clearInterval(claimTimer); claimTimer = null;
+      $("#holdhint").textContent = "possession verified ✓";
+      setTimeout(() => claimStep(2), 500);
+    }
+  }, 80);
+};
+["#claimaddress", "#claimcode"].forEach(sel => $(sel).addEventListener("keydown", e => {
+  if (e.key === "Enter"){ e.preventDefault(); $("#btnClaim").click(); }
+}));
+$("#claimcode").oninput = e => { e.target.value = e.target.value.toUpperCase(); };
+$("#btnCopyFirstPixel").onclick = async () => {
+  try {
+    if (!navigator.clipboard) throw new Error("Clipboard unavailable");
+    await navigator.clipboard.writeText($("#firstpixelcmd").textContent);
+    toast("Curl command copied", "LAN token included · paste it in your terminal", "ok");
+  } catch {
+    toast("Copy failed", "select the curl command and copy it manually", "warn");
+  }
+};
+["#firstpixelname", "#firstpixeltext"].forEach(sel => {
+  $(sel).addEventListener("input", updateFirstPixelCommand);
+  $(sel).addEventListener("keydown", e => {
+    if (e.key === "Enter"){ e.preventDefault(); $("#btnFirstPixel").click(); }
+  });
+});
+$("#btnFirstPixel").onclick = () => {
+  if ($("#btnFirstPixel").dataset.complete === "true"){
+    claimStep(3); return;
+  }
+  const name = $("#firstpixelname").value.trim();
+  const text = $("#firstpixeltext").value.trim();
+  if (!name){ toast("Name your device", "use a name you will recognize on the LAN", "warn"); $("#firstpixelname").focus(); return; }
+  if (!text || !normalizePanelText(text)){
+    toast("Enter panel text", "use 1–40 supported characters", "warn"); $("#firstpixeltext").focus(); return;
+  }
+  const d = state.devices.find(device => device.id === "study");
+  d.name = name; d.mdns = firstPixelSlug() + ".local";
+  state.current = d.id; renderDeviceOptions();
+  firstPixelMessage = normalizePanelText(text).slice(0, 40); firstPixelX = 64;
+  if (!pushText(text)) return;
+  $("#wpanel").setAttribute("aria-label", `Panel displaying ${firstPixelMessage}`);
+  $("#firstpixelstatus").textContent = `Success — ${name} changed immediately. The curl command is ready to copy.`;
+  $("#firstpixelname").readOnly = true; $("#firstpixeltext").readOnly = true;
+  $("#btnFirstPixel").dataset.complete = "true";
+  $("#btnFirstPixel").textContent = "CONTINUE TO ACCESS OPTIONS →";
+};
+$("#btnLocal").onclick = () => {
+  state.cloudPreview = false;
+  state.devices.forEach(d => { d.relay = false; });
+  switchDevice("study"); renderDevices(); finishWelcome("dashboard");
+  toast(state.device().name + " claimed · Local Mode", "no account · no subscription · LAN token ready", "ok");
+};
+$("#btnPasskey").onclick = () => {
+  state.cloudPreview = true; state.device().relay = true;
+  switchDevice(state.current); renderDevices(); finishWelcome("settings");
+  toast("Cloud demo opened", "optional paid preview · nothing was purchased", "ok");
+};
+function finishWelcome(view){
+  if (claimTimer){ clearInterval(claimTimer); claimTimer = null; }
+  claimProofActive = false;
+  $("#welcome").classList.add("gone");
+  $("#shell").inert = false;
+  if (view) go(view);
+  setTimeout(() => { welcomeAlive = false; firstPixelMessage = ""; }, 600);
+}
+$("#skipwelcome").onclick = () => {
+  state.cloudPreview = true; state.device().relay = true;
+  switchDevice(state.current); renderDevices(); finishWelcome(requestedView || "dashboard");
+  toast("Maya's Cloud demo", "sample data · no account was created and nothing is billed");
+};
+$("#welcome").addEventListener("keydown", e => {
+  if (e.key !== "Tab") return;
+  const focusable = $$("#welcome button:not([disabled]), #welcome input:not([disabled]), #welcome [role=\"button\"][tabindex=\"0\"]")
+    .filter(el => !el.closest("[hidden]"));
+  if (!focusable.length) return;
+  const first = focusable[0], last = focusable.at(-1);
+  if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+});
+
+/* ---------- themes ---------- */
+const THEMES = ["paper", "solarized-light", "solarized-dark", "nord", "dracula", "gruvbox-dark"];
+function applyTheme(t){
+  if (!THEMES.includes(t)) t = "paper";
+  if (t === "paper") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = t;
+  try { localStorage.setItem("dmx-theme", t); } catch {}
+  requestAnimationFrame(() => $$("[data-spark]").forEach(drawSpark));
+}
+$("#themesel").onchange = e => applyTheme(e.target.value);
+
+/* keyboard operability for div[role=button] (dropzone, claim-new, skiplink) */
+document.addEventListener("keydown", e => {
+  if ((e.key === "Enter" || e.key === " ") && e.target instanceof HTMLElement
+      && e.target.getAttribute("role") === "button"){
+    e.preventDefault(); e.target.click();
+  }
+});
+
+/* ---------- boot ---------- */
+function init(){
+  $("#shell").inert = true;   // welcome overlay is up; console leaves the tab order
+  $("#devsel").innerHTML = state.devices.map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join("");
+  renderActivity(); renderAudit(); renderApps(); renderKeys(); renderFwHistory(); renderDevices();
+  bindCopy();
+  switchDevice("study");
+  renderWorkbench();
+  let savedTheme = "paper";
+  try { savedTheme = localStorage.getItem("dmx-theme") || "paper"; } catch {}
+  if (THEMES.includes(savedTheme)){ $("#themesel").value = savedTheme; applyTheme(savedTheme); }
+  const h = location.hash.slice(1);
+  if (h && $("#view-" + h)){ requestedView = h; go(h, false); }
+  claimStep(0);
+  requestAnimationFrame(() => $("#claimaddress").focus());
+  requestAnimationFrame(loop);
+  requestAnimationFrame(() => $$("[data-spark]").forEach(drawSpark));
+  addEventListener("resize", () => { if ($("#view-dashboard").classList.contains("active")) $$("[data-spark]").forEach(drawSpark); });
+}
+init();
+</script>
+</body>
+</html>

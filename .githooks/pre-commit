@@ -1,0 +1,22 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+
+if [ -n "${DEVMATRIX_VALIDATED_TREE:-}" ]; then
+  case "$DEVMATRIX_VALIDATED_TREE" in
+    *[!0-9a-f]*|'')
+      printf '%s\n' 'Release proof has an invalid tree hash.' >&2
+      exit 1
+      ;;
+  esac
+  staged_tree=$(git write-tree)
+  if [ "$staged_tree" != "$DEVMATRIX_VALIDATED_TREE" ]; then
+    printf '%s\n' 'Staged tree changed after the repository gate passed.' >&2
+    exit 1
+  fi
+  printf '%s\n' "Repository gate already passed for staged tree $staged_tree."
+  exit 0
+fi
+
+exec make -C "$repo_root" check

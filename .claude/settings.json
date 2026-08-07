@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "project_dir=\"${CLAUDE_PROJECT_DIR:-.}\"; if ! cd \"$project_dir\"; then printf '%s\\n' 'WARNING: could not inspect the devmatrix working tree.' >&2; exit 0; fi; if ! changes=\"$(git status --short 2>&1)\"; then printf '%s\\n' 'WARNING: could not inspect the devmatrix working tree.' \"$changes\" >&2; exit 0; fi; if [ -n \"$changes\" ]; then printf '%s\\n' 'WARNING: devmatrix has uncommitted changes.' 'If the user requested commit, push, deploy, go live, publish, or ship, complete the full AGENTS.md release chain before stopping.' \"$changes\" >&2; else printf '%s\\n' 'devmatrix working tree is clean.'; fi",
+            "timeout": 10,
+            "statusMessage": "Checking the devmatrix working tree…"
+          }
+        ]
+      }
+    ]
+  }
+}
