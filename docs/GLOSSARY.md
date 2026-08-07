@@ -16,7 +16,7 @@ first; then use.
 | **Cloud Mode** | Paid subscription layer: remote access, multi-site fleet, hosted E2EE snapshots, alerts. Adds reach, never capability (docs/MODES.md). |
 | **Sunset covenant** | If Cloud Mode ever ends: 12 months' notice + automatic Eject. A dead cloud costs convenience, never function. |
 | **Claiming** | Binding a device to its owner via proof of physical possession; mints the LAN token in the browser — no account involved (docs/MODES.md). A passkey account and explicit subscription confirmation are separate, optional Cloud Mode steps. |
-| **Claim code** | Short code shown on the panel at first boot. Format `XXX-XXX`. |
+| **Claim code** | Short code shown on the panel when a browser asks to pair (and at first boot once M1 claiming ships). Reading the panel proves physical presence. Format `XXX-XXX`. |
 | **Serial** | Device identity, printed + in cert. Format `DMX-####-####` (e.g. `DMX-4E71-0952`). |
 | **LAN token** | Per-device bearer credential minted at claim; required on every `/api/v1` call on the LAN. Rotatable/revocable; read-only scoped variants for integrations. |
 | **App** | User code running on the device (sandboxed runtime). Bundle: `.dmapp`. UI says "Apps"; the firmware subsystem is the "app runtime". |

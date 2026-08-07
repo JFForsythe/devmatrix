@@ -86,6 +86,12 @@ summaries; full gate criteria live in section 3 of
 - **C3 — Ecosystem**: Registry polish (stays free/static), CI deploy
   convenience for BYO firmware.
 
+**Amendment (ADR-0024):** the DK-01 firmware tree
+([firmware/dk01/](firmware/dk01/README.md)) develops continuously from
+P1 onward — P2's "production code is authorized only after this gate"
+no longer applies to it. Contracts stay DRAFT until the P2 freeze, and
+M0 acceptance evidence still gates any sold unit.
+
 ## Standing rules
 
 When tracks conflict, the buyer journey in docs/USER-STORY.md wins.

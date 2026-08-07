@@ -1,10 +1,16 @@
 # Firmware plan
 
-> **Status: not started.** Production firmware begins at M0, after the
-> P2 contract and security freeze (ADR-0009 gate ladder; ROADMAP.md).
-> P1 may produce disposable feasibility firmware only — bring-up
-> sketches that gather evidence and are thrown away, never merged as
-> product code. Console-first ordering per ADR-0002.
+> **Status: living tree.** The DK-01 firmware lives at
+> [`firmware/dk01/`](../firmware/dk01/README.md) and develops
+> continuously from P1 onward (ADR-0024, superseding ADR-0009's
+> disposable-spike posture). v0.3.0 ships the plug-and-play loop:
+> captive-portal Wi-Fi setup with live join, claim-code pairing (the
+> panel shows the code — users never hold a token), device-served
+> Local Console, `/api/v1`, and browser OTA onto dual app slots with
+> the TinyUF2 factory partition kept for USB recovery. API and OTA shapes
+> stay DRAFT until the P2 freeze; M0 acceptance (signed OTA, verified
+> rollback, soak) still gates sold units. No credentials are ever
+> compiled in or committed — runtime NVS only (ADR-0023).
 
 ## Stack
 
@@ -19,6 +25,10 @@ disclaims MatrixPortal S3 with Wi-Fi and warns against Quad-SPI PSRAM
 as the DMA buffer — exactly DK-01's configuration.
 
 ## Module map
+
+Target shape. Today's tree is deliberately one readable sketch plus two
+embedded pages (see [firmware/dk01/README.md](../firmware/dk01/README.md));
+modules split out along these lines as they grow.
 
 ```
 firmware/
