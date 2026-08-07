@@ -44,6 +44,19 @@ display + Wi-Fi + HTTP serving.
   rendered on the panel and auto-returned to the clock.
 - Signal at the bench: −42 to −47 dBm.
 
+## Device-served Local Console v0 (same session, later flash)
+
+The firmware now serves a real control page at `/` — status tiles
+(uptime, RSSI, heap, brightness, firmware), text push, brightness
+slider (10–255, NVS-persisted, applied live), identify (bordered
+device-ID flash), and token rotation — vanilla single-file HTML
+embedded in firmware, no external assets, token held in the browser
+after one paste. This is the product architecture (the box hosts its
+own Console, ADR-0003/PORTAL.md) at feasibility scale; the full
+Preact Console with the claim ceremony remains M1 work. Verified
+live: page served, authed info, brightness round-trip, identify.
+~194 KB heap free while serving.
+
 ## Notes for P2/M0
 
 - LAN TLS remains the open P1 design question — this run was HTTP.
