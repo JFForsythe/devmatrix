@@ -3,7 +3,10 @@
 > **Status: living tree.** The DK-01 firmware lives at
 > [`firmware/dk01/`](../firmware/dk01/README.md) and develops
 > continuously from P1 onward (ADR-0024, superseding ADR-0009's
-> disposable-spike posture). v0.6.0 — the device now serves the
+> disposable-spike posture). v0.7.0 — the first declarative apps now run
+> on the device with no host machine: offline Messages, the local-receiver
+> Flights list, and a generic HTTP/HTTPS JSON custom layout with RFC 6901
+> bindings, scheduled rotation, and stale-data rendering. The device serves the
 > generated one-codebase Console (ADR-0027), gzip-compressed from
 > PROGMEM. The plug-and-play loop includes captive-portal Wi-Fi setup
 > with live join, claim-code pairing (the panel shows the code — users

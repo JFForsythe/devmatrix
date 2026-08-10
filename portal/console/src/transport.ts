@@ -3,12 +3,15 @@ import { FRAME_BYTES } from "./frame";
 import { createMockState, MOCK_ADDRESS, MOCK_FLEET, MOCK_TOKEN, type MockState } from "./mock";
 import type {
   ActionResult,
+  AppsSettings,
   ConsoleMode,
+  CustomLayout,
   DeviceInfo,
   DeviceSettings,
   FleetDevice,
   FlightsSettings,
   Health,
+  MessagesSettings,
 } from "./types";
 
 const TOKEN_KEY = "dmx_token";
@@ -193,6 +196,9 @@ export class ConsoleTransport {
     if (method === "GET" && path === "/api/v1/health") result = { ...this.mock.health };
     else if (method === "GET" && path === "/api/v1/info") result = { ...this.mock.info };
     else if (method === "GET" && path === "/api/v1/settings") result = { ...this.mock.settings };
+    else if (method === "GET" && path === "/api/v1/apps") result = { apps: this.mock.apps.apps.map((app) => ({ ...app })) };
+    else if (method === "GET" && path === "/api/v1/apps/messages") result = { ...this.mock.messages, phrases: [...this.mock.messages.phrases] };
+    else if (method === "GET" && path === "/api/v1/apps/custom") result = structuredClone(this.mock.custom);
     else if (method === "GET" && path === "/api/v1/apps/flights") result = { ...this.mock.flights };
     else if (method === "POST" && path === "/api/v1/display/text") {
       this.mock.info.scene = "text";
@@ -209,6 +215,26 @@ export class ConsoleTransport {
     } else if (method === "POST" && path === "/api/v1/display/brightness") {
       this.mock.info.brightness = Number(body.value);
       this.mock.settings.brightness = Number(body.value);
+      result = { ok: true };
+    } else if (method === "POST" && path === "/api/v1/apps") {
+      const app = this.mock.apps.apps.find((item) => item.id === body.id);
+      if (!app) return Promise.reject(new Error("Unknown app id."));
+      if (typeof body.enabled === "boolean") app.enabled = body.enabled;
+      if (typeof body.interval_s === "number") app.interval_s = body.interval_s;
+      result = { apps: this.mock.apps.apps.map((item) => ({ ...item })) };
+    } else if (method === "POST" && path === "/api/v1/apps/messages") {
+      if (Array.isArray(body.phrases)) this.mock.messages.phrases = body.phrases.map(String).slice(0, 8);
+      if (typeof body.rotation_s === "number") this.mock.messages.rotation_s = body.rotation_s;
+      const app = this.mock.apps.apps.find((item) => item.id === "messages");
+      if (app) app.refresh_s = this.mock.messages.rotation_s;
+      result = { ...this.mock.messages, phrases: [...this.mock.messages.phrases] };
+    } else if (method === "POST" && path === "/api/v1/apps/custom") {
+      this.mock.custom = structuredClone(body) as unknown as CustomLayout;
+      const app = this.mock.apps.apps.find((item) => item.id === "custom");
+      if (app) app.refresh_s = this.mock.custom.source?.interval_s ?? 0;
+      result = structuredClone(this.mock.custom);
+    } else if (method === "POST" && /^\/api\/v1\/apps\/(messages|flights_list|custom)\/show$/.test(path)) {
+      this.mock.info.scene = path.split("/")[4];
       result = { ok: true };
     } else if (method === "POST" && path === "/api/v1/apps/flights") {
       this.mock.flights = { ...this.mock.flights, ...(body as unknown as Partial<FlightsSettings>) };
@@ -246,6 +272,18 @@ export class ConsoleTransport {
 
   flights(): Promise<FlightsSettings> {
     return this.request("/api/v1/apps/flights");
+  }
+
+  apps(): Promise<AppsSettings> {
+    return this.request("/api/v1/apps");
+  }
+
+  messages(): Promise<MessagesSettings> {
+    return this.request("/api/v1/apps/messages");
+  }
+
+  custom(): Promise<CustomLayout> {
+    return this.request("/api/v1/apps/custom");
   }
 
   post<T = ActionResult>(path: string, body?: unknown): Promise<T> {

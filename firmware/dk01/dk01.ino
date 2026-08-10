@@ -33,8 +33,10 @@
 #include "mbedtls/base64.h"
 #include "web_setup.h"
 #include "web_console.h"
+#include "apps_engine.h"
+#include "apps_builtin.h"
 
-#define FW_VERSION "0.6.0"
+#define FW_VERSION "0.7.0"
 
 // A full-bright white frame can out-draw USB-C power and brown-out the
 // board (observed on the bench 2026-08-07: brownout reset at high slider
@@ -61,12 +63,20 @@ bool setupMode = false;
 // Scenes: what the panel is showing right now.
 #define SCENE_CLOCK 0
 #define SCENE_FRAME 1
+#define SCENE_MESSAGES 10
+#define SCENE_FLIGHTS_LIST 11
+#define SCENE_CUSTOM 12
 int baseScene = SCENE_CLOCK;
 uint16_t frameBuf[64 * 32];        // raw RGB565 from /api/v1/display/frame
 String overlayText;
 uint32_t overlayUntil = 0;         // text overlay deadline (0 = none)
 uint32_t identifyUntil = 0;        // identify-flash deadline (0 = none)
 int lastShown = -1;                // last scene id actually drawn
+int scheduledScene = SCENE_CLOCK;  // clock + enabled apps, round-robin
+uint8_t scheduledSlot = 0;         // 0 clock; 1..3 map to DmxAppIndex + 1
+uint32_t scheduledUntil = 0;
+int manualAppScene = -1;
+uint32_t manualAppUntil = 0;
 
 uint8_t brightness = 110;          // 10..MAX_BRIGHTNESS, NVS-persisted
 String tzPosix = "CST6CDT,M3.2.0,M11.1.0";  // NVS-persisted, default US Central
@@ -276,16 +286,68 @@ void drawClaim() {
   matrix.show();
 }
 
+int appScene(uint8_t app) {
+  if (app == DMX_APP_MESSAGES) return SCENE_MESSAGES;
+  if (app == DMX_APP_FLIGHTS_LIST) return SCENE_FLIGHTS_LIST;
+  return SCENE_CUSTOM;
+}
+
+uint8_t sceneApp(int scene) {
+  if (scene == SCENE_MESSAGES) return DMX_APP_MESSAGES;
+  if (scene == SCENE_FLIGHTS_LIST) return DMX_APP_FLIGHTS_LIST;
+  return DMX_APP_CUSTOM;
+}
+
+bool appHasData(uint8_t app) {
+  DmxAppFrame* frame = dmxAppFrame(app);
+  return frame && frame->hasData && frame->rowCount > 0;
+}
+
+// The clock is always slot zero. Disabled apps are skipped; an enabled app
+// with no usable data deliberately occupies its turn with the clock, which is
+// the permanent failure fallback promised by ADR-0026.
+int rotationScene(uint32_t nowMs) {
+  if (manualAppUntil && (int32_t)(manualAppUntil - nowMs) > 0) {
+    uint8_t app = sceneApp(manualAppScene);
+    return appHasData(app) ? manualAppScene : SCENE_CLOCK;
+  }
+  if (manualAppUntil) { manualAppUntil = 0; manualAppScene = -1; }
+  if (baseScene == SCENE_FRAME) return SCENE_FRAME;  // host radar stays live
+  if (!scheduledUntil) {
+    scheduledSlot = 0;
+    scheduledScene = SCENE_CLOCK;
+    scheduledUntil = nowMs + 10000UL;
+    return scheduledScene;
+  }
+  if ((int32_t)(nowMs - scheduledUntil) < 0) return scheduledScene;
+  for (uint8_t tries = 0; tries <= DMX_APP_COUNT; ++tries) {
+    scheduledSlot = (scheduledSlot + 1) % (DMX_APP_COUNT + 1);
+    if (scheduledSlot == 0) {
+      scheduledScene = SCENE_CLOCK;
+      scheduledUntil = nowMs + 10000UL;
+      return scheduledScene;
+    }
+    uint8_t app = scheduledSlot - 1;
+    if (!dmxAppSlots[app].enabled) continue;
+    scheduledScene = appHasData(app) ? appScene(app) : SCENE_CLOCK;
+    scheduledUntil = nowMs + (uint32_t)dmxAppDurationS[app] * 1000UL;
+    return scheduledScene;
+  }
+  scheduledScene = SCENE_CLOCK;
+  scheduledUntil = nowMs + 10000UL;
+  return scheduledScene;
+}
+
 // Redraws only when the active scene changes or an animated scene ticks.
 void renderTick() {
-  static uint32_t lastClock = 0, lastBlink = 0;
+  static uint32_t lastClock = 0, lastBlink = 0, lastAppDraw = 0;
   static bool blinkPhase = false;
   uint32_t nowMs = millis();
   int scene;
   if (claimUntil && nowMs < claimUntil) scene = 102;
   else if (identifyUntil && nowMs < identifyUntil) scene = 100;
   else if (overlayUntil && nowMs < overlayUntil) scene = 101;
-  else scene = baseScene;
+  else scene = rotationScene(nowMs);
   if (claimUntil && nowMs >= claimUntil) { claimUntil = 0; claimCode = ""; }
   if (identifyUntil && nowMs >= identifyUntil) identifyUntil = 0;
   if (overlayUntil && nowMs >= overlayUntil) overlayUntil = 0;
@@ -303,6 +365,14 @@ void renderTick() {
     if (changed) drawOverlay();
   } else if (scene == SCENE_FRAME) {
     if (changed) drawFrame();
+  } else if (scene == SCENE_MESSAGES || scene == SCENE_FLIGHTS_LIST ||
+             scene == SCENE_CUSTOM) {
+    if (changed || nowMs - lastAppDraw >= 1000) {
+      lastAppDraw = nowMs;
+      DmxAppFrame* frame = dmxAppFrame(sceneApp(scene));
+      if (frame && frame->hasData) dmxRenderRows(matrix, brightness, *frame, nowMs);
+      else drawClock();
+    }
   } else {
     if (changed || nowMs - lastClock >= 250) {
       lastClock = nowMs;
@@ -330,7 +400,11 @@ const char* sceneName() {
   if (claimUntil && nowMs < claimUntil) return "pair";
   if (identifyUntil && nowMs < identifyUntil) return "identify";
   if (overlayUntil && nowMs < overlayUntil) return "text";
-  return baseScene == SCENE_FRAME ? "frame" : "clock";
+  if (baseScene == SCENE_FRAME) return "frame";
+  if (lastShown == SCENE_MESSAGES) return "messages";
+  if (lastShown == SCENE_FLIGHTS_LIST) return "flights_list";
+  if (lastShown == SCENE_CUSTOM) return "custom";
+  return "clock";
 }
 
 // ---------------------------------------------------------------- /api/v1
@@ -372,6 +446,178 @@ void handleText() {
   overlayUntil = millis() + (uint32_t)secs * 1000;
   lastShown = -1;  // repaint even if an overlay is already showing (live boards)
   sendJson(200, "{\"ok\":true}");
+}
+
+void handleAppsGet() {
+  if (!authed()) { deny(); return; }
+  char body[620];
+  snprintf(body, sizeof body,
+           "{\"apps\":["
+           "{\"id\":\"messages\",\"enabled\":%s,\"interval_s\":%u,\"refresh_s\":%u},"
+           "{\"id\":\"flights_list\",\"enabled\":%s,\"interval_s\":%u,\"refresh_s\":%u},"
+           "{\"id\":\"custom\",\"enabled\":%s,\"interval_s\":%u,\"refresh_s\":%lu}]}",
+           dmxAppSlots[DMX_APP_MESSAGES].enabled ? "true" : "false",
+           dmxAppDurationS[DMX_APP_MESSAGES], dmxMessages.rotationS,
+           dmxAppSlots[DMX_APP_FLIGHTS_LIST].enabled ? "true" : "false",
+           dmxAppDurationS[DMX_APP_FLIGHTS_LIST], flInterval,
+           dmxAppSlots[DMX_APP_CUSTOM].enabled ? "true" : "false",
+           dmxAppDurationS[DMX_APP_CUSTOM],
+           (unsigned long)(dmxCustom.hasSource ? dmxCustom.intervalS : 0));
+  sendJson(200, body);
+}
+
+void handleAppsPost() {
+  if (!authed()) { deny(); return; }
+  String body = server.arg("plain");
+  DmxJsonSpan root, value;
+  char id[24];
+  if (!dmxJsonRoot(body.c_str(), body.length(), root) || root.type != '{' ||
+      !dmxJsonObjectGet(root, "id", value) ||
+      !dmxJsonCopyString(value, id, sizeof id)) {
+    sendJson(400, "{\"error\":\"body needs a valid app id\"}");
+    return;
+  }
+  int8_t app = dmxAppIndex(id);
+  if (app < 0) {
+    sendJson(404, "{\"error\":\"unknown app id\"}");
+    return;
+  }
+  bool enabled = dmxAppSlots[app].enabled;
+  long interval = dmxAppDurationS[app];
+  bool hasEnabled = dmxJsonObjectGet(root, "enabled", value);
+  if (hasEnabled && !dmxJsonToBool(value, enabled)) {
+    sendJson(400, "{\"error\":\"enabled must be boolean\"}");
+    return;
+  }
+  bool hasInterval = dmxJsonObjectGet(root, "interval_s", value);
+  if (hasInterval && (!dmxJsonToLong(value, interval) || interval < 3 ||
+                      interval > 300)) {
+    sendJson(400, "{\"error\":\"interval_s must be 3..300\"}");
+    return;
+  }
+  if (!hasEnabled && !hasInterval) {
+    sendJson(400, "{\"error\":\"provide enabled or interval_s\"}");
+    return;
+  }
+  if (hasEnabled) dmxSetAppEnabled(prefs, app, enabled);
+  if (hasInterval && !dmxSetAppDuration(prefs, app, interval)) {
+    sendJson(500, "{\"error\":\"could not store app interval\"}");
+    return;
+  }
+  scheduledUntil = 0;
+  lastShown = -1;
+  handleAppsGet();
+}
+
+String appJsonEscape(const char* text) {
+  String escaped;
+  escaped.reserve(strlen(text) + 8);
+  for (const char* p = text; *p; ++p) {
+    if (*p == '\\' || *p == '"') { escaped += '\\'; escaped += *p; }
+    else if (*p == '\n') escaped += "\\n";
+    else if (*p == '\r') escaped += "\\r";
+    else if (*p == '\t') escaped += "\\t";
+    else escaped += *p;
+  }
+  return escaped;
+}
+
+void handleMessagesGet() {
+  if (!authed()) { deny(); return; }
+  String body = "{\"phrases\":[";
+  body.reserve(700);
+  for (uint8_t i = 0; i < dmxMessages.count; ++i) {
+    if (i) body += ',';
+    body += '"';
+    body += appJsonEscape(dmxMessages.phrases[i]);
+    body += '"';
+  }
+  body += "],\"rotation_s\":";
+  body += dmxMessages.rotationS;
+  body += '}';
+  sendJson(200, body);
+}
+
+void handleMessagesPost() {
+  if (!authed()) { deny(); return; }
+  String body = server.arg("plain");
+  DmxJsonSpan root, value;
+  if (!dmxJsonRoot(body.c_str(), body.length(), root) || root.type != '{') {
+    sendJson(400, "{\"error\":\"body must be a JSON object\"}");
+    return;
+  }
+  char phrases[8][65];
+  memcpy(phrases, dmxMessages.phrases, sizeof phrases);
+  uint8_t count = dmxMessages.count;
+  uint16_t rotation = dmxMessages.rotationS;
+  bool changed = false;
+  if (dmxJsonObjectGet(root, "phrases", value)) {
+    if (value.type != '[' || dmxJsonArraySize(value, 9) > 8) {
+      sendJson(400, "{\"error\":\"phrases must contain at most 8 strings\"}");
+      return;
+    }
+    memset(phrases, 0, sizeof phrases);
+    count = dmxJsonArraySize(value, 8);
+    for (uint8_t i = 0; i < count; ++i) {
+      DmxJsonSpan phrase;
+      if (!dmxJsonArrayGet(value, i, phrase) ||
+          !dmxJsonCopyString(phrase, phrases[i], sizeof phrases[i])) {
+        sendJson(400, "{\"error\":\"each phrase must be a string <=64 chars\"}");
+        return;
+      }
+    }
+    changed = true;
+  }
+  if (dmxJsonObjectGet(root, "rotation_s", value)) {
+    long next;
+    if (!dmxJsonToLong(value, next) || next < 2 || next > 3600) {
+      sendJson(400, "{\"error\":\"rotation_s must be 2..3600\"}");
+      return;
+    }
+    rotation = next;
+    changed = true;
+  }
+  if (!changed) {
+    sendJson(400, "{\"error\":\"provide phrases or rotation_s\"}");
+    return;
+  }
+  if (!dmxSaveMessages(prefs, phrases, count, rotation)) {
+    sendJson(500, "{\"error\":\"could not store phrase pack\"}");
+    return;
+  }
+  lastShown = -1;
+  handleMessagesGet();
+}
+
+void handleCustomGet() {
+  if (!authed()) { deny(); return; }
+  sendJson(200, dmxCustom.json);
+}
+
+void handleCustomPost() {
+  if (!authed()) { deny(); return; }
+  String body = server.arg("plain");
+  char error[112];
+  if (!dmxInstallCustomLayout(prefs, body.c_str(), body.length(), true, error,
+                              sizeof error)) {
+    sendJson(400, String("{\"error\":\"") + jsonEscape(error) + "\"}");
+    return;
+  }
+  lastShown = -1;
+  handleCustomGet();
+}
+
+void handleAppShow(uint8_t app) {
+  if (!authed()) { deny(); return; }
+  manualAppScene = appScene(app);
+  manualAppUntil = millis() + (uint32_t)dmxAppDurationS[app] * 1000UL;
+  lastShown = -1;
+  char body[120];
+  snprintf(body, sizeof body,
+           "{\"ok\":true,\"id\":\"%s\",\"showing\":\"%s\",\"duration_s\":%u}",
+           DMX_APP_IDS[app], appHasData(app) ? DMX_APP_IDS[app] : "clock",
+           dmxAppDurationS[app]);
+  sendJson(200, body);
 }
 
 // Config for the Flights Overhead companion script — the device is the
@@ -432,6 +678,12 @@ void handleClear() {
   if (!authed()) { deny(); return; }
   baseScene = SCENE_CLOCK;
   overlayUntil = 0;
+  manualAppUntil = 0;
+  manualAppScene = -1;
+  scheduledSlot = 0;
+  scheduledScene = SCENE_CLOCK;
+  scheduledUntil = millis() + 10000UL;
+  lastShown = -1;
   sendJson(200, "{\"ok\":true}");
 }
 
@@ -784,6 +1036,18 @@ void startConsole() {
   server.on("/api/v1/token/rotate", HTTP_POST, handleRotate);
   server.on("/api/v1/settings", HTTP_GET, handleSettingsGet);
   server.on("/api/v1/settings", HTTP_POST, handleSettingsPost);
+  server.on("/api/v1/apps", HTTP_GET, handleAppsGet);
+  server.on("/api/v1/apps", HTTP_POST, handleAppsPost);
+  server.on("/api/v1/apps/messages", HTTP_GET, handleMessagesGet);
+  server.on("/api/v1/apps/messages", HTTP_POST, handleMessagesPost);
+  server.on("/api/v1/apps/messages/show", HTTP_POST,
+            []() { handleAppShow(DMX_APP_MESSAGES); });
+  server.on("/api/v1/apps/flights_list/show", HTTP_POST,
+            []() { handleAppShow(DMX_APP_FLIGHTS_LIST); });
+  server.on("/api/v1/apps/custom", HTTP_GET, handleCustomGet);
+  server.on("/api/v1/apps/custom", HTTP_POST, handleCustomPost);
+  server.on("/api/v1/apps/custom/show", HTTP_POST,
+            []() { handleAppShow(DMX_APP_CUSTOM); });
   server.on("/api/v1/apps/flights", HTTP_GET, handleFlightsGet);
   server.on("/api/v1/apps/flights", HTTP_POST, handleFlightsPost);
   server.on("/api/v1/apps/flights/scan", HTTP_POST, handleFlightsScan);
@@ -853,6 +1117,7 @@ void setup() {
   flRows = prefs.getUChar("fl_n", flRows);
   flFormat = prefs.getString("fl_fmt", flFormat);
   flView = prefs.getString("fl_view", flView);
+  dmxAppsBegin(prefs, flInterval);
   apiToken = prefs.getString("token", "");
   if (!apiToken.length()) {
     apiToken = makeToken();
@@ -883,7 +1148,10 @@ void loop() {
     nextBgRetry = millis() + 60000;
   }
 
-  if (!setupMode) renderTick();
+  if (!setupMode) {
+    dmxAppsTick(flUrl.c_str(), flInterval, flRows, flFormat.c_str());
+    renderTick();
+  }
 
   static uint32_t lastStat = 0;
   uint32_t nowMs = millis();

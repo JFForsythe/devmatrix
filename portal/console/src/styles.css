@@ -293,6 +293,13 @@ nav a[aria-current="page"] .nav-pixel { background: var(--acc); }
 .app-title-row { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
 .app-title-row p { margin: 2px 0 0; color: var(--ink3); font-size: 12.5px; }
 .app-icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 7px; background: var(--well); color: var(--amber); font-size: 20px; }
+.app-controls { flex-wrap: wrap; padding: 12px 0 2px; }
+.app-controls .check-chip { min-height: 40px; padding-right: 12px; }
+.phrase-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+.phrase-list .field-action { align-items: stretch; }
+.phrase-list textarea { min-height: 66px; }
+.phrase-list .btn { align-self: stretch; }
+.field textarea.json-editor { min-height: 300px; line-height: 1.55; tab-size: 2; }
 
 .command-block { margin-top: 18px; border: 1px solid #2b323d; border-radius: 7px; background: var(--well); color: #b8c4d1; }
 .command-block > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #2b323d; }
@@ -349,6 +356,7 @@ nav a[aria-current="page"] .nav-pixel { background: var(--acc); }
   .topbar { position: static; padding: 10px 16px; }
   .view { width: min(100% - 28px, 1180px); padding: 28px 0 48px; }
   .grid.two, .workbench-grid { grid-template-columns: 1fr; }
+  .phrase-list { grid-template-columns: 1fr; }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .version-panel { grid-template-columns: 1fr; }
 }

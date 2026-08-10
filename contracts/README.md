@@ -16,6 +16,7 @@ treat any draft as frozen.
 | File | Surface | Status |
 |---|---|---|
 | [mqtt.md](mqtt.md) | MQTT topic tree, envelope, Home Assistant discovery, broker setup | DRAFT |
+| [layout.md](layout.md) | Declarative v1 JSON source, rows, bindings, and stale behavior | DRAFT |
 
 Plus this README. Files for the other surfaces appear when their
 drafts start — no empty scaffolds (ADR-0019).

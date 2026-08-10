@@ -26,7 +26,7 @@ first; then use.
 | **Scripted app** | An app running as sandboxed code in an on-device VM. Deferred out of launch; additive if a runtime clears the docs/PRODUCTION-PLAN.md bar (ADR-0026). |
 | **Layout** | The declarative description of what the panel shows: regions, text, glyphs, and colours, rendered by the device. |
 | **Binding** | The link from a layout field to a data source (HTTPS JSON or an MQTT topic), with refresh interval and a stale indicator. |
-| **Bundled apps** | Declarative apps shipped installed on DK-01, removable like any app: Weather, Messages, Flights list, clock variants; Stocks ships disabled pending an owner key (ADR-0015). |
+| **Bundled apps** | Declarative apps shipped on DK-01. Today: Messages, Flights list, and Custom layout. M4 adds Weather, clock variants, and reviewed Registry apps; Stocks remains disabled until an owner supplies a provider key and accepts its terms (ADR-0015). |
 | **Flights Overhead** | Bundled local-only aircraft display fed by an ADS-B receiver on the owner's LAN (open dump1090/readsb JSON). The list view is a declarative app; the 8 fps radar view is a host app and LAN-bound (ADR-0026, ADR-0029). Never a company feed or third-party flight-data service (ADR-0023). |
 | **Frame layer** | Display API tier for raw 64×32 pixel frames — REST/WebSocket only, never MQTT; remote reach only via Cloud Mode's relay (ADR-0029). |
 | **Semantic layer** | Display API tier for text, layouts, bindings, scenes, and brightness — available on every transport, and therefore remote-safe (ADR-0029). |

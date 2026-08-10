@@ -90,6 +90,9 @@ Console's API card ("Copy with my token") or USB serial.
 ## Honest limits (v0, pre-P2-freeze)
 
 - HTTP only on the LAN; TLS design is tracked in docs/SECURITY.md.
+- Declarative-app fetches to `https://` sources are encrypted but not
+  yet certificate-verified — the CA-store contract is P2 work. Prefer
+  LAN sources until then.
 - OTA images are length/magic-checked, not yet signature-verified, and
   automatic boot-failure rollback is M0 work — until then the TinyUF2
   USB drag-and-drop is the recovery path.

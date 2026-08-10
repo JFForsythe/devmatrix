@@ -8,7 +8,8 @@ step-by-step instructions.
 Two status labels keep this manual honest (a P0 rule — no unsupported
 claim in this repo):
 
-- **Today** — works now, on firmware v0.6.0, verified on real hardware.
+- **Today** — current firmware v0.7.0 behavior. This slice is build-verified;
+  final on-panel and live-receiver acceptance remains a hardware step.
 - **Ahead · gate X** — specified and coming; the gate names are
   [ROADMAP.md](../ROADMAP.md)'s. Nothing labeled Ahead is a promise the
   current firmware keeps.
@@ -96,12 +97,16 @@ needed. Today's device Console has seven views, converged with
   serial, address, firmware, and online state. **Pair another browser**
   walks through reading the panel's 6-digit code; the new browser keeps
   its LAN token locally and retries the interrupted request.
-- **Apps** — configures the Flights Overhead companion app (chapter 8):
-  **RECEIVER URL**, **SCAN MY NETWORK**, interval (1–60 s), rows (1–5),
-  speed/altitude value, and List/Radar view. **SAVE TO DEVICE** keeps the
-  configuration in device NVS; **COPY WITH MY TOKEN** copies the host
-  command. **Ahead · gate M4** — the Community Registry adds reviewed
-  declarative apps, permission sheets, and one-click installation.
+- **Apps** — manages three on-device cards plus the Flights Overhead host
+  controls. **Messages** edits and rotates up to eight offline phrases.
+  **Flights list** enables the small on-device list and configures its local
+  receiver URL, fetch interval, rows, and speed/altitude value; the Radar
+  choice and copied command still need the host app in chapter 8. **Custom
+  layout** validates and saves a 2 KB JSON layout with literal rows or RFC
+  6901 bindings. Each on-device card can be enabled, assigned a scene
+  interval, saved to NVS, or shown immediately. **Ahead · gate M4** — the
+  Community Registry adds more reviewed apps, permission sheets, and
+  one-click installation.
 - **Deploy** — shows the running version and slot. Choose a `.bin`, then
   **UPLOAD & REBOOT** to send it to the inactive OTA slot and watch
   progress while the device returns; chapter 9 covers the full process.
@@ -153,13 +158,13 @@ The app model (ADR-0026, owner: [docs/FIRMWARE.md](FIRMWARE.md)):
 
 | Kind | Runs on | You need | Status |
 |---|---|---|---|
-| **Declarative app** — layout + data bindings; the device fetches its own data | the DK-01 | nothing else | **Ahead · M2–M4** |
+| **Declarative app** — layout + data bindings; the device fetches its own data | the DK-01 | nothing else | **Today (messages, flights list, custom layout) · more at M4** |
 | **Host app** — a program pushing content over the LAN API | a machine you keep on | Pi / NAS / HA box / mini PC | **Today** (chapter 8) |
 | **Scripted app** — sandboxed code in an on-device VM | the DK-01 | — | **Deferred** (ADR-0026) |
 
-The honest caveat, plainly: **today, every rich app is a host app** —
-it needs a computer that stays on. The M4 bundled apps (Weather,
-Stocks, Messages, Flights list) will run on the box alone.
+Messages, Flights list, and Custom layout need no other computer.
+Richer host apps such as the animated Flights Overhead radar still need
+a computer that stays on; M4 adds more reviewed declarative apps.
 
 ## 8 · Flights Overhead — Today (host app)
 

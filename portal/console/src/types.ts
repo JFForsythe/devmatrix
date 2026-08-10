@@ -33,6 +33,38 @@ export interface FlightsSettings {
   view: "list" | "radar";
 }
 
+export type AppId = "messages" | "flights_list" | "custom";
+
+export interface AppSummary {
+  id: AppId;
+  enabled: boolean;
+  interval_s: number;
+  refresh_s: number;
+}
+
+export interface AppsSettings {
+  apps: AppSummary[];
+}
+
+export interface MessagesSettings {
+  phrases: string[];
+  rotation_s: number;
+}
+
+export interface CustomLayout {
+  v: number;
+  source: { url: string; interval_s: number; stale_after_s: number } | null;
+  rows: Array<{
+    y: number;
+    color: [number, number, number];
+    text?: string;
+    bind?: string;
+    prefix?: string;
+    suffix?: string;
+    max?: number;
+  }>;
+}
+
 export interface DeviceSettings {
   tz: string;
   brightness: number;
