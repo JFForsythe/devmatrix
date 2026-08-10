@@ -19,8 +19,9 @@ summaries; full gate criteria live in section 3 of
   claims sweep. The pre-publication git-history scrub completed with
   the 2026-08-07 public-baseline squash (ADR-0022).
 - **P1 — Hardware bring-up + feasibility spikes**: panel intake and
-  bench verification, MatrixPortal bring-up, browser-security and
-  Lua/Berry spikes, unassisted-setup user tests. Disposable
+  bench verification, MatrixPortal bring-up, the browser-security
+  spike, unassisted-setup user tests. The Lua/Berry runtime spike is
+  dropped from this gate (ADR-0026). Disposable
   feasibility firmware only. *Accept: controlled first pixel on
   target hardware; every product-killing unknown has evidence;
   MatrixPortal approved for production intent or replaced by a
@@ -50,12 +51,14 @@ summaries; full gate criteria live in section 3 of
   simulator, and SDK conformance agree; a fork builds and flashes
   from a clean machine in under 15 minutes; third parties mirror and
   update with company infrastructure blocked.*
-- **M4 — Apps and Registry**: selected runtime, `.dmapp` installer,
-  permissions and quotas, the preloaded apps
-  (Weather/Stocks/Messages/Flights Overhead, ADR-0023), curated
-  Registry plus unrestricted sideload. *Accept: a user publishes, installs,
-  updates, and rolls back a documented app; a malicious app is
-  contained; installed apps survive Registry or GitHub outages.*
+- **M4 — Apps and Registry**: declarative app engine (layout renderer,
+  binding engine, schedule), `.dmapp` installer, permissions and
+  quotas, the bundled apps (Weather/Stocks/Messages/Flights Overhead,
+  ADR-0023), curated Registry plus unrestricted sideload. No on-device
+  scripting VM at launch (ADR-0026). *Accept: a user publishes,
+  installs, updates, and rolls back a documented app; a malicious app
+  or hostile data source is contained; installed apps survive Registry
+  or GitHub outages.*
 - **L0+DVT — Production-intent beta**: production-intent enclosure,
   packaging, fixtures; ten outside developers for 30+ combined
   device-weeks; FCC/module-integration review; support runbooks and
@@ -85,6 +88,12 @@ summaries; full gate criteria live in section 3 of
   mark-lost / remote wipe / credential rotation.
 - **C3 — Ecosystem**: Registry polish (stays free/static), CI deploy
   convenience for BYO firmware.
+
+**Amendment (ADR-0026):** apps split into three tiers — declarative
+(on-device), host (owner's own machine), and scripted (deferred). P1
+drops the Lua/Berry spike and M4 drops the scripting VM, its
+instruction budgets, and VM sandbox fuzzing; docs/FIRMWARE.md owns the
+tier descriptions.
 
 **Amendment (ADR-0024):** the DK-01 firmware tree
 ([firmware/dk01/](firmware/dk01/README.md)) develops continuously from

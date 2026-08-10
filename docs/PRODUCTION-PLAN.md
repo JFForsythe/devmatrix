@@ -215,6 +215,15 @@ community developers:
 
 ### App runtime and GitHub installation
 
+**Superseded by [ADR-0026](adr/ADR-0026-three-tier-app-model.md).** The
+fallback below was elected ahead of the spike: apps split into declarative
+(on-device layouts and bindings), host (the owner's own always-on machine),
+and scripted (deferred). docs/FIRMWARE.md owns the tier descriptions. The
+`.dmapp` bundle format, GitHub publishing flow, and determinism mechanism
+described further down remain in force for declarative apps; the runtime
+benchmark and VM protections below apply only if scripted apps are ever
+revived.
+
 - Benchmark Lua 5.4 and Berry on the real 2 MB-PSRAM hardware. Prefer Lua if
   both pass because it provides stronger documented allocator and
   instruction-hook controls (per-VM lua_Alloc; configurable count hooks —
@@ -402,7 +411,9 @@ Feasibility spikes:
   validate: WebAuthn ceremonies execute only on a trusted https origin, and
   the device origin is a token-authenticated transport, never a WebAuthn
   surface.
-- Lua/Berry sandbox comparison.
+- Lua/Berry sandbox comparison — dropped from this gate:
+  [ADR-0026](adr/ADR-0026-three-tier-app-model.md) defers scripted
+  apps, so the comparison runs only if that tier is revived.
 - Eight to twelve representative users attempting setup and first pixel
   without assistance.
 - Initial enclosure, one-input fused power-distribution harness, certified 5 V
@@ -539,6 +550,12 @@ Exit:
   infrastructure blocked.
 
 ### M4 — Apps and Registry
+
+Rescoped by [ADR-0026](adr/ADR-0026-three-tier-app-model.md): no
+on-device scripting VM at launch. "Runtime" below means the declarative
+app engine (layouts, bindings, schedules); the VM-specific items —
+instruction budgets, VM host-call fuzzing — apply only if scripted apps
+are revived. ROADMAP.md's M4 entry carries the same rescope.
 
 - Implement the selected runtime, `.dmapp` installer, permissions, quotas,
   rollback, app logs/metrics, simulator template, Weather, Stocks, Messages,

@@ -11,7 +11,8 @@ model is real. She ordered a DK-01 after a friend's demo.
 ## Day one
 
 - **T+0:00 — Unbox.** Matte black panel, USB-C, a card that says only
-  `devmatrix.example/start` and the serial `DMX-4E71-0952`. No app to
+  `devmatrix.flighttrackerled.com/start` and the serial
+  `DMX-4E71-0952`. No app to
   install.
 - **T+0:01 — Power.** The panel types its boot line (VISION.md owns
   the copy), then: `JOIN ME → DEVMATRIX-0952` — the setup hotspot.
@@ -44,12 +45,19 @@ Local and free; docs/MODES.md is the line.)*
 
 - Installs **GitHub Stars** from the community Registry (one click,
   installed over the air in seconds; the permission sheet shows exactly
-  what it may touch: `net: api.github.example`, `storage 4 KB`).
+  what it may touch: `net: api.github.example`, `storage 4 KB`). It is a
+  declarative app — a layout bound to one JSON field — so the panel
+  renders it with no other machine involved.
 - Home Assistant discovered the device the moment she enabled MQTT —
   zero YAML. Brightness follows her house's evening scene.
-- Writes her own app from the template — Mars weather, 120 lines —
-  drags the `.dmapp` onto the Console, watches it deploy OTA in under
-  two minutes. Sets quiet hours (23:00–07:00).
+- Builds her own from the template — Mars weather: a layout, one HTTPS
+  binding, a refresh interval — and drags the `.dmapp` onto the Console,
+  watching it deploy OTA in under two minutes. Sets quiet hours
+  (23:00–07:00).
+- Points **Flights Overhead** at the ADS-B receiver on her LAN. The list
+  view runs on the panel itself; the 8 fps radar is a host app, so she
+  pastes one install command into the Pi already on her shelf
+  (ADR-0026).
 - Adds her YubiKey as a second account passkey ☁. Reviews the audit
   log — every action, hers and the system's, timestamped. Exports it,
   because she can.

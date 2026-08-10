@@ -135,11 +135,16 @@ every guest action is audit-logged and attributed.
 ## App sandbox
 
 Apps declare capabilities in the bundle manifest; the Console shows them
-before install (permission chips): allowed hosts, storage quota, message
-rate, draw access. Runtime enforces instruction budgets per tick and a
-hard watchdog kill — a hostile app cannot hang the panel or exfiltrate
-beyond its declared hosts. Registry apps get static checks + community
-review; sideloaded apps are the owner's own risk, stated plainly.
+before install (permission chips): allowed hosts, storage quota, refresh
+rate, draw access. Launch apps are declarative (ADR-0026), so the
+enforcement surface is the binding engine: fetches go only to declared
+hosts, responses have bounded size and parse depth, and refresh-rate and
+storage quotas are enforced per app — a hostile app or a hostile data
+source cannot hang the panel or reach beyond its declared hosts. The
+scripted tier's VM protections (per-tick instruction budgets, watchdog
+kill) are deferred with that tier and return only if it ships. Registry
+apps get static checks + community review; sideloaded apps are the
+owner's own risk, stated plainly.
 
 ## Data & privacy
 
@@ -171,7 +176,7 @@ review; sideloaded apps are the owner's own risk, stated plainly.
 | Stolen/resold device | Re-claim requires factory reset + physical access; prior owner notified; data wiped |
 | Claimed device lost / walks away | Owner marks it lost: relay sessions revoked instantly; secure wipe of NVS secrets + app storage queued for next contact; LAN token / WiFi / MQTT credentials rotated in one click; all audit-logged |
 | LAN scanner / drive-by | LAN token required on every route; Host/Origin validation is tested against DNS rebinding + CSRF; no inbound WAN ports; nothing anonymously writable |
-| Malicious app | Declared capabilities, quotas, watchdog kill, per-app audit |
+| Malicious app / hostile data source | Declared capabilities, quotas, bounded fetch + parsers, per-app audit (ADR-0026) |
 | Malicious/compromised OTA | Signature verify against trust set, anti-rollback floor, dual-slot rollback |
 | Insider/cloud breach | E2EE snapshots, minimal data, Local Mode & Eject as standing exits, audit transparency |
 | Supply-chain dep attack | Pinned deps, SBOM, public reproducible CI |

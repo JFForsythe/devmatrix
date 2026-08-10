@@ -581,6 +581,31 @@ export const CLEAN_ROOM_BANNED_ENCODED = [
   "ZmxpZ2h0dHJhY2tlcmxlZC5jb20=",
 ];
 
+// The single sanctioned exception (ADR-0025, amending ADR-0022): the hosted
+// Console's own hostname. The brand *name* was never banned — only the closed
+// product's domain — and ADR-0025 deliberately shares one host beneath it,
+// exactly as the byline is deliberately shared (docs/VISION.md). Encoded for
+// the same reason as the ban list, and matched as a whole host so the bare
+// domain and every other subdomain stay banned.
+export const CLEAN_ROOM_ALLOWED_ENCODED = [
+  "ZGV2bWF0cml4LmZsaWdodHRyYWNrZXJsZWQuY29t",
+];
+
+const ALLOWED_PATTERNS = CLEAN_ROOM_ALLOWED_ENCODED.map(encoded =>
+  new RegExp(`(?<![A-Za-z0-9.])${escapeRegExp(Buffer.from(encoded, "base64").toString("utf8"))}(?![A-Za-z0-9])`, "gi"));
+
+/**
+ * Blank out sanctioned hostnames before the ban scan, preserving length so
+ * reported line numbers still point at the real source position.
+ */
+function maskAllowed(source) {
+  let masked = source;
+  for (const expression of ALLOWED_PATTERNS) {
+    masked = masked.replace(expression, match => " ".repeat(match.length));
+  }
+  return masked;
+}
+
 // Bounds are asymmetric on purpose: a leading letter or digit means a
 // different word, but a trailing digit or symbol is still the banned
 // identifier (name24, name_backend, name-2) — a plain \b would let every
@@ -593,9 +618,10 @@ const BANNED_PATTERNS = CLEAN_ROOM_BANNED_ENCODED.map(encoded =>
 export function checkCleanRoomContent(entries) {
   const issues = [];
   for (const [file, source] of entries) {
+    const scanned = maskAllowed(source);
     for (const expression of BANNED_PATTERNS) {
       expression.lastIndex = 0;
-      const match = expression.exec(source);
+      const match = expression.exec(scanned);
       if (!match) continue;
       issues.push(issue(
         "clean-room",

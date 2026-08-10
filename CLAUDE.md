@@ -8,8 +8,8 @@ Devmatrix is an open, hackable 64×32 LED display kit sold as
 **"Dev Kit by FlightTrackerLED."** It is a developer product: open
 firmware, documented APIs, and a control portal (the **Console**).
 It is not the closed flight-tracker appliance: it is a canvas
-platform whose preloaded starter apps include a small local-only
-flight display fed by the owner's own receiver (ADR-0023). No
+platform whose bundled apps include a small local-only flight
+display fed by the owner's own receiver (ADR-0023). No
 closed-product code, logic, or schemas — ever.
 
 ## Truth map — one owner file per topic
@@ -21,7 +21,7 @@ closed-product code, logic, or schemas — ever.
 | Console spec (IA, features, connection modes) | docs/PORTAL.md |
 | Mode split: Local vs Cloud, pricing, sunset | docs/MODES.md |
 | Threat model, key hierarchy, ceremonies | docs/SECURITY.md |
-| Firmware architecture (production code gated at M0, after P2) | docs/FIRMWARE.md |
+| Firmware architecture (living tree from P1 — ADR-0024) | docs/FIRMWARE.md |
 | Canonical names, serial/ID formats | docs/GLOSSARY.md |
 | Company-side ops: hosting, deploys, secrets, artifact monitoring | docs/OPERATIONS.md |
 | Public interface contracts (DRAFT until the P2 freeze) | contracts/ |
@@ -64,9 +64,13 @@ Rules:
 - New decision → new ADR (`docs/adr/ADR-NNNN-slug.md`, ≤1 page:
   Context / Decision / Consequences), then update the owner doc in the
   same commit. Supersede old ADRs; never rewrite them.
-- `portal/prototype/` stays a **single static HTML file, zero
-  dependencies, mock data only** until ADR-0005 is superseded. No
-  frameworks, no build step, no network calls.
+- The Console is **one codebase** at `portal/console/`, built to two
+  targets: a gzipped bundle generated into the firmware (committed, so
+  Arduino-IDE forks need no Node) and a static bundle for the hosted
+  domain (ADR-0027, superseding ADR-0005). Never hand-edit the
+  generated device header. `portal/prototype/index.html` is now the
+  design reference and stays single-file, dependency-free, and
+  mock-only until `portal/console/` reaches parity and retires it.
 - Mock data in the prototype must match docs/USER-STORY.md identifiers
   (device names, serials like `DMX-4E71-0952`, firmware versions) — one
   story everywhere, so demos, docs, and tests never contradict each other.

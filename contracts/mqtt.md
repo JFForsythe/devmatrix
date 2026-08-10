@@ -152,19 +152,20 @@ one click — on the Console's MQTT credentials page
 
 ## Console workbench
 
-Browsers cannot open raw MQTT TCP connections, so the Console's
+Browsers cannot open raw MQTT TCP connections. That choice is now
+decided ([ADR-0028](../docs/adr/ADR-0028-mqtt-stack.md)): the Console's
 workbench MQTT pane ([docs/PORTAL.md](../docs/PORTAL.md) owns the pane
-behavior) either requires the owner's broker to expose a WebSocket
-listener —
+behavior) requires the owner's broker to expose a WebSocket listener —
 
 ```
 listener 9001
 protocol websockets
 ```
 
-— or routes through the device's own MQTT client over the multiplexed
-event socket. That choice is decided before the P2 freeze so the pane
-cannot work in the simulator yet fail against real brokers.
+— documented in the pane UI and the setup docs. The rejected
+alternative was routing through the device's own MQTT client over the
+multiplexed event socket; the device is not made a broker proxy for the
+Console.
 
 ## Reserved prefixes and apps
 

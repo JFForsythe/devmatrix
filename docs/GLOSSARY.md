@@ -10,7 +10,7 @@ first; then use.
 | **MatrixPortal** | Adafruit MatrixPortal ESP32-S3 — DK-01's production-intent controller board (ADR-0012). |
 | **Protomatter** | Adafruit's open HUB75 matrix driver library — the pinned display driver (ADR-0013). |
 | **Console** | The portal (web app). One codebase, two connection modes. |
-| **Device workbench** | The Console's compact four-pane developer workspace. Each pane can be profiled as a REST CLI, MQTT CLI, device-log tail, or app-runtime REPL; panes are movable, resizable, removable, restorable, and saved locally. The prototype is mock-only. |
+| **Device workbench** | The Console's compact four-pane developer workspace. Each pane can be profiled as a REST CLI, MQTT CLI, device-log tail, or layout/binding inspector; panes are movable, resizable, removable, restorable, and saved locally. The prototype is mock-only. |
 | **Command palette** | The Console's keyboard-first search-and-act surface: pages, settings, devices, apps, actions, documentation, and local log results. |
 | **Local Mode** | Console ↔ device directly over LAN. No account, no cloud. Free forever — the complete product (docs/MODES.md). |
 | **Cloud Mode** | Paid subscription layer: remote access, multi-site fleet, hosted E2EE snapshots, alerts. Adds reach, never capability (docs/MODES.md). |
@@ -19,9 +19,17 @@ first; then use.
 | **Claim code** | Short code shown on the panel when a browser asks to pair (and at first boot once M1 claiming ships). Reading the panel proves physical presence. Format `XXX-XXX`. |
 | **Serial** | Device identity, printed + in cert. Format `DMX-####-####` (e.g. `DMX-4E71-0952`). |
 | **LAN token** | Per-device bearer credential minted at claim; required on every `/api/v1` call on the LAN. Rotatable/revocable; read-only scoped variants for integrations. |
-| **App** | User code running on the device (sandboxed runtime). Bundle: `.dmapp`. UI says "Apps"; the firmware subsystem is the "app runtime". |
-| **Preloaded apps** | Starter apps shipped installed on DK-01, removable like any app: Weather, Messages, Flights Overhead; Stocks ships disabled pending an owner key (ADR-0015). |
-| **Flights Overhead** | Preloaded app: a small local-only aircraft display fed by an ADS-B receiver on the owner's LAN (open dump1090/readsb JSON). Never a company feed or third-party flight-data service (ADR-0023). |
+| **App** | Anything an owner installs or runs to put content on the panel. Three tiers, defined below (ADR-0026). UI says "Apps". |
+| **Declarative app** | An app the device runs itself: a layout, data bindings, and a schedule, installed from the Console. The device fetches its own data. Needs no second machine and no broker. Bundle: `.dmapp` (ADR-0026). |
+| **Host app** | An app running on hardware the owner already operates, pushing content to the device over LAN REST or MQTT. For work the device cannot do — e.g. the Flights Overhead radar view (ADR-0026). |
+| **App host** | The owner's always-on machine running host apps: Raspberry Pi, NAS, Home Assistant box, mini PC. Never company hardware (ADR-0016). |
+| **Scripted app** | An app running as sandboxed code in an on-device VM. Deferred out of launch; additive if a runtime clears the docs/PRODUCTION-PLAN.md bar (ADR-0026). |
+| **Layout** | The declarative description of what the panel shows: regions, text, glyphs, and colours, rendered by the device. |
+| **Binding** | The link from a layout field to a data source (HTTPS JSON or an MQTT topic), with refresh interval and a stale indicator. |
+| **Bundled apps** | Declarative apps shipped installed on DK-01, removable like any app: Weather, Messages, Flights list, clock variants; Stocks ships disabled pending an owner key (ADR-0015). |
+| **Flights Overhead** | Bundled local-only aircraft display fed by an ADS-B receiver on the owner's LAN (open dump1090/readsb JSON). The list view is a declarative app; the 8 fps radar view is a host app and LAN-bound (ADR-0026, ADR-0029). Never a company feed or third-party flight-data service (ADR-0023). |
+| **Frame layer** | Display API tier for raw 64×32 pixel frames — REST/WebSocket only, never MQTT; remote reach only via Cloud Mode's relay (ADR-0029). |
+| **Semantic layer** | Display API tier for text, layouts, bindings, scenes, and brightness — available on every transport, and therefore remote-safe (ADR-0029). |
 | **Registry** | Community index of apps/layouts (PR-based public repo). |
 | **Channel** | Firmware release track: `stable` \| `beta` \| `dev`. |
 | **Safe mode** | Minimal always-bootable firmware state: display + recovery only. |

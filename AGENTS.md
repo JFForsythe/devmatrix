@@ -12,8 +12,10 @@ the one-owner truth map.
   the same change; elsewhere, link to it instead of copying it.
 - Record a new decision in a new ADR. Never rewrite an accepted ADR; a later ADR
   must explicitly refine or supersede it.
-- Keep `portal/prototype/index.html` static, dependency-free, and mock-only
-  until ADR-0005 is superseded.
+- The Console is one codebase built to two targets (ADR-0027, superseding
+  ADR-0005). Never hand-edit the generated device header; regenerate it.
+  Keep `portal/prototype/index.html` static, dependency-free, and mock-only
+  while it remains the design reference.
 
 ### Clean-room boundary
 

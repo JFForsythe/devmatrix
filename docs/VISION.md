@@ -14,8 +14,10 @@ own apps to your own hardware.
   (this file owns the boot copy; everything else renders or links it)
 - Positioning: the closed FlightTrackerLED products are *content*
   appliances (turnkey). Devmatrix is a *canvas* platform (yours). The
-  byline borrows the hardware credibility; everything else — code,
-  cloud, community — is separate and open.
+  byline and the hosted Console's domain —
+  `devmatrix.flighttrackerled.com` (ADR-0025) — borrow the hardware
+  credibility; everything else — code, contracts, firmware, backend
+  logic, community — is separate and open.
 
 ## Audience
 
@@ -51,7 +53,7 @@ surface for all four.
 |---|---|---|---|
 | 0 — Configure | everyone | WiFi, brightness, scenes, quiet hours | Dashboard, Settings |
 | 1 — Integrate | smart-home users | push content via REST/MQTT/WS; JSON layouts; HA discovery | Dev Console, API keys |
-| 2 — Script | tinkerers | upload sandboxed apps, no toolchain | Apps |
+| 2 — Extend | tinkerers | install declarative apps (layout + bindings), no toolchain; run host apps on a machine you already own (ADR-0026) | Apps |
 | 3 — Fork | firmware devs | build/flash own firmware, enroll own signing key, self-host | Deploy (BYO builds), Eject |
 
 ## The IP line (what stays closed, what ships open)
@@ -63,7 +65,7 @@ redesign it here, in the open, differently, from cited public sources
 (ADR-0023).
 
 Flight display itself is in scope in exactly one narrow form:
-**Flights Overhead**, a preloaded starter app fed only by an ADS-B
+**Flights Overhead**, a bundled app fed only by an ADS-B
 receiver on the owner's LAN (the open dump1090/readsb JSON format).
 Local-only forever — no company aircraft feed, no third-party
 flight-data services. The closed products stay the turnkey content

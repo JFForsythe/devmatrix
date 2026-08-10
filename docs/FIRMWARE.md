@@ -45,7 +45,7 @@ firmware/
   mqtt/      client, topic tree per contracts/mqtt.md, HA discovery
   scenes/    built-ins (clock, ambient, info, notification overlay)
   layout/    JSON widget engine + data binding
-  apps/      sandboxed app runtime (spike: Lua 5.4 vs Berry)
+  apps/      declarative app engine: layout render, bindings, schedule
   ota/       manifest poll, signed update, rollback, channels
   webui/     setup shell + compressed full Local Console static bundle
 ```
@@ -79,16 +79,31 @@ until the P2 freeze. The sketch below is illustrative:
   mutating routes validate Host/Origin. Ceremony + transport live in
   SECURITY.md → Discovery & local transport.
 
-## App runtime spike (gates Tier 2 promises)
+## App tiers (ADR-0026)
 
-Two weeks, Lua 5.4 vs Berry, against real constraints: PSRAM-resident
-VM, cooperative scheduler with per-tick instruction budget, sandboxed
-API (draw*, timer, bounded http_get, mqtt subscribe, kv store), watchdog
-kill on abuse. If neither is robust on 2 MB PSRAM, the on-device
-scripting promise is removed before launch and Tier 2 demotes to
-layouts plus external JSON/MQTT rendering — for example a companion
-container pushing frames — and the docs say so honestly. This is the
-owner description of that fallback; other documents link here.
+The split is decided; docs/GLOSSARY.md owns the terms and this is the
+owner description of what the firmware implements. Other documents
+link here.
+
+- **Declarative apps** run on the device: a layout, data bindings, and
+  a schedule. The firmware owns the layout renderer, the binding engine
+  (HTTPS JSON or MQTT topic, refresh interval, stale indicator), and
+  per-app config in NVS. Needs no second machine and no broker. The
+  device already fetches and validates external JSON today, so this
+  extends a proven path rather than opening a new one.
+- **Host apps** run on the owner's own always-on machine and push
+  content in over LAN REST or MQTT. The device's job is to accept them
+  on an authenticated, documented contract — nothing more.
+- **Scripted apps** — an on-device sandboxed VM, Lua 5.4 or Berry — are
+  **deferred**, and the two-week spike is out of P1. If a runtime later
+  clears the docs/PRODUCTION-PLAN.md bar (PSRAM-resident VM, per-tick
+  instruction budget, sandboxed API, watchdog kill on abuse, and a
+  stated per-app quota floor), it is additive, not a re-plan.
+
+Frames ride REST/WebSocket only — never MQTT, with Cloud Mode's paid
+relay as the only remote path; the semantic layer — text, layouts,
+bindings, scenes, brightness — is available on every transport and is
+what a broker-hosted app targets (ADR-0029).
 
 ## Risks
 

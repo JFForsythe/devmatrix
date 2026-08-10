@@ -29,6 +29,13 @@ What actually runs now — the complete inventory:
   `scripts/ship.mjs` and `scripts/verify-live.mjs` are retargeted in
   the same change. Until that trigger, the Vercel Hobby deployment is
   acceptable because nothing is sold.
+- **The destination is decided**:
+  [ADR-0025](adr/ADR-0025-hosted-console-domain.md) names
+  `devmatrix.flighttrackerled.com` as the hosted Console's domain.
+  Outstanding owner action before the migration: create the DNS record.
+  The device-served Console stays authoritative either way — the hosted
+  copy is a convenience and a demo, never a dependency
+  ([docs/PORTAL.md](PORTAL.md)).
 - **Release artifacts** — firmware, recovery images, Registry
   metadata, and app packages — ship as signed GitHub Release assets,
   mirrorable and locally installable (ADR-0016).

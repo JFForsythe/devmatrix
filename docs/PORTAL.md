@@ -32,7 +32,7 @@ three questions: *what is my box doing, can I change it, can I trust it?*
 | **Devices** | Manage my fleet (only mine) | Device cards, groups, claim-new flow, rename, transfer ownership, guest access (scoped links ☁), remove |
 | **Apps** | Run my code on my box | Installed apps with status + permission chips + resource meters, upload (.dmapp drag-drop → OTA), template link, community Registry browse/install, per-app logs, rollback, delete |
 | **Deploy** | Control what firmware runs | Current version + channel selector, update/rollback with history, staged rollout across fleet, USB flash from browser (WebSerial recovery), BYO builds (CI → signed with owner's enrolled key) |
-| **Dev Console** | Integrate and debug | Device workbench (four minimal movable/resizable/removable/restorable panes profiled as REST, MQTT, logs, or app-runtime REPL), API keys (scoped, revocable), API playground, WebSocket event tail, MQTT credentials + topic tree (user's broker), metrics history, device file manager |
+| **Dev Console** | Integrate and debug | Device workbench (four minimal movable/resizable/removable/restorable panes profiled as REST, MQTT, logs, or a layout/binding inspector — an app REPL returns only if scripted apps ship, ADR-0026), API keys (scoped, revocable), API playground, WebSocket event tail, MQTT credentials + topic tree (user's broker), metrics history, device file manager |
 | **Security** | Trust, verify, own | Passkeys & hardware keys, active sessions, audit log (export), root-of-trust status + enrollment, Local Mode toggle, Snapshots (E2EE backup/restore/clone), privacy & data controls, Eject |
 | **Settings** | Make it mine | Device name/timezone, network info, panel calibration, notifications (offline alerts ☁), plan & billing (Cloud), account |
 
@@ -46,19 +46,17 @@ server-side or cross-tenant search service.
 
 The Device workbench is intentionally smaller than a browser IDE. Its
 job is fast integration and debugging against one selected box: run a
-documented REST or MQTT command, inspect logs, or try the sandboxed app
-REPL without hiding the underlying contracts. Panes are movable,
+documented REST or MQTT command, inspect logs, or trace a layout's
+bindings without hiding the underlying contracts. Panes are movable,
 resizable, removable, and restorable, and the pane layout is saved
 locally in that browser. Terminals are custom DOM components
 (ADR-0014); the Console never exposes a general host shell, and the
 prototype never executes arbitrary code.
 
-One workbench constraint is decided before the P2 contract freeze: a
-browser cannot speak raw MQTT TCP, so the MQTT pane either documents
-the owner-broker WebSocket-listener requirement in the pane UI and
-setup docs, or routes through the device's own MQTT client over the
-multiplexed event socket. Deciding early keeps the pane from working
-in the simulator yet failing against real brokers.
+That workbench constraint is now decided (ADR-0028): a browser cannot
+speak raw MQTT TCP, so the MQTT pane requires the owner's broker to
+expose a WebSocket listener, documented in the pane UI and the setup
+docs. The device is not made a broker proxy for the Console.
 
 Console typography is the system UI stack at normal 400 weight, with
 the native monospace stack for terminals; the Console never downloads
@@ -86,10 +84,12 @@ tier from VISION.md and must survive into the real build.
 (☁ = Cloud Mode, the paid layer — docs/MODES.md is the line.)
 
 - **Push anything**: text, full frames, JSON layouts, notification
-  overlays — from curl, HA, Node-RED, SDKs, or the Console.
-- **Run anything (sandboxed)**: upload apps with explicit, visible
-  permissions (net hosts, storage quota, message rate); kill-switch and
-  resource meters per app.
+  overlays — from curl, HA, Node-RED, SDKs, or the Console. Frames
+  ride REST/WebSocket only, never MQTT (ADR-0029).
+- **Run anything**: install declarative apps with explicit, visible
+  permissions (net hosts, storage quota, refresh rate), kill-switch and
+  resource meters per app; run host apps on a machine you already own
+  for anything heavier (ADR-0026).
 - **Flash anything**: OTA channels, or browser USB flash of *any*
   firmware — including their own fork.
 - **Own the root of trust**: enroll their own signing key (physical
@@ -160,7 +160,7 @@ default, no company-run MQTT broker, no accounts required for LAN use.
   launch blocker, not copy to paper over. (The production stack itself
   is decided — ADR-0014 — with the P1 transport spike as its
   acceptance gate.)
-- Domain/brand for the hosted Console; `devmatrix.example` is a
-  placeholder everywhere until then.
+- ~~Domain/brand for the hosted Console.~~ Decided: the hosted Console
+  is served from `devmatrix.flighttrackerled.com` (ADR-0025).
 - Enclosure question (bare panel vs stand) — affects photography, not
   software.

@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   CLEAN_ROOM_BANNED_ENCODED,
+  CLEAN_ROOM_ALLOWED_ENCODED,
   checkCanonicalStory,
   checkCleanRoom,
   checkCleanRoomContent,
@@ -222,6 +223,29 @@ test("banned identifiers are detected with digit or symbol suffixes", () => {
 
 test("word boundaries keep the brand byline out of clean-room scope", () => {
   assert.deepEqual(checkCleanRoomContent([["docs/anything.md", "Dev Kit by FlightTrackerLED is a canvas.\n"]]), []);
+});
+
+test("only the hosted Console host escapes the domain ban (ADR-0025)", () => {
+  const allowed = Buffer.from(CLEAN_ROOM_ALLOWED_ENCODED[0], "base64").toString("utf8");
+  const domain = Buffer.from("ZmxpZ2h0dHJhY2tlcmxlZC5jb20=", "base64").toString("utf8");
+
+  // The one sanctioned host passes, in prose and inside a URL.
+  assert.deepEqual(checkCleanRoomContent([["docs/a.md", `Hosted at https://${allowed}/start.\n`]]), []);
+
+  // The bare closed-product domain is still banned, and so is every other
+  // subdomain of it — the exception is one whole host, not a suffix rule:
+  // deeper subdomains of the allowed host and digit-suffixed spellings of
+  // it are not the host and stay banned.
+  for (const fixture of [domain, `console.${domain}`, `x${allowed}`, `sub.${allowed}`, `${allowed}2`]) {
+    const issues = checkCleanRoomContent([["docs/a.md", `See ${fixture} here.\n`]]);
+    assert.equal(issues.length, 1, `expected ban for ${Buffer.from(fixture).toString("base64")}`);
+    assert.equal(issues[0].check, "clean-room");
+  }
+
+  // Masking preserves length, so reported line numbers stay truthful.
+  const issues = checkCleanRoomContent([["docs/a.md", `At ${allowed}.\nThen ${domain} leaks.\n`]]);
+  assert.equal(issues.length, 1);
+  assert.equal(issues[0].file, "docs/a.md:2");
 });
 
 test("generic flight words and the open receiver ecosystem are not banned (ADR-0023)", () => {
