@@ -159,6 +159,7 @@ static const char CONSOLE_HTML[] PROGMEM = R"HTML(<!doctype html>
   <nav id="nav">
     <button data-v="dashboard"><i class="px"></i>Dashboard</button>
     <button data-v="paint"><i class="px"></i>Paint</button>
+    <button data-v="flights"><i class="px"></i>Flights</button>
     <button data-v="update"><i class="px"></i>Update</button>
     <button data-v="settings"><i class="px"></i>Settings</button>
     <button data-v="api"><i class="px"></i>API</button>
@@ -256,6 +257,60 @@ static const char CONSOLE_HTML[] PROGMEM = R"HTML(<!doctype html>
     </div></div>
   </section>
 
+  <section class="view" id="v-flights">
+    <div class="vhead"><h1>Flights</h1>
+      <p>Your antenna, your panel. Point this at your own ADS-B receiver's
+         <span style="font-family:var(--mono)">aircraft.json</span> and run the
+         companion script &mdash; nearest flights, live.</p></div>
+    <div class="grid">
+      <div class="card">
+        <h2>Receiver</h2>
+        <div class="row">
+          <input type="text" id="flUrl" class="grow"
+                 placeholder="http://&lt;receiver&gt;/data/aircraft.json">
+          <button class="btn ghost" id="flScan">Scan my network</button>
+        </div>
+        <div class="note">The URL is stored on the device only (NVS). It is
+          never written to any repository, cloud, or log &mdash; scan finds it,
+          or type it in.</div>
+        <div class="stat" id="flScanStat"></div>
+      </div>
+      <div class="card c6">
+        <h2>Display</h2>
+        <div class="row">
+          <input type="range" id="flInt" min="1" max="30" value="1" class="grow">
+          <span class="chip">every <span id="flIntV">1</span>s</span>
+        </div>
+        <div class="row">
+          <select id="flView" style="width:auto">
+            <option value="list">List view</option>
+            <option value="radar">Radar view</option>
+          </select>
+          <select id="flRows" style="width:auto">
+            <option value="1">1 flight</option>
+            <option value="2" selected>2 flights</option>
+            <option value="3">3 flights</option>
+            <option value="4">4 flights</option>
+            <option value="5">5 flights</option>
+          </select>
+          <select id="flFmt" style="width:auto">
+            <option value="kts">Speed (kts)</option>
+            <option value="alt">Altitude (ft)</option>
+          </select>
+          <button class="btn" id="flSave">Save</button>
+        </div>
+        <div class="stat" id="flStat"></div>
+      </div>
+      <div class="card c6">
+        <h2>Run it</h2>
+        <div class="note" style="margin:0 0 8px">The script follows these
+          settings (re-reads them every few cycles):</div>
+        <pre id="flCmd"></pre>
+        <div class="row"><button class="btn ghost" id="flCp">Copy with my token</button></div>
+      </div>
+    </div>
+  </section>
+
   <section class="view" id="v-update">
     <div class="vhead"><h1>Update</h1>
       <p>Over-the-air firmware. Dual app slots plus a UF2 recovery partition
@@ -340,7 +395,7 @@ static const char CONSOLE_HTML[] PROGMEM = R"HTML(<!doctype html>
 <script>
 function $(id){return document.getElementById(id)}
 // ---- hash router, same shape as the prototype (#dashboard etc) ----
-var VIEWS=['dashboard','paint','update','settings','api'];
+var VIEWS=['dashboard','paint','flights','update','settings','api'];
 function route(){
   var v=(location.hash||'#dashboard').slice(1);
   if(VIEWS.indexOf(v)<0)v='dashboard';
@@ -363,7 +418,7 @@ function tok(){return localStorage.getItem('dmx_token')||''}
 function needTok(){ $('pairBanner').classList.remove('hide') }
 function paired(t){
   localStorage.setItem('dmx_token',t);
-  $('pairBanner').classList.add('hide'); refresh();
+  $('pairBanner').classList.add('hide'); refresh(); loadFlights();
 }
 $('pairStart').onclick=function(){
   var self=this;
@@ -567,6 +622,42 @@ $('otaGo').onclick=function(){
   $('otaStat').textContent='Uploading…';$('otaStat').className='stat';
   xhr.send(fd);
 };
+// ---- flights app config ----
+function loadFlights(){
+  api('/api/v1/apps/flights').then(function(d){
+    $('flUrl').value=d.url||'';
+    $('flInt').value=d.interval_s;$('flIntV').textContent=d.interval_s;
+    $('flRows').value=d.rows;$('flFmt').value=d.format;
+    if(d.view)$('flView').value=d.view;
+  }).catch(function(){});
+}
+$('flInt').oninput=function(){$('flIntV').textContent=this.value};
+$('flScan').onclick=function(){
+  var self=this;self.disabled=true;self.textContent='Scanning…';
+  $('flScanStat').textContent='The device is sweeping your LAN for a receiver — ~10s.';
+  $('flScanStat').className='stat';
+  api('/api/v1/apps/flights/scan',{method:'POST'}).then(function(d){
+    self.disabled=false;self.textContent='Scan my network';
+    if(d.found){ $('flUrl').value=d.found;
+      flash('flScanStat','Found it — hit Save to keep it.'); }
+    else flash('flScanStat','No receiver answered — type the URL in.','err');
+  }).catch(function(e){ self.disabled=false;self.textContent='Scan my network';
+    flash('flScanStat',e.message,'err') });
+};
+$('flSave').onclick=function(){
+  api('/api/v1/apps/flights',{method:'POST',body:JSON.stringify({
+    url:$('flUrl').value.trim(),interval_s:+$('flInt').value,
+    rows:+$('flRows').value,format:$('flFmt').value,
+    view:$('flView').value})})
+  .then(function(){flash('flStat','Saved to the device')})
+  .catch(function(e){flash('flStat',e.message,'err')});
+};
+var flCmd="DMX_URL=http://"+(location.host||'dmx-xxxx.local')+
+  " DMX_TOKEN=$TOKEN node examples/flights-overhead.mjs";
+$('flCmd').textContent=flCmd;
+$('flCp').onclick=function(){copyText(flCmd.replace('$TOKEN',tok()));
+  this.textContent='Copied!'};
+loadFlights();
 // ---- settings ----
 api('/api/v1/settings').then(function(d){$('tz').value=d.tz}).catch(function(){});
 $('tz').onchange=function(){

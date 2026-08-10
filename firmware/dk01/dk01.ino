@@ -19,8 +19,10 @@
 // See README.md in this directory for the full quickstart.
 
 #include <Adafruit_Protomatter.h>
+#include <Fonts/TomThumb.h>  // 3x5 font: 16-char lines for board overlays
 #include <WiFi.h>
 #include <WebServer.h>
+#include <HTTPClient.h>
 #include <DNSServer.h>
 #include <ESPmDNS.h>
 #include <Preferences.h>
@@ -32,7 +34,7 @@
 #include "web_setup.h"
 #include "web_console.h"
 
-#define FW_VERSION "0.4.0"
+#define FW_VERSION "0.5.2"
 
 // A full-bright white frame can out-draw USB-C power and brown-out the
 // board (observed on the bench 2026-08-07: brownout reset at high slider
@@ -66,8 +68,18 @@ uint32_t overlayUntil = 0;         // text overlay deadline (0 = none)
 uint32_t identifyUntil = 0;        // identify-flash deadline (0 = none)
 int lastShown = -1;                // last scene id actually drawn
 
-uint8_t brightness = 110;          // 10..255, NVS-persisted
+uint8_t brightness = 110;          // 10..MAX_BRIGHTNESS, NVS-persisted
 String tzPosix = "CST6CDT,M3.2.0,M11.1.0";  // NVS-persisted, default US Central
+
+// Flights Overhead companion-app config (NVS-persisted, edited in the
+// Console's Flights page; the examples/flights-overhead.mjs script obeys it).
+// The receiver URL is owner infrastructure: it lives ONLY in device NVS —
+// typed or scanned via the Console, never a default, never in any repo.
+String flUrl = "";
+uint8_t flInterval = 1;            // seconds between updates, 1..60
+uint8_t flRows = 2;                // flights shown, 1..5
+String flFormat = "kts";           // "kts" or "alt"
+String flView = "list";            // "list" (text board) or "radar" (pixels)
 
 // Claim-code pairing (GLOSSARY: Claim code). A browser without the token
 // asks the device to show a short code on the panel; typing it proves
@@ -112,7 +124,13 @@ bool jsonGet(const String& body, const char* key, String& out) {
   out = "";
   for (int i = q1 + 1; i < (int)body.length(); i++) {
     char ch = body[i];
-    if (ch == '\\' && i + 1 < (int)body.length()) { out += body[++i]; continue; }
+    if (ch == '\\' && i + 1 < (int)body.length()) {
+      char e = body[++i];
+      if (e == 'n') out += '\n';        // multi-line panel text
+      else if (e == 't') out += ' ';
+      else out += e;                    // \" \\ \/ pass through
+      continue;
+    }
     if (ch == '"') return true;
     out += ch;
   }
@@ -199,6 +217,16 @@ void drawClock() {
 void drawOverlay() {
   matrix.fillScreen(0);
   matrix.setTextColor(rgb(230, 230, 0));
+  if (overlayText.indexOf('\n') >= 0) {  // preformatted board: tiny 3x5 font
+    matrix.setFont(&TomThumb);           // baseline-addressed, 16 chars/row
+    matrix.setTextSize(1);
+    matrix.setTextWrap(false);
+    matrix.setCursor(0, 5);
+    matrix.print(overlayText);
+    matrix.setFont(NULL);                // back to the classic font for clock
+    matrix.show();
+    return;
+  }
   if (overlayText.length() <= 5) {
     matrix.setTextSize(2);
     matrix.setCursor(2, 9);
@@ -342,7 +370,40 @@ void handleText() {
   if (secs > 300) secs = 300;
   overlayText = text;
   overlayUntil = millis() + (uint32_t)secs * 1000;
+  lastShown = -1;  // repaint even if an overlay is already showing (live boards)
   sendJson(200, "{\"ok\":true}");
+}
+
+// Config for the Flights Overhead companion script — the device is the
+// source of truth so the Console can edit it and any script host obeys.
+void handleFlightsGet() {
+  if (!authed()) { deny(); return; }
+  sendJson(200, String("{\"url\":\"") + jsonEscape(flUrl) +
+                    "\",\"interval_s\":" + flInterval + ",\"rows\":" + flRows +
+                    ",\"format\":\"" + flFormat + "\",\"view\":\"" + flView +
+                    "\"}");
+}
+
+void handleFlightsPost() {
+  if (!authed()) { deny(); return; }
+  String body = server.arg("plain"), s;
+  if (jsonGet(body, "url", s) && s.startsWith("http") && s.length() < 128) {
+    flUrl = s;
+    prefs.putString("fl_url", flUrl);
+  }
+  long v = jsonInt(body, "interval_s", -1);
+  if (v >= 1 && v <= 60) { flInterval = v; prefs.putUChar("fl_int", flInterval); }
+  v = jsonInt(body, "rows", -1);
+  if (v >= 1 && v <= 5) { flRows = v; prefs.putUChar("fl_n", flRows); }
+  if (jsonGet(body, "format", s) && (s == "kts" || s == "alt")) {
+    flFormat = s;
+    prefs.putString("fl_fmt", flFormat);
+  }
+  if (jsonGet(body, "view", s) && (s == "list" || s == "radar")) {
+    flView = s;
+    prefs.putString("fl_view", flView);
+  }
+  handleFlightsGet();  // echo the applied config back
 }
 
 void handleFrame() {
@@ -444,6 +505,58 @@ void handleClaimFinish() {
   snprintf(body, sizeof body,
            "{\"error\":\"wrong code\",\"attempts_left\":%d}", 5 - claimAttempts);
   sendJson(403, body);
+}
+
+// True if the URL serves dump1090/readsb-style aircraft.json (checks the
+// first 256 bytes only — no need to pull the whole file).
+bool probeAircraftJson(const String& url) {
+  HTTPClient http;
+  http.setConnectTimeout(700);
+  http.setTimeout(900);
+  if (!http.begin(url)) return false;
+  bool ok = false;
+  if (http.GET() == 200) {
+    WiFiClient* s = http.getStreamPtr();
+    char buf[257];
+    int n = 0;
+    uint32_t t0 = millis();
+    while (n < 256 && millis() - t0 < 800) {
+      int c = s->read();
+      if (c < 0) { delay(5); continue; }
+      buf[n++] = (char)c;
+    }
+    buf[n] = 0;
+    ok = strstr(buf, "\"aircraft\"") != nullptr;
+  }
+  http.end();
+  return ok;
+}
+
+// The device hunts for the owner's receiver itself (mDNS names the common
+// images announce, then the standard web paths), so the URL never has to
+// exist anywhere but here.
+void handleFlightsScan() {
+  if (!authed()) { deny(); return; }
+  // Generic receiver-image hostnames only. Third-party flight-data service
+  // names are banned by the clean-room gate (ADR-0023) even as hostnames;
+  // owners of other images type their URL in instead.
+  const char* hosts[] = {"piaware", "ultrafeeder", "adsb", "raspberrypi"};
+  const char* paths[] = {":8080/data/aircraft.json",
+                         "/skyaware/data/aircraft.json",
+                         "/tar1090/data/aircraft.json",
+                         ":8080/tar1090/data/aircraft.json"};
+  for (auto h : hosts) {
+    IPAddress ip = MDNS.queryHost(h, 400);
+    if ((uint32_t)ip == 0) continue;
+    for (auto p : paths) {
+      String url = String("http://") + ip.toString() + p;
+      if (probeAircraftJson(url)) {
+        sendJson(200, String("{\"found\":\"") + url + "\"}");
+        return;
+      }
+    }
+  }
+  sendJson(200, "{\"found\":null}");
 }
 
 void handleSettingsGet() {
@@ -668,6 +781,9 @@ void startConsole() {
   server.on("/api/v1/token/rotate", HTTP_POST, handleRotate);
   server.on("/api/v1/settings", HTTP_GET, handleSettingsGet);
   server.on("/api/v1/settings", HTTP_POST, handleSettingsPost);
+  server.on("/api/v1/apps/flights", HTTP_GET, handleFlightsGet);
+  server.on("/api/v1/apps/flights", HTTP_POST, handleFlightsPost);
+  server.on("/api/v1/apps/flights/scan", HTTP_POST, handleFlightsScan);
   server.on("/api/v1/reboot", HTTP_POST, handleReboot);
   server.on("/api/v1/wifi/reset", HTTP_POST, handleWifiReset);
   server.on("/api/v1/factory/reset", HTTP_POST, handleFactoryReset);
@@ -729,6 +845,11 @@ void setup() {
   brightness = prefs.getUChar("bright", 110);
   if (brightness > MAX_BRIGHTNESS) brightness = MAX_BRIGHTNESS;
   tzPosix = prefs.getString("tz", tzPosix);
+  flUrl = prefs.getString("fl_url", flUrl);
+  flInterval = prefs.getUChar("fl_int", flInterval);
+  flRows = prefs.getUChar("fl_n", flRows);
+  flFormat = prefs.getString("fl_fmt", flFormat);
+  flView = prefs.getString("fl_view", flView);
   apiToken = prefs.getString("token", "");
   if (!apiToken.length()) {
     apiToken = makeToken();

@@ -3,14 +3,20 @@
 > **Status: living tree.** The DK-01 firmware lives at
 > [`firmware/dk01/`](../firmware/dk01/README.md) and develops
 > continuously from P1 onward (ADR-0024, superseding ADR-0009's
-> disposable-spike posture). v0.3.0 ships the plug-and-play loop:
+> disposable-spike posture). v0.5.2 ships the plug-and-play loop:
 > captive-portal Wi-Fi setup with live join, claim-code pairing (the
 > panel shows the code — users never hold a token), device-served
 > Local Console, `/api/v1`, and browser OTA onto dual app slots with
-> the TinyUF2 factory partition kept for USB recovery. API and OTA shapes
-> stay DRAFT until the P2 freeze; M0 acceptance (signed OTA, verified
-> rollback, soak) still gates sold units. No credentials are ever
-> compiled in or committed — runtime NVS only (ADR-0023).
+> the TinyUF2 factory partition kept for USB recovery. It adds a
+> brightness ceiling and reset-reason diagnostics after a bench
+> brown-out, small-font multi-line panel boards, and Flights Overhead
+> companion config — receiver URL, interval, rows, format, and
+> list/radar view — held in device NVS with an mDNS receiver scan, so
+> the owner's receiver address exists only on their own hardware.
+> API and OTA shapes stay DRAFT until the P2 freeze; M0 acceptance
+> (signed OTA, verified rollback, soak) still gates sold units. No
+> credentials are ever compiled in or committed — runtime NVS only
+> (ADR-0023).
 
 ## Stack
 
