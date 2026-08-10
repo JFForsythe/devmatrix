@@ -16,6 +16,7 @@ See the IP line in [docs/VISION.md](docs/VISION.md).
 
 | You want to… | Read |
 |---|---|
+| **Use the box** — setup, Console, apps, updates, recovery | [docs/MANUAL.md](docs/MANUAL.md) |
 | Understand the product & brand | [docs/VISION.md](docs/VISION.md) |
 | Feel the buyer's journey (canonical example) | [docs/USER-STORY.md](docs/USER-STORY.md) |
 | The Console spec — pages, features, modes | [docs/PORTAL.md](docs/PORTAL.md) |

@@ -21,3 +21,7 @@ DMX_URL=http://dmx-xxxx.local DMX_TOKEN=<your LAN token> \
 Pair a browser with the device first — the Console will hand you the
 token. Receiver URLs, tokens, and locations live on the device and are
 read at runtime; none of them belong in this repository.
+
+To keep a script running unattended (systemd on a Pi, launchd on
+macOS), follow the owner's manual:
+[docs/MANUAL.md](../docs/MANUAL.md) → "Keep it running".

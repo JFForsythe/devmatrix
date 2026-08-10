@@ -9,6 +9,10 @@ a one-time event.
 token are created at runtime and stored only in the device's NVS flash.
 Factory reset wipes them.
 
+This README is the developer reference (build, flash, API routes). The
+owner-facing walkthrough — setup, Console, apps, updates, recovery — is
+[docs/MANUAL.md](../../docs/MANUAL.md).
+
 ## What you get out of the box
 
 - **Setup hotspot** — first boot opens `DEVMATRIX-XXXX`; a captive

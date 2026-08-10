@@ -17,6 +17,7 @@ closed-product code, logic, or schemas — ever.
 | Topic | Owner file |
 |---|---|
 | Product, brand, audience, tiers, IP line | docs/VISION.md |
+| Owner instruction manual — setup, usage, recovery steps | docs/MANUAL.md |
 | Buyer journey & canonical mock identifiers | docs/USER-STORY.md |
 | Console spec (IA, features, connection modes) | docs/PORTAL.md |
 | Mode split: Local vs Cloud, pricing, sunset | docs/MODES.md |
