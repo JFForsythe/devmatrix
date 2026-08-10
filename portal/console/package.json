@@ -12,6 +12,7 @@
     "build:device": "vite build --mode device --outDir dist-device && node scripts/gen-header.mjs"
   },
   "dependencies": {
+    "fflate": "0.8.2",
     "preact": "10.27.2"
   },
   "devDependencies": {

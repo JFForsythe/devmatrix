@@ -34,6 +34,7 @@ in `package.json` and their complete resolved closure is recorded in
 
 | Package | Exact version | License | Upstream |
 |---|---:|---|---|
+| `fflate` | 0.8.2 | MIT | <https://github.com/101arrowz/fflate> |
 | `preact` | 10.27.2 | MIT | <https://github.com/preactjs/preact> |
 | `vite` | 5.4.21 | MIT | <https://github.com/vitejs/vite> |
 | `typescript` | 5.9.3 | Apache-2.0 | <https://github.com/microsoft/TypeScript> |
