@@ -43,6 +43,9 @@ arduino-cli compile --fqbn esp32:esp32:adafruit_matrixportal_esp32s3 \
   --output-dir out firmware/dk01
 ```
 
+Console changes happen in `portal/console/`; edit `portal/console/src/`
+and run `npm run build` from `portal/console/` before compiling firmware.
+
 `out/dk01.ino.bin` is what the Console's **Update firmware** card wants.
 
 ## First (and last) cable flash
@@ -82,7 +85,7 @@ Console's API card ("Copy with my token") or USB serial.
 |---|---|
 | `dk01.ino` | The whole firmware — boot, Wi-Fi, scenes, API, OTA |
 | `web_setup.h` | Captive-portal setup page (embedded, zero assets) |
-| `web_console.h` | The Local Console page (embedded, zero assets) |
+| `web_console.h` | GENERATED from `portal/console` — do not hand-edit; edit `portal/console/src` and run `npm run build` |
 
 ## Honest limits (v0, pre-P2-freeze)
 

@@ -13,7 +13,7 @@ an interactive in-memory demo seeded from `docs/USER-STORY.md`.
 - `npm run build:hosted` writes the hosted static bundle to `dist-hosted/`.
 - `npm run build:device` writes one self-contained HTML file to `dist-device/`,
   gzips it deterministically at level 9, and regenerates
-  `../../firmware/dk01/web_console_next.h`.
+  `../../firmware/dk01/web_console.h`.
 - `npm run build` builds both targets.
 
 Use Node 20. With the pinned dependencies already installed, build from this

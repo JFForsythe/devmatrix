@@ -8,7 +8,7 @@ step-by-step instructions.
 Two status labels keep this manual honest (a P0 rule — no unsupported
 claim in this repo):
 
-- **Today** — works now, on firmware v0.5.2, verified on real hardware.
+- **Today** — works now, on firmware v0.6.0, verified on real hardware.
 - **Ahead · gate X** — specified and coming; the gate names are
   [ROADMAP.md](../ROADMAP.md)'s. Nothing labeled Ahead is a promise the
   current firmware keeps.
@@ -55,7 +55,7 @@ chapter then applies only to forks and bare boards.
 
 **Wrong password?** The portal tells you and lets you retry — the
 device doesn't reboot into limbo. **Changed routers later?** Console →
-Settings → *Change Wi-Fi…* reopens this flow (or `POST /api/v1/wifi/reset`).
+Security → **CHANGE WI-FI…** reopens this flow (or `POST /api/v1/wifi/reset`).
 
 **Ahead · P1/M0:** USB Improv setup (join Wi-Fi over the cable, no
 hotspot step) — specified in [docs/PORTAL.md](PORTAL.md).
@@ -72,7 +72,7 @@ The phone that ran setup is already paired. For every other browser:
 Codes expire after 5 minutes and die after 5 wrong tries. Reading the
 panel *is* the proof of possession: nothing to write down, and a lost
 browser never means factory reset — just pair again. To revoke every
-existing session at once: Settings → **Rotate LAN token**.
+existing session at once: Security → **ROTATE LAN TOKEN**.
 
 **Ahead · M1:** the full claim ceremony — session code on the panel
 plus a 2-second physical button hold, per
@@ -81,28 +81,49 @@ plus a 2-second physical button hold, per
 ## 5 · The Console, page by page — Today
 
 Served by the device itself at `http://dmx-xxxx.local/` — no internet
-needed. Today's device Console has six views (it converges on the full
-eight-page design of [docs/PORTAL.md](PORTAL.md) as ADR-0027 lands):
+needed. Today's device Console has seven views, converged with
+[docs/PORTAL.md](PORTAL.md) from one codebase per
+[ADR-0027](adr/ADR-0027-one-console-codebase.md):
 
 - **Dashboard** — live status tiles: firmware version and slot, display
-  refresh (Hz), free heap, uptime, Wi-Fi signal, and the last reset
-  reason. A brown-out reset shows a visible alert tile so power
-  problems diagnose themselves.
-- **Paint** — a 64×32 canvas; draw with a pointer, push to the panel.
-- **Flights** — configuration for the Flights Overhead companion app
-  (chapter 8): receiver URL with **Scan my network**, update interval
-  (1–60 s), rows (1–5), speed/altitude format, and the List/Radar
-  view toggle. Settings persist on the device in NVS.
-- **Update** — over-the-air firmware: upload a built `.bin`, watch it
-  flash to the inactive slot, reboot into it. Chapter 9.
-- **Settings** — device timezone, brightness, **Rotate LAN token**,
-  *Change Wi-Fi…*, reboot, and factory reset.
-- **API** — writes ready-to-run `curl` commands, with a **Copy with my
-  token** button so scripts start working in one paste.
+  refresh (Hz), free heap, uptime, Wi-Fi signal, IP address, current
+  scene, and last reset reason. A brown-out reset shows a visible alert.
+  Use **SEND TO PANEL** for quick text, the live **BRIGHTNESS** control
+  for the USB-safe 10–150 range, and **IDENTIFY** or **REBOOT** for quick
+  device actions. The 64×32 paint canvas is now here too: choose a
+  color, draw, then use **PUSH FRAME** or turn on **LIVE STROKES**.
+- **Devices** — shows the device that served this page with its name,
+  serial, address, firmware, and online state. **Pair another browser**
+  walks through reading the panel's 6-digit code; the new browser keeps
+  its LAN token locally and retries the interrupted request.
+- **Apps** — configures the Flights Overhead companion app (chapter 8):
+  **RECEIVER URL**, **SCAN MY NETWORK**, interval (1–60 s), rows (1–5),
+  speed/altitude value, and List/Radar view. **SAVE TO DEVICE** keeps the
+  configuration in device NVS; **COPY WITH MY TOKEN** copies the host
+  command. **Ahead · gate M4** — the Community Registry adds reviewed
+  declarative apps, permission sheets, and one-click installation.
+- **Deploy** — shows the running version and slot. Choose a `.bin`, then
+  **UPLOAD & REBOOT** to send it to the inactive OTA slot and watch
+  progress while the device returns; chapter 9 covers the full process.
+  **Ahead · gate M0** — signed OTA verification and automatic rollback
+  after a failed boot. USB recovery is available today.
+- **Dev console** — select any documented LAN API route, inspect its
+  method and path, edit the JSON body where applicable, and build a
+  ready-to-run `curl` command. **COPY WITH MY TOKEN** includes this
+  browser's LAN token; health and claim routes remain open.
+- **Security** — **ROTATE LAN TOKEN** logs out every other client,
+  **CHANGE WI-FI…** removes only Wi-Fi credentials and reboots to setup,
+  and **FACTORY RESET** wipes device settings after you type the exact
+  confirmation. **Ahead · gate M1** — optional account passkeys,
+  hardware-key enrollment, and the timestamped exportable audit log.
+- **Settings** — choose a common **Clock timezone** preset or enter a
+  custom **POSIX STRING**, then **SAVE TIMEZONE**. The same view shows
+  the hostname, IP address, and current Console target.
 
 ## 6 · Push things from your own code — Today
 
-Get `$TOKEN` from the Console's API page. Full route list:
+Get `$TOKEN` from the Console's Dev console view (**COPY WITH MY
+TOKEN**). Full route list:
 [firmware/dk01/README.md](../firmware/dk01/README.md).
 
 **Text** (up to 300 s on screen):
@@ -218,10 +239,10 @@ The never-brick ladder, mildest first:
 
 | Action | How | What it wipes |
 |---|---|---|
-| Reboot | Settings → Reboot, or `POST /api/v1/reboot` | nothing |
-| Change Wi-Fi | Settings → *Change Wi-Fi…* (`wifi/reset`) | Wi-Fi credentials only — token and config survive |
+| Reboot | Dashboard → **REBOOT**, or `POST /api/v1/reboot` | nothing |
+| Change Wi-Fi | Security → **CHANGE WI-FI…** (`wifi/reset`) | Wi-Fi credentials only — token and config survive |
 | Rotate the token | Settings → **Rotate LAN token** | every paired browser/script credential |
-| Factory reset | Settings → Factory reset (`factory/reset`) | everything in NVS: Wi-Fi, token, timezone, flights config |
+| Factory reset | Security → **FACTORY RESET** (`factory/reset`) | everything in NVS: Wi-Fi, token, timezone, flights config |
 | USB recovery | Double-press the board's reset button — it mounts as a USB drive; drag a UF2 firmware file on | nothing by itself — reflashes firmware |
 
 The TinyUF2 factory partition survives every OTA, so USB recovery is
@@ -259,7 +280,7 @@ Topic tree, payload envelope, and per-device broker ACLs:
 |---|---|
 | Captive portal never opened | Browse to `http://192.168.4.1` while on the `DEVMATRIX-XXXX` network |
 | `dmx-xxxx.local` not found | Your network blocks mDNS — use the IP the panel showed at setup; both work |
-| `401 unauthorized` | Stale token — re-pair (chapter 4) or re-copy from the API page |
+| `401 unauthorized` | Stale token — re-pair (chapter 4) or re-copy from the Dev console view |
 | Panel resets at high brightness | Under-powered supply. The 150 cap exists for this; the Dashboard's reset-reason tile confirms a brown-out |
 | Clock is wrong | Settings → timezone; the clock needs one internet moment for SNTP after boot |
 | Flights page saves but panel shows nothing | The host script isn't running — chapter 8; check `systemctl status dmx-flights` |

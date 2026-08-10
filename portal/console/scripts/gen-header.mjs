@@ -14,7 +14,7 @@ const outputPath = resolve(
   "..",
   "firmware",
   "dk01",
-  "web_console_next.h",
+  "web_console.h",
 );
 
 const html = await readFile(inputPath);
@@ -40,10 +40,10 @@ for (let offset = 0; offset < gzipped.length; offset += 12) {
 
 const header = [
   "// GENERATED from portal/console — do not hand-edit (ADR-0027)",
-  "static const uint8_t CONSOLE_NEXT_HTML_GZ[] PROGMEM = {",
+  "static const uint8_t CONSOLE_HTML_GZ[] PROGMEM = {",
   ...byteRows,
   "};",
-  `static const unsigned int CONSOLE_NEXT_HTML_GZ_LEN = ${gzipped.length};`,
+  `static const unsigned int CONSOLE_HTML_GZ_LEN = ${gzipped.length};`,
   "",
 ].join("\n");
 

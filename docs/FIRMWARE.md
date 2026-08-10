@@ -3,11 +3,12 @@
 > **Status: living tree.** The DK-01 firmware lives at
 > [`firmware/dk01/`](../firmware/dk01/README.md) and develops
 > continuously from P1 onward (ADR-0024, superseding ADR-0009's
-> disposable-spike posture). v0.5.2 ships the plug-and-play loop:
-> captive-portal Wi-Fi setup with live join, claim-code pairing (the
-> panel shows the code — users never hold a token), device-served
-> Local Console, `/api/v1`, and browser OTA onto dual app slots with
-> the TinyUF2 factory partition kept for USB recovery. It adds a
+> disposable-spike posture). v0.6.0 — the device now serves the
+> generated one-codebase Console (ADR-0027), gzip-compressed from
+> PROGMEM. The plug-and-play loop includes captive-portal Wi-Fi setup
+> with live join, claim-code pairing (the panel shows the code — users
+> never hold a token), `/api/v1`, and browser OTA onto dual app slots
+> with the TinyUF2 factory partition kept for USB recovery. It has a
 > brightness ceiling and reset-reason diagnostics after a bench
 > brown-out, small-font multi-line panel boards, and Flights Overhead
 > companion config — receiver URL, interval, rows, format, and

@@ -34,7 +34,7 @@
 #include "web_setup.h"
 #include "web_console.h"
 
-#define FW_VERSION "0.5.2"
+#define FW_VERSION "0.6.0"
 
 // A full-bright white frame can out-draw USB-C power and brown-out the
 // board (observed on the bench 2026-08-07: brownout reset at high slider
@@ -768,7 +768,10 @@ void startSetupMode() {
 void startConsole() {
   const char* headers[] = {"Authorization", "Content-Length"};
   server.collectHeaders(headers, 2);
-  server.on("/", HTTP_GET, []() { server.send_P(200, "text/html", CONSOLE_HTML); });
+  server.on("/", HTTP_GET, []() {
+    server.sendHeader("Content-Encoding", "gzip");
+    server.send_P(200, "text/html", (const char*)CONSOLE_HTML_GZ, CONSOLE_HTML_GZ_LEN);
+  });
   server.on("/api/v1/health", HTTP_GET, handleHealth);
   server.on("/api/v1/info", HTTP_GET, handleInfo);
   server.on("/api/v1/display/text", HTTP_POST, handleText);
