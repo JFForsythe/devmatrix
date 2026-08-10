@@ -4,9 +4,9 @@
 [ADR-0027](../../docs/adr/ADR-0027-one-console-codebase.md). It uses the Preact,
 TypeScript, and Vite stack selected in
 [ADR-0014](../../docs/adr/ADR-0014-console-production-stack.md), including only
-system UI and native monospace fonts. The current implementation is pipeline
-scaffolding with placeholder routes; no production view behavior has been
-ported.
+system UI and native monospace fonts. Packet 2B ports the complete seven-view
+Local Console, the live `/api/v1` transport and panel-code pairing flow, plus
+an interactive in-memory demo seeded from `docs/USER-STORY.md`.
 
 ## Build targets
 
@@ -16,15 +16,22 @@ ported.
   `../../firmware/dk01/web_console_next.h`.
 - `npm run build` builds both targets.
 
-Use Node 20. From this directory, install and build with:
+Use Node 20. With the pinned dependencies already installed, build from this
+directory with:
 
 ```sh
-npm ci
 npm run build
 ```
 
-The generated header is committed for Arduino IDE users, but it is not wired
-into the running firmware during this scaffold phase. Do not hand-edit it.
+The generated header is committed for Arduino IDE users. Do not hand-edit it.
+
+## Runtime modes
+
+- The device build talks to same-origin `/api/v1` and `/update` routes.
+- The hosted build uses live mode when `?device=<host>` is supplied (and
+  remembers that address locally); otherwise it uses clearly labeled mock data.
+- LAN bearer tokens are browser-local. A `401` opens claim-code pairing and
+  retries the interrupted request after the panel code is accepted.
 
 ## Dependency provenance
 
