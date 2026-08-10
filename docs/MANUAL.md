@@ -187,11 +187,45 @@ any always-on machine with Node 18+.
 
 ### Keep it running when you close your laptop
 
-The script must live on a machine that stays on. Two ready-made
-services — put the two variables in `/etc/devmatrix/flights.env`
-(readable only by you: `chmod 600`):
+The script must live on a machine that stays on, and the checkout must
+remain at the same path. Run the installer from the repository root; it
+prompts for the device URL and hides the token while you type it:
 
-**Linux / Raspberry Pi (systemd)** — `/etc/systemd/system/dmx-flights.service`:
+```sh
+# macOS
+node examples/install-flights.mjs
+
+# Linux / Raspberry Pi (system files require root)
+sudo "$(command -v node)" examples/install-flights.mjs
+```
+
+It installs and starts a `launchd` agent on macOS or a `systemd` service
+on Linux. The environment file is mode `0600`; on macOS the
+credential-bearing plist is also mode `0600`, and service output goes to
+`~/Library/Logs/devmatrix/`. Optional overrides are `--receiver-url`,
+`--airport`, `--view-mi`, and `--fps`.
+
+Preview every file and command without changing the machine, inspect the
+service, or remove it with:
+
+```sh
+node examples/install-flights.mjs --dry-run
+node examples/install-flights.mjs --status
+node examples/install-flights.mjs --uninstall       # keep flights.env
+node examples/install-flights.mjs --uninstall --purge
+```
+
+On Linux, use the same `sudo "$(command -v node)" ...` prefix for install
+and uninstall. Re-running the installer replaces and restarts the existing
+service cleanly.
+
+<details>
+<summary>What it writes on Linux (systemd)</summary>
+
+The installer writes credentials to `/etc/devmatrix/flights.env` and the
+following auditable unit to
+`/etc/systemd/system/dmx-flights.service`. The two `ExecStart` paths are
+resolved absolute paths on the machine running the installer.
 
 ```ini
 [Unit]
@@ -200,7 +234,7 @@ After=network-online.target
 
 [Service]
 EnvironmentFile=/etc/devmatrix/flights.env
-ExecStart=/usr/bin/node /opt/devmatrix/examples/flights-overhead.mjs
+ExecStart="/absolute/path/to/node" "/absolute/path/to/examples/flights-overhead.mjs"
 Restart=always
 RestartSec=5
 
@@ -208,14 +242,10 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-Then `sudo systemctl enable --now dmx-flights`. It survives reboots of
-both the Pi and the device.
+It then runs `systemctl daemon-reload` and
+`systemctl enable --now dmx-flights.service`.
 
-**macOS (launchd)** — `~/Library/LaunchAgents/com.devmatrix.flights.plist`
-with a `ProgramArguments` array of `node` + the script path and an
-`EnvironmentVariables` dict holding `DMX_URL`/`DMX_TOKEN`; load it with
-`launchctl load -w` on that file. `KeepAlive` true gives the same
-restart-on-crash behavior.
+</details>
 
 More examples and script details: [examples/README.md](../examples/README.md).
 

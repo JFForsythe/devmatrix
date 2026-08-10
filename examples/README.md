@@ -7,6 +7,7 @@ No SDK, no cloud, no firmware changes.
 | Script | What it does |
 |---|---|
 | [`flights-overhead.mjs`](flights-overhead.mjs) | Polls **your own ADS-B receiver** (dump1090-fa / readsb / PiAware `aircraft.json` — the open receiver ecosystem, ADR-0023) and drives the panel in two views, toggled live from the Console's **Flights** page: **List** (`AAL2883 - 295kts`, nearest first) and **Radar** (every pixel an aircraft, altitude-colored with faint white comet trails; runways as paired lines that landing planes thread; touchdowns blink green). A taste of the M4 Flights Overhead app. |
+| [`install-flights.mjs`](install-flights.mjs) | Installs Flights Overhead as a persistent `systemd` service on Linux/Pi or `launchd` agent on macOS; also supports status, dry-run, and uninstall. |
 
 Setup: open the Console → **Flights** → click **Scan my network** (the
 device finds your receiver itself) → Save. Then run with Node 18+:
@@ -18,9 +19,13 @@ DMX_URL=http://dmx-xxxx.local DMX_TOKEN=<your LAN token> \
 
 (The Flights page prints this command with your values filled in.)
 
+Permanent service: `node examples/install-flights.mjs` (use the `sudo`
+form in the owner's manual on Linux/Pi).
+
 Pair a browser with the device first — the Console will hand you the
-token. Receiver URLs, tokens, and locations live on the device and are
-read at runtime; none of them belong in this repository.
+token. Receiver URLs, tokens, and locations do not belong in this
+repository. The service installer saves its host-side values only in the
+mode-`0600` environment file (and the mode-`0600` launch agent on macOS).
 
 To keep a script running unattended (systemd on a Pi, launchd on
 macOS), follow the owner's manual:
