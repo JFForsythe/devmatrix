@@ -2,7 +2,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { Card, LoadingCard, Status, ViewHeader } from "../components";
 import type { ConsoleTransport } from "../transport";
-import type { DeviceInfo, DeviceSettings, StatusMessage } from "../types";
+import type { DeviceInfo, DeviceSettings, MqttSettings, StatusMessage } from "../types";
 
 const TIMEZONES = [
   ["US Central", "CST6CDT,M3.2.0,M11.1.0"],
@@ -16,21 +16,35 @@ const TIMEZONES = [
 export function SettingsView({ transport }: { transport: ConsoleTransport }) {
   const [info, setInfo] = useState<DeviceInfo | null>(null);
   const [settings, setSettings] = useState<DeviceSettings | null>(null);
+  const [mqtt, setMqtt] = useState<MqttSettings | null>(null);
+  const [mqttPassword, setMqttPassword] = useState("");
   const [status, setStatus] = useState<StatusMessage | null>(null);
 
   useEffect(() => {
     let active = true;
-    Promise.all([transport.info(), transport.settings()])
-      .then(([nextInfo, nextSettings]) => {
+    Promise.all([transport.info(), transport.settings(), transport.mqtt()])
+      .then(([nextInfo, nextSettings, nextMqtt]) => {
         if (!active) return;
         setInfo(nextInfo);
         setSettings(nextSettings);
+        setMqtt(nextMqtt);
       })
       .catch((error: unknown) => {
         if (active) setStatus({ kind: "error", text: error instanceof Error ? error.message : "Could not load settings." });
       });
+    const timer = window.setInterval(() => {
+      transport.mqtt().then((nextMqtt) => {
+        if (!active) return;
+        setMqtt((current) => current
+          ? { ...current, status: nextMqtt.status, has_password: nextMqtt.has_password }
+          : nextMqtt);
+      }).catch(() => {
+        if (active) setMqtt((current) => current ? { ...current, status: "error" } : current);
+      });
+    }, 3_000);
     return () => {
       active = false;
+      window.clearInterval(timer);
     };
   }, [transport]);
 
@@ -46,6 +60,32 @@ export function SettingsView({ transport }: { transport: ConsoleTransport }) {
       setStatus({ kind: "error", text: error instanceof Error ? error.message : "Could not save the timezone." });
     }
   }
+
+  async function saveMqtt(): Promise<void> {
+    if (!mqtt) return;
+    if (!Number.isInteger(mqtt.port) || mqtt.port < 1 || mqtt.port > 65_535) {
+      setStatus({ kind: "error", text: "MQTT port must be between 1 and 65535." });
+      return;
+    }
+    const body: Record<string, unknown> = {
+      enabled: mqtt.enabled,
+      host: mqtt.host.trim(),
+      port: mqtt.port,
+      username: mqtt.username.trim(),
+      tls: mqtt.tls,
+    };
+    if (mqttPassword) body.password = mqttPassword;
+    try {
+      const saved = await transport.post<MqttSettings>("/api/v1/mqtt", body);
+      setMqtt(saved);
+      setMqttPassword("");
+      setStatus({ kind: "ok", text: saved.status === "disabled" ? "MQTT settings saved; the client is off." : "MQTT settings saved; the client is connecting." });
+    } catch (error) {
+      setStatus({ kind: "error", text: error instanceof Error ? error.message : "Could not save MQTT settings." });
+    }
+  }
+
+  const mqttChip = mqtt?.status === "connected" ? "ok" : mqtt?.status === "error" ? "crit" : mqtt?.status === "connecting" ? "warn" : "";
 
   return (
     <div class="view">
@@ -86,6 +126,48 @@ export function SettingsView({ transport }: { transport: ConsoleTransport }) {
             <p class="note">A hosted Console remembers an address supplied with <code>?device=&lt;host&gt;</code> in this browser.</p>
           </Card>
         </div>
+      )}
+
+      {mqtt && (
+        <Card
+          title="MQTT broker"
+          aside={(
+            <>
+              <span class={`chip ${mqttChip}`} aria-live="polite">{mqtt.status.toUpperCase()}</span>
+              {transport.isMock && <span class="chip demo">SIMULATED</span>}
+            </>
+          )}
+        >
+          <p class="lead">Optional connection to a broker you own. An empty host keeps MQTT completely off.</p>
+          <div class="form-grid four">
+            <label class="field">
+              <span>BROKER HOST</span>
+              <input value={mqtt.host} onInput={(event) => setMqtt({ ...mqtt, host: event.currentTarget.value })} placeholder="broker.home.arpa" spellcheck={false} />
+            </label>
+            <label class="field">
+              <span>PORT</span>
+              <input type="number" min="1" max="65535" value={mqtt.port} onInput={(event) => setMqtt({ ...mqtt, port: Number(event.currentTarget.value) })} />
+            </label>
+            <label class="field">
+              <span>USERNAME</span>
+              <input value={mqtt.username} onInput={(event) => setMqtt({ ...mqtt, username: event.currentTarget.value })} autocomplete="username" spellcheck={false} />
+            </label>
+            <label class="field">
+              <span>PASSWORD · WRITE ONLY</span>
+              <input type="password" value={mqttPassword} onInput={(event) => setMqttPassword(event.currentTarget.value)} autocomplete="new-password" placeholder={mqtt.has_password ? "Saved — enter to replace" : "Not set"} />
+            </label>
+          </div>
+          <div class="button-row wrap">
+            <label class="check-chip">
+              <input type="checkbox" checked={mqtt.enabled} onChange={(event) => setMqtt({ ...mqtt, enabled: event.currentTarget.checked })} /> ENABLE MQTT
+            </label>
+            <label class="check-chip">
+              <input type="checkbox" checked={mqtt.tls} onChange={(event) => setMqtt({ ...mqtt, tls: event.currentTarget.checked })} /> TLS TRANSPORT
+            </label>
+            <button class="btn primary" type="button" onClick={() => void saveMqtt()}>SAVE MQTT</button>
+          </div>
+          <p class="note">The password never comes back from the device. TLS is encrypted but not yet CA-verified in this pre-P2 firmware.</p>
+        </Card>
       )}
 
       <Status message={status} />

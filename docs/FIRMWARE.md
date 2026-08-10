@@ -3,7 +3,14 @@
 > **Status: living tree.** The DK-01 firmware lives at
 > [`firmware/dk01/`](../firmware/dk01/README.md) and develops
 > continuously from P1 onward (ADR-0024, superseding ADR-0009's
-> disposable-spike posture). v0.7.0 — the first declarative apps now run
+> disposable-spike posture). v0.8.0 adds the optional esp-mqtt client from
+> ADR-0028: NVS broker settings and authenticated REST/Console control, a
+> real `DMX-####-####` serial-rooted topic tree, retained QoS 1 LWT and
+> display/health state, versioned request/response envelopes with expiry
+> replay rejection, and retained Home Assistant light, text, and notify
+> discovery republished on birth. Its event task only fills bounded static
+> buffers; command execution stays in the render loop, and ADR-0029's frame
+> layer remains REST-only. The first declarative apps also run
 > on the device with no host machine: offline Messages, the local-receiver
 > Flights list, and a generic HTTP/HTTPS JSON custom layout with RFC 6901
 > bindings, scheduled rotation, and stale-data rendering. The device serves the
@@ -77,8 +84,10 @@ until the P2 freeze. The sketch below is illustrative:
 - WebSocket `/api/v1/stream`: binary frames in (20+ fps at 64×32),
   events out.
 - MQTT: `devmatrix/<serial>/...` command/state/availability
-  (contracts/mqtt.md); HA MQTT Discovery announces
-  light/scene/notify/text entities with zero YAML.
+  (contracts/mqtt.md); today's HA MQTT Discovery announces light,
+  text, and notify entities with zero YAML. The DRAFT contract's scene
+  entity remains a P2 compatibility item because HA scene payloads do not
+  provide a command-template hook for fresh envelope timestamps/expiry.
 - Auth: every `/api/v1` route requires the LAN token (Bearer) over TLS;
   mutating routes validate Host/Origin. Ceremony + transport live in
   SECURITY.md → Discovery & local transport.

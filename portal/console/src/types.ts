@@ -70,6 +70,18 @@ export interface DeviceSettings {
   brightness: number;
 }
 
+export type MqttStatus = "disabled" | "connecting" | "connected" | "error";
+
+export interface MqttSettings {
+  enabled: boolean;
+  host: string;
+  port: number;
+  username: string;
+  tls: boolean;
+  has_password: boolean;
+  status: MqttStatus;
+}
+
 export interface FleetDevice {
   name: string;
   serial: string;

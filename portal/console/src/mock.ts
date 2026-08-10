@@ -8,6 +8,7 @@ import type {
   FlightsSettings,
   Health,
   MessagesSettings,
+  MqttSettings,
 } from "./types";
 
 export const MOCK_TOKEN = "dmx_lan_demo_4e710952";
@@ -18,7 +19,7 @@ export const MOCK_FLEET: FleetDevice[] = [
     name: "Study",
     serial: "DMX-4E71-0952",
     address: "dmx-0952.local · 10.0.4.22",
-    firmware: "0.7.0",
+    firmware: "0.8.0",
     location: "home",
     online: true,
     mock: true,
@@ -27,7 +28,7 @@ export const MOCK_FLEET: FleetDevice[] = [
     name: "Workshop",
     serial: "DMX-4E71-1108",
     address: "workshop.local · 10.0.4.23",
-    firmware: "0.7.0",
+    firmware: "0.8.0",
     location: "home",
     online: true,
     mock: true,
@@ -47,6 +48,7 @@ export interface MockState {
   health: Health;
   info: DeviceInfo;
   settings: DeviceSettings;
+  mqtt: MqttSettings;
   apps: AppsSettings;
   messages: MessagesSettings;
   custom: CustomLayout;
@@ -56,12 +58,12 @@ export interface MockState {
 }
 export function createMockState(): MockState {
   return {
-    health: { ok: true, device: "DMX-4E71-0952", fw: "0.7.0", mode: "run" },
+    health: { ok: true, device: "DMX-4E71-0952", fw: "0.8.0", mode: "run" },
     info: {
       device: "DMX-4E71-0952",
       name: "Study",
       serial: "DMX-4E71-0952",
-      fw: "0.7.0",
+      fw: "0.8.0",
       uptime_s: 1_052_820,
       heap_free: 151_552,
       rssi_dbm: -52,
@@ -74,6 +76,15 @@ export function createMockState(): MockState {
       reset_reason: "poweron",
     },
     settings: { tz: "CST6CDT,M3.2.0,M11.1.0", brightness: 110 },
+    mqtt: {
+      enabled: true,
+      host: "broker.home.arpa",
+      port: 1883,
+      username: "DMX-4E71-0952",
+      tls: false,
+      has_password: true,
+      status: "connected",
+    },
     apps: {
       apps: [
         { id: "messages", enabled: true, interval_s: 10, refresh_s: 30 },

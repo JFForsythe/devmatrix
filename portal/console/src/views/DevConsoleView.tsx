@@ -24,6 +24,8 @@ const ROUTES: RouteDefinition[] = [
   { label: "Finish claim", method: "POST", path: "/api/v1/claim/finish", body: '{"code":"123456"}', open: true },
   { label: "Read settings", method: "GET", path: "/api/v1/settings" },
   { label: "Save timezone", method: "POST", path: "/api/v1/settings", body: '{"tz":"CST6CDT,M3.2.0,M11.1.0"}' },
+  { label: "Read MQTT config", method: "GET", path: "/api/v1/mqtt" },
+  { label: "Save MQTT config", method: "POST", path: "/api/v1/mqtt", body: '{"enabled":true,"host":"broker.home.arpa","port":1883,"username":"DMX-4E71-0952","password":"write-only","tls":false}' },
   { label: "Read Flights config", method: "GET", path: "/api/v1/apps/flights" },
   { label: "Save Flights config", method: "POST", path: "/api/v1/apps/flights", body: '{"url":"http://receiver/data/aircraft.json","interval_s":1,"rows":2,"format":"kts","view":"list"}' },
   { label: "Scan for receiver", method: "POST", path: "/api/v1/apps/flights/scan" },

@@ -8,7 +8,7 @@ step-by-step instructions.
 Two status labels keep this manual honest (a P0 rule — no unsupported
 claim in this repo):
 
-- **Today** — current firmware v0.7.0 behavior. This slice is build-verified;
+- **Today** — current firmware v0.8.0 behavior. This slice is build-verified;
   final on-panel and live-receiver acceptance remains a hardware step.
 - **Ahead · gate X** — specified and coming; the gate names are
   [ROADMAP.md](../ROADMAP.md)'s. Nothing labeled Ahead is a promise the
@@ -123,7 +123,9 @@ needed. Today's device Console has seven views, converged with
   hardware-key enrollment, and the timestamped exportable audit log.
 - **Settings** — choose a common **Clock timezone** preset or enter a
   custom **POSIX STRING**, then **SAVE TIMEZONE**. The same view shows
-  the hostname, IP address, and current Console target.
+  the hostname, IP address, and current Console target. Its **MQTT
+  broker** card holds the optional broker host/port, username, write-only
+  password, TLS and enable toggles, plus a live connection status chip.
 
 ## 6 · Push things from your own code — Today
 
@@ -276,35 +278,47 @@ The never-brick ladder, mildest first:
 |---|---|---|
 | Reboot | Dashboard → **REBOOT**, or `POST /api/v1/reboot` | nothing |
 | Change Wi-Fi | Security → **CHANGE WI-FI…** (`wifi/reset`) | Wi-Fi credentials only — token and config survive |
-| Rotate the token | Settings → **Rotate LAN token** | every paired browser/script credential |
-| Factory reset | Security → **FACTORY RESET** (`factory/reset`) | everything in NVS: Wi-Fi, token, timezone, flights config |
+| Rotate the token | Security → **ROTATE LAN TOKEN** | every paired browser/script credential |
+| Factory reset | Security → **FACTORY RESET** (`factory/reset`) | everything in NVS: Wi-Fi, token, timezone, MQTT credentials, flights config |
 | USB recovery | Double-press the board's reset button — it mounts as a USB drive; drag a UF2 firmware file on | nothing by itself — reflashes firmware |
 
 The TinyUF2 factory partition survives every OTA, so USB recovery is
 always there even if both app slots are bad. Physical access is the
 recovery tool — by design ([docs/SECURITY.md](SECURITY.md)).
 
-## 11 · Home Assistant and MQTT — Ahead · gate M2
+## 11 · Home Assistant and MQTT — Today
 
-When the MQTT client lands (ADR-0028, contract already drafted):
+MQTT is optional and the broker is yours. The company never operates one,
+and leaving the host empty keeps the device's MQTT client completely off.
 
-1. Run any Mosquitto broker — Home Assistant's add-on is one click,
-   or `apt install mosquitto` on a Pi. The company never runs one.
-2. Create a broker user for the device.
-3. Console → Settings → MQTT → enter host, port, username, password.
-4. The device announces itself; Home Assistant discovers light,
-   scene, notify, and text entities with **zero YAML**.
+1. Run a broker you control, such as Home Assistant's Mosquitto add-on or
+   Mosquitto on a Pi.
+2. Create one broker user for this device and scope its ACL to the device's
+   `devmatrix/<serial>/#` tree, Home Assistant discovery writes, and the
+   `homeassistant/status` birth topic.
+3. Console → Settings → **MQTT broker**. Enter the broker hostname or IP,
+   port (1883 by default), username, and password; choose TLS if needed,
+   turn on **ENABLE MQTT**, then **SAVE MQTT**.
+4. Watch the card's status move through **CONNECTING** to **CONNECTED**.
+   The password is write-only: a blank password field leaves the saved value
+   unchanged, and entering a value replaces it.
+5. With Home Assistant's MQTT integration and discovery enabled, the device
+   publishes retained light-brightness, text, and notify configs with its
+   availability topic. Home Assistant can control them with **zero YAML**.
 
-Topic tree, payload envelope, and per-device broker ACLs:
+TLS is encrypted but not yet CA-verified in this pre-P2 firmware; use a
+trusted LAN or VPN path. The exact topics, envelope, QoS/retain rules,
+per-device Mosquitto ACL, and the broker WebSocket listener needed by a
+browser MQTT workbench are in
 [contracts/mqtt.md](../contracts/mqtt.md) (DRAFT until the P2 freeze).
 
-## 12 · Remote control — Ahead
+## 12 · Remote control — Today and Ahead
 
 - **Your own infrastructure, free:** put the LAN behind your own
   VPN/Tailscale ([docs/MODES.md](MODES.md) → owner-hosted remote), or
-  — once MQTT lands — point the device and a remote host app at a
-  broker they can both reach. Semantic commands (text, layouts,
-  scenes) work remotely; raw frames never ride a broker (ADR-0029).
+  point the device and a remote host app at a broker they can both reach.
+  Today's MQTT semantic commands cover text, brightness, clear, and app
+  selection; raw frames never ride a broker (ADR-0029).
 - **Paid Cloud Mode (gates C0–C3):** relay, fleet view, alerts —
   optional, subscription-funded, never required.
   [docs/MODES.md](MODES.md) is the line.
@@ -319,6 +333,9 @@ Topic tree, payload envelope, and per-device broker ACLs:
 | Panel resets at high brightness | Under-powered supply. The 150 cap exists for this; the Dashboard's reset-reason tile confirms a brown-out |
 | Clock is wrong | Settings → timezone; the clock needs one internet moment for SNTP after boot |
 | Flights page saves but panel shows nothing | The host script isn't running — chapter 8; check `systemctl status dmx-flights` |
+| MQTT stays disabled | Turn on **ENABLE MQTT** and enter a host; an empty host deliberately keeps MQTT off |
+| MQTT shows error | Check the broker address, port, per-device username/password and ACL from chapter 11; pre-P2 TLS also requires a trusted network path |
+| Home Assistant did not discover the device | Confirm MQTT says connected and Home Assistant publishes `online` to `homeassistant/status`; then check the discovery-write ACL in the contract |
 | Upload port busy while flashing | Close any serial monitor — the port is exclusive-open |
 | Nothing works at all | USB recovery (chapter 10), then set up again — setup data is five minutes to recreate |
 

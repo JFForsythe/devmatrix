@@ -12,6 +12,7 @@ import type {
   FlightsSettings,
   Health,
   MessagesSettings,
+  MqttSettings,
 } from "./types";
 
 const TOKEN_KEY = "dmx_token";
@@ -196,6 +197,7 @@ export class ConsoleTransport {
     if (method === "GET" && path === "/api/v1/health") result = { ...this.mock.health };
     else if (method === "GET" && path === "/api/v1/info") result = { ...this.mock.info };
     else if (method === "GET" && path === "/api/v1/settings") result = { ...this.mock.settings };
+    else if (method === "GET" && path === "/api/v1/mqtt") result = { ...this.mock.mqtt };
     else if (method === "GET" && path === "/api/v1/apps") result = { apps: this.mock.apps.apps.map((app) => ({ ...app })) };
     else if (method === "GET" && path === "/api/v1/apps/messages") result = { ...this.mock.messages, phrases: [...this.mock.messages.phrases] };
     else if (method === "GET" && path === "/api/v1/apps/custom") result = structuredClone(this.mock.custom);
@@ -244,6 +246,15 @@ export class ConsoleTransport {
     } else if (method === "POST" && path === "/api/v1/settings") {
       if (typeof body.tz === "string") this.mock.settings.tz = body.tz;
       result = { ok: true };
+    } else if (method === "POST" && path === "/api/v1/mqtt") {
+      if (typeof body.enabled === "boolean") this.mock.mqtt.enabled = body.enabled;
+      if (typeof body.host === "string") this.mock.mqtt.host = body.host;
+      if (typeof body.port === "number") this.mock.mqtt.port = body.port;
+      if (typeof body.username === "string") this.mock.mqtt.username = body.username;
+      if (typeof body.tls === "boolean") this.mock.mqtt.tls = body.tls;
+      if (typeof body.password === "string") this.mock.mqtt.has_password = body.password.length > 0;
+      this.mock.mqtt.status = this.mock.mqtt.enabled && this.mock.mqtt.host ? "connected" : "disabled";
+      result = { ...this.mock.mqtt };
     } else if (method === "POST" && path === "/api/v1/token/rotate") {
       this.mock.token = `dmx_lan_demo_${Date.now().toString(36)}`;
       this.token = this.mock.token;
@@ -268,6 +279,10 @@ export class ConsoleTransport {
 
   settings(): Promise<DeviceSettings> {
     return this.request("/api/v1/settings");
+  }
+
+  mqtt(): Promise<MqttSettings> {
+    return this.request("/api/v1/mqtt");
   }
 
   flights(): Promise<FlightsSettings> {

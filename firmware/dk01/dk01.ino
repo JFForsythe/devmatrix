@@ -35,8 +35,9 @@
 #include "web_console.h"
 #include "apps_engine.h"
 #include "apps_builtin.h"
+#include "mqtt_client.h"
 
-#define FW_VERSION "0.7.0"
+#define FW_VERSION "0.8.0"
 
 // A full-bright white frame can out-draw USB-C power and brown-out the
 // board (observed on the bench 2026-08-07: brownout reset at high slider
@@ -154,6 +155,23 @@ long jsonInt(const String& body, const char* key, long dflt) {
   int c = body.indexOf(':', k + pat.length());
   if (c < 0) return dflt;
   return body.substring(c + 1).toInt();
+}
+
+bool jsonHas(const String& body, const char* key) {
+  return body.indexOf(String("\"") + key + "\"") >= 0;
+}
+
+bool jsonBool(const String& body, const char* key, bool& out) {
+  String pat = String("\"") + key + "\"";
+  int k = body.indexOf(pat);
+  if (k < 0) return false;
+  int c = body.indexOf(':', k + pat.length());
+  if (c < 0) return false;
+  int p = c + 1;
+  while (p < (int)body.length() && isspace((unsigned char)body[p])) ++p;
+  if (body.substring(p, p + 4) == "true") { out = true; return true; }
+  if (body.substring(p, p + 5) == "false") { out = false; return true; }
+  return false;
 }
 
 String jsonEscape(String s) {
@@ -405,6 +423,57 @@ const char* sceneName() {
   if (lastShown == SCENE_FLIGHTS_LIST) return "flights_list";
   if (lastShown == SCENE_CUSTOM) return "custom";
   return "clock";
+}
+
+// MQTT hooks mirror the existing REST behavior without routing broker work
+// through WebServer. They run only from loop(), never from esp-mqtt's task.
+uint8_t mqttDeviceBrightness() { return brightness; }
+
+bool mqttShowText(const char* text, uint32_t durationS, char* error,
+                  size_t errorCap) {
+  if (!text || strlen(text) > 120 || durationS < 1 || durationS > 300) {
+    strlcpy(error, "invalid-display-text", errorCap);
+    return false;
+  }
+  overlayText = text;
+  overlayUntil = millis() + durationS * 1000UL;
+  lastShown = -1;
+  return true;
+}
+
+bool mqttSetBrightness(uint8_t value, char* error, size_t errorCap) {
+  if (value < 10 || value > MAX_BRIGHTNESS) {
+    strlcpy(error, "invalid-brightness", errorCap);
+    return false;
+  }
+  brightness = value;
+  prefs.putUChar("bright", brightness);
+  lastShown = -1;
+  return true;
+}
+
+bool mqttClearDisplay(char*, size_t) {
+  baseScene = SCENE_CLOCK;
+  overlayUntil = 0;
+  manualAppUntil = 0;
+  manualAppScene = -1;
+  scheduledSlot = 0;
+  scheduledScene = SCENE_CLOCK;
+  scheduledUntil = millis() + 10000UL;
+  lastShown = -1;
+  return true;
+}
+
+bool mqttShowApp(const char* id, char* error, size_t errorCap) {
+  int8_t app = dmxAppIndex(id);
+  if (app < 0) {
+    strlcpy(error, "unknown-app", errorCap);
+    return false;
+  }
+  manualAppScene = appScene(app);
+  manualAppUntil = millis() + (uint32_t)dmxAppDurationS[app] * 1000UL;
+  lastShown = -1;
+  return true;
 }
 
 // ---------------------------------------------------------------- /api/v1
@@ -828,6 +897,68 @@ void handleSettingsPost() {
   sendJson(200, "{\"ok\":true}");
 }
 
+void handleMqttGet() {
+  if (!authed()) { deny(); return; }
+  sendJson(200, String("{\"enabled\":") +
+                    (dmxMqttConfig.enabled ? "true" : "false") +
+                    ",\"host\":\"" + jsonEscape(dmxMqttConfig.host) +
+                    "\",\"port\":" + dmxMqttConfig.port +
+                    ",\"username\":\"" + jsonEscape(dmxMqttConfig.username) +
+                    "\",\"tls\":" + (dmxMqttConfig.tls ? "true" : "false") +
+                    ",\"has_password\":" +
+                    (dmxMqttConfig.password[0] ? "true" : "false") +
+                    ",\"status\":\"" + dmxMqttStatusText() + "\"}");
+}
+
+void handleMqttPost() {
+  if (!authed()) { deny(); return; }
+  String body = server.arg("plain");
+  String host = dmxMqttConfig.host;
+  String username = dmxMqttConfig.username;
+  String password;
+  bool enabled = dmxMqttConfig.enabled;
+  bool tls = dmxMqttConfig.tls;
+  long port = dmxMqttConfig.port;
+  bool writePassword = jsonGet(body, "password", password);
+  if (jsonHas(body, "host") && !jsonGet(body, "host", host)) {
+    sendJson(400, "{\"error\":\"host must be a string\"}");
+    return;
+  }
+  if (jsonHas(body, "username") && !jsonGet(body, "username", username)) {
+    sendJson(400, "{\"error\":\"username must be a string\"}");
+    return;
+  }
+  if (jsonHas(body, "enabled") && !jsonBool(body, "enabled", enabled)) {
+    sendJson(400, "{\"error\":\"enabled must be boolean\"}");
+    return;
+  }
+  if (jsonHas(body, "tls") && !jsonBool(body, "tls", tls)) {
+    sendJson(400, "{\"error\":\"tls must be boolean\"}");
+    return;
+  }
+  if (jsonHas(body, "port")) port = jsonInt(body, "port", 0);
+  host.trim();
+  username.trim();
+  if (host.length() >= sizeof dmxMqttConfig.host ||
+      host.indexOf("//") >= 0 || host.indexOf('/') >= 0 ||
+      host.indexOf(' ') >= 0) {
+    sendJson(400, "{\"error\":\"host must be a hostname or IP\"}");
+    return;
+  }
+  if (username.length() >= sizeof dmxMqttConfig.username ||
+      (writePassword && password.length() >= sizeof dmxMqttConfig.password)) {
+    sendJson(400, "{\"error\":\"MQTT credential is too long\"}");
+    return;
+  }
+  if (port < 1 || port > 65535) {
+    sendJson(400, "{\"error\":\"port must be 1..65535\"}");
+    return;
+  }
+  dmxMqttSave(prefs, enabled, host.c_str(), (uint16_t)port,
+              username.c_str(), tls, password.c_str(), writePassword);
+  handleMqttGet();
+}
+
 void handleReboot() {
   if (!authed()) { deny(); return; }
   sendJson(200, "{\"ok\":true,\"rebooting\":true}");
@@ -1036,6 +1167,8 @@ void startConsole() {
   server.on("/api/v1/token/rotate", HTTP_POST, handleRotate);
   server.on("/api/v1/settings", HTTP_GET, handleSettingsGet);
   server.on("/api/v1/settings", HTTP_POST, handleSettingsPost);
+  server.on("/api/v1/mqtt", HTTP_GET, handleMqttGet);
+  server.on("/api/v1/mqtt", HTTP_POST, handleMqttPost);
   server.on("/api/v1/apps", HTTP_GET, handleAppsGet);
   server.on("/api/v1/apps", HTTP_POST, handleAppsPost);
   server.on("/api/v1/apps/messages", HTTP_GET, handleMessagesGet);
@@ -1079,6 +1212,9 @@ void startStation(const String& ssid, const String& pass) {
   MDNS.begin(mdnsName.c_str());
   MDNS.addService("http", "tcp", 80);
   startConsole();
+  DmxMqttHooks mqttHooks = {sceneName, mqttDeviceBrightness, mqttShowText,
+                             mqttSetBrightness, mqttClearDisplay, mqttShowApp};
+  dmxMqttBegin(deviceId.c_str(), FW_VERSION, mqttHooks);
   Serial.printf("wifi: connected ip=%s console=http://%s.local/ rssi=%d\n",
                 WiFi.localIP().toString().c_str(), mdnsName.c_str(), WiFi.RSSI());
   Serial.printf("api: token=%s (also shown during setup; rotate in Console)\n",
@@ -1092,10 +1228,13 @@ void setup() {
   Serial.println("=== Devmatrix DK-01 fw " FW_VERSION " ===");
 
   uint64_t mac = ESP.getEfuseMac();
-  char suffix[5];
+  char suffix[5], serial[14];
   snprintf(suffix, sizeof suffix, "%02X%02X", (uint8_t)(mac >> 32),
            (uint8_t)(mac >> 40));
-  deviceId = String("DMX-") + suffix;
+  snprintf(serial, sizeof serial, "DMX-%02X%02X-%02X%02X",
+           (uint8_t)(mac >> 16), (uint8_t)(mac >> 24),
+           (uint8_t)(mac >> 32), (uint8_t)(mac >> 40));
+  deviceId = serial;
   apName = String("DEVMATRIX-") + suffix;
   mdnsName = String("dmx-") + suffix;
   mdnsName.toLowerCase();
@@ -1109,6 +1248,7 @@ void setup() {
   Serial.printf("boot: reset_reason=%s\n", resetReasonStr());
 
   prefs.begin("dk01", false);
+  dmxMqttLoad(prefs);
   brightness = prefs.getUChar("bright", 110);
   if (brightness > MAX_BRIGHTNESS) brightness = MAX_BRIGHTNESS;
   tzPosix = prefs.getString("tz", tzPosix);
@@ -1151,6 +1291,10 @@ void loop() {
   if (!setupMode) {
     dmxAppsTick(flUrl.c_str(), flInterval, flRows, flFormat.c_str());
     renderTick();
+    dmxMqttTick(millis() / 1000UL,
+                heap_caps_get_free_size(MALLOC_CAP_INTERNAL |
+                                        MALLOC_CAP_8BIT),
+                WiFi.RSSI(), 0.0f);
   }
 
   static uint32_t lastStat = 0;
