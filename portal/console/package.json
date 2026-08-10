@@ -1,0 +1,23 @@
+{
+  "name": "@devmatrix/console",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "20.x"
+  },
+  "scripts": {
+    "build": "npm run build:hosted && npm run build:device",
+    "build:hosted": "vite build --mode hosted --outDir dist-hosted",
+    "build:device": "vite build --mode device --outDir dist-device && node scripts/gen-header.mjs"
+  },
+  "dependencies": {
+    "preact": "10.27.2"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "2.10.2",
+    "typescript": "5.9.3",
+    "vite": "5.4.21",
+    "vite-plugin-singlefile": "2.3.0"
+  }
+}
