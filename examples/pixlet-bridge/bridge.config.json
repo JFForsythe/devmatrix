@@ -1,0 +1,18 @@
+{
+  "device": {
+    "url": "http://dmx-xxxx.local",
+    "tokenEnv": "DMX_TOKEN"
+  },
+  "pixlet": "auto",
+  "appsDir": "/absolute/path/to/tronbyt-apps",
+  "rotation": [
+    {
+      "app": "appname",
+      "duration_s": 15,
+      "render_interval_s": 30,
+      "config": {
+        "key": "value"
+      }
+    }
+  ]
+}

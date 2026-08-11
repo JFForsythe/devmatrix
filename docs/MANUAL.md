@@ -254,6 +254,76 @@ It then runs `systemctl daemon-reload` and
 
 </details>
 
+### Hundreds of community apps — the Pixlet bridge
+
+The owner-hosted Pixlet bridge runs the open-source, Tronbyt-maintained
+Pixlet engine and community catalog on **your** always-on machine, then pushes
+the rendered 64×32 frames straight to the DK-01. The company renders, proxies,
+and stores nothing for this feature (ADR-0030).
+
+**You need:** Node 20+, a [Tronbyt Pixlet](https://github.com/tronbyt/pixlet)
+binary for your platform, a local clone of the
+[community apps fork](https://github.com/tronbyt/apps), and your own API keys
+for any apps that call outside services. Install the bridge's one pinned GIF
+decoder dependency from `examples/pixlet-bridge/` with `npm install` after
+reviewing its provenance table.
+
+Edit `examples/pixlet-bridge/bridge.config.json`, or put the config elsewhere
+and set `BRIDGE_CONFIG` to its absolute path:
+
+```json
+{
+  "device": {
+    "url": "http://dmx-xxxx.local",
+    "tokenEnv": "DMX_TOKEN"
+  },
+  "pixlet": "auto",
+  "appsDir": "/absolute/path/to/tronbyt-apps",
+  "rotation": [
+    {
+      "app": "apps/weather/weather.star",
+      "duration_s": 15,
+      "render_interval_s": 30,
+      "config": { "location": "Chicago" }
+    }
+  ]
+}
+```
+
+`pixlet` may instead be the binary's absolute path. An `app` may be a path
+relative to `appsDir` or a catalog name. Keep the LAN token out of JSON: the
+bridge reads the environment variable named by `tokenEnv`.
+
+From the repository root, check the complete setup, push one app for one
+animation cycle, then install the rotation as a background service:
+
+```sh
+DMX_TOKEN='<LAN token>' node examples/pixlet-bridge/bridge.mjs --check
+DMX_TOKEN='<LAN token>' node examples/pixlet-bridge/bridge.mjs --once weather
+node examples/install-pixlet-bridge.mjs \
+  --config "$PWD/examples/pixlet-bridge/bridge.config.json"
+```
+
+The installer securely prompts for the token, records the absolute
+`BRIDGE_CONFIG` path and `DMX_TOKEN` in a mode-`0600` environment file, and
+installs `dmx-pixlet.service` on Linux or `com.devmatrix.pixlet` on macOS.
+Preview it, inspect it, or remove it with the same lifecycle as the Flights
+installer above:
+
+```sh
+node examples/install-pixlet-bridge.mjs --dry-run --token 'test-only'
+node examples/install-pixlet-bridge.mjs --status
+node examples/install-pixlet-bridge.mjs --uninstall
+node examples/install-pixlet-bridge.mjs --uninstall --purge
+```
+
+Use the same `sudo "$(command -v node)" ...` prefix on Linux.
+
+**Honest limits:** raw frames are LAN-only (ADR-0029), so the bridge and DK-01
+must share a LAN in Local Mode. These apps are community-maintained; quality,
+data sources, key requirements, and continued maintenance vary. Every render
+runs on the owner's hardware—the company operates no Pixlet service.
+
 More examples and script details: [examples/README.md](../examples/README.md).
 
 ## 9 · Update firmware over the air — Today
