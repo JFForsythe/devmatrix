@@ -106,7 +106,9 @@ link here.
   extends a proven path rather than opening a new one.
 - **Host apps** run on the owner's own always-on machine and push
   content in over LAN REST or MQTT. The device's job is to accept them
-  on an authenticated, documented contract — nothing more.
+  on an authenticated, documented contract — nothing more. This tier
+  includes ecosystem bridges like the Pixlet bridge (ADR-0030), which
+  the owner hosts themselves.
 - **Scripted apps** — an on-device sandboxed VM, Lua 5.4 or Berry — are
   **deferred**, and the two-week spike is out of P1. If a runtime later
   clears the docs/PRODUCTION-PLAN.md bar (PSRAM-resident VM, per-tick
