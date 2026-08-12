@@ -71,9 +71,10 @@ jobs:
         run: |
           test -d portal/console/dist-hosted
           test -s portal/console/dist-hosted/index.html
+          test "$(find portal/console/dist-hosted -type f | wc -l)" -eq 1
           test -d portal/console/dist-device
           test -s portal/console/dist-device/index.html
-          git diff --exit-code -- firmware/dk01/web_console.h
+          git diff --exit-code -- portal/console/dist-hosted/index.html firmware/dk01/web_console.h
 
   verify-production:
     name: Verify production artifact

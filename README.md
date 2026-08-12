@@ -31,19 +31,22 @@ See the IP line in [docs/VISION.md](docs/VISION.md).
 | What happens next, and in what order | [ROADMAP.md](ROADMAP.md) |
 | Canonical names, IDs, formats | [docs/GLOSSARY.md](docs/GLOSSARY.md) |
 
-## Try the Console prototype
+## Try the Console
 
-Live (mock data): **https://devmatrix-console.vercel.app**
+Hosted URL: **https://devmatrix-console.vercel.app**. It continues to serve the
+mock design reference until the owner changes Vercel's Root Directory from
+`portal/prototype` to the repository root; the coordinated switch makes this
+URL serve the real, one-codebase Console.
 
 ```
 make portal        # or serve it locally at http://localhost:8787
 ```
 
-No build step, no dependencies, no network calls — a single HTML file
-with mock data (`portal/prototype/`). It made the product decisions
-concrete before firmware existed; today it is the design reference for
-the one-codebase Console (`portal/console/`, ADR-0027) and retires
-when that build reaches parity.
+The command above serves the dependency-free, single-file mock at
+`portal/prototype/`. It made the product decisions concrete before firmware
+existed and remains the design reference. The production source and committed
+hosted artifact live under `portal/console/` (ADR-0027); deployment handoff is
+documented in [portal/console/README.md](portal/console/README.md#vercel-handoff).
 
 ## Licensing
 

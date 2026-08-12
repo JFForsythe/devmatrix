@@ -10,18 +10,35 @@ this file links instead of restating.
 
 What actually runs now — the complete inventory:
 
-- **One static deployment.** `portal/prototype/index.html` deploys
-  through Vercel's git integration (`devmatrix-console.vercel.app`) on
-  every push to `main`. No server, no database, no functions, no
-  telemetry backend — the company runs nothing else.
+- **One static deployment.** The GitHub-connected Vercel project at
+  `devmatrix-console.vercel.app` currently has Root Directory set to
+  `portal/prototype`, so `portal/prototype/index.html` remains live. The
+  in-repository target is the committed, single-file
+  `portal/console/dist-hosted/index.html`; root `vercel.json` builds it with
+  `npm ci` and `npm run build:hosted` after the project is switched to the
+  repository root. No server, database, functions, or telemetry backend runs.
 - **The release chain is owned by [AGENTS.md](../AGENTS.md).** Commit,
   push, deploy, and verification rules live there; this file does not
   duplicate them.
 - **Production is proven, not assumed.** `scripts/verify-live.mjs`
-  (`make verify-live`) compares the live response byte-for-byte with
-  the committed Console artifact, and the CI `verify-production` job
-  runs it on every push to `main`, additionally requiring a successful
-  provider deployment for the exact pushed commit.
+  (`make verify-live`) compares the live response byte-for-byte with the
+  committed artifact production actually serves — today
+  `portal/prototype/index.html` — and the CI `verify-production` job runs
+  it on every push to `main`, additionally requiring a successful provider
+  deployment for the exact pushed commit. `DEVMATRIX_LIVE_FILE` overrides
+  the artifact path; use it to verify
+  `portal/console/dist-hosted/index.html` against a preview before the
+  cutover. The switch commit flips the default in the same change as the
+  dashboard setting — never before, or every release fails closed
+  (ADR-0016's atomicity rule).
+- **Outstanding owner dashboard action.** Immediately before releasing the
+  switch commit, open **Vercel → devmatrix-console → Settings → Build and
+  Deployment → Root Directory → Edit**, clear `portal/prototype` to select the
+  repository root, and save. Do not separately redeploy the pre-switch commit.
+  The switch commit and this setting are one coordinated cutover: its push
+  builds with root `vercel.json`, and the default verifier fails closed if the
+  setting still points at the prototype. Until the setting changes, the
+  prototype continues to serve at the public URL.
 - **The hosting decision and its trigger** are
   [ADR-0016](adr/ADR-0016-static-hosting-cloudflare.md): before the
   first sale, the public portal/docs move to static Cloudflare Pages —

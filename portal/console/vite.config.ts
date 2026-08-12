@@ -5,15 +5,19 @@ import { viteSingleFile } from "vite-plugin-singlefile";
 
 export default defineConfig(({ mode }) => {
   const isDevice = mode === "device";
+  const isSingleFileBuild = isDevice || mode === "hosted";
 
   return {
     base: "./",
-    plugins: [preact(), ...(isDevice ? [viteSingleFile()] : [])],
+    // Both release targets stay self-contained. The hosted artifact is
+    // committed because the release chain byte-compares committed bytes,
+    // mirroring ADR-0027's committed device-header precedent.
+    plugins: [preact(), ...(isSingleFileBuild ? [viteSingleFile()] : [])],
     build: {
-      assetsInlineLimit: isDevice ? Number.MAX_SAFE_INTEGER : undefined,
-      cssCodeSplit: !isDevice,
-      modulePreload: isDevice ? false : undefined,
-      rollupOptions: isDevice
+      assetsInlineLimit: isSingleFileBuild ? Number.MAX_SAFE_INTEGER : undefined,
+      cssCodeSplit: !isSingleFileBuild,
+      modulePreload: isSingleFileBuild ? false : undefined,
+      rollupOptions: isSingleFileBuild
         ? {
             output: {
               inlineDynamicImports: true,

@@ -8,6 +8,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DEFAULT_URL = "https://devmatrix-console.vercel.app/";
+// Points at whatever production actually serves today. The host's Root
+// Directory still targets portal/prototype, so the prototype is the live
+// artifact; the switch commit changes this constant in the same change as
+// the dashboard setting, never before (ADR-0016's atomicity rule).
+// DEVMATRIX_LIVE_FILE overrides it for verifying the other artifact.
 const DEFAULT_FILE = "portal/prototype/index.html";
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 
@@ -29,7 +34,7 @@ function parsePositiveInteger(value, flag) {
 export function parseArgs(argv, environment = process.env) {
   const options = {
     url: environment.DEVMATRIX_LIVE_URL || DEFAULT_URL,
-    file: DEFAULT_FILE,
+    file: environment.DEVMATRIX_LIVE_FILE || DEFAULT_FILE,
     branch: environment.GITHUB_REF_NAME || "",
     repository: environment.GITHUB_REPOSITORY || "",
     requireDeployment: environment.VERIFY_REQUIRE_DEPLOYMENT === "true",
@@ -65,7 +70,7 @@ export function parseArgs(argv, environment = process.env) {
       options.delayMs = parsePositiveInteger(value, flag);
       index += 1;
     } else if (flag === "--help") {
-      console.log(`Usage: node scripts/verify-live.mjs [options]\n\nOptions:\n  --url URL              Production URL (default: ${DEFAULT_URL})\n  --file PATH            Local artifact (default: ${DEFAULT_FILE})\n  --branch NAME          Published branch (default: current branch)\n  --repository OWNER/REPO  GitHub repository (default: inferred)\n  --require-deployment   Require a successful Vercel GitHub deployment\n  --deployment-base REF  Require deployment only when artifact changed since REF;\n                         an unreachable REF requires the deployment unconditionally\n  --attempts N           Fetch attempts (default: 12)\n  --delay-ms N           Delay between attempts (default: 5000)\n\nThe verifier requires a clean branch whose HEAD matches origin, then compares\nthe production response byte-for-byte with the committed local artifact. CI\ncan additionally prove Vercel success for the exact SHA when the artifact changed.`);
+      console.log(`Usage: node scripts/verify-live.mjs [options]\n\nOptions:\n  --url URL              Production URL (default: ${DEFAULT_URL})\n  --file PATH            Local artifact (default: DEVMATRIX_LIVE_FILE or ${DEFAULT_FILE})\n  --branch NAME          Published branch (default: current branch)\n  --repository OWNER/REPO  GitHub repository (default: inferred)\n  --require-deployment   Require a successful Vercel GitHub deployment\n  --deployment-base REF  Require deployment only when artifact changed since REF;\n                         an unreachable REF requires the deployment unconditionally\n  --attempts N           Fetch attempts (default: 12)\n  --delay-ms N           Delay between attempts (default: 5000)\n\nThe verifier requires a clean branch whose HEAD matches origin, then compares\nthe production response byte-for-byte with the committed local artifact. CI\ncan additionally prove Vercel success for the exact SHA when the artifact changed.`);
       process.exit(0);
     } else {
       fail(`unknown or incomplete argument: ${flag}`);

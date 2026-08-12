@@ -1,21 +1,24 @@
-# Console prototype
+# Console design reference
 
 A **design prototype** of the Devmatrix Console: one self-contained
 `prototype/index.html` — inline CSS, vanilla JS, mock data, zero
 dependencies, zero network calls, and readable local system-font stacks.
-See ADR-0005: this is a spec to react to, not a foundation to build on.
+Under [ADR-0027](../docs/adr/ADR-0027-one-console-codebase.md), this is a spec to
+react to, not the production Console foundation.
 
 ## Run it
 
-Live (shareable, mock data): **https://devmatrix-console.vercel.app**
-— auto-deploys on every push to `main` (Vercel project
-`devmatrix-console`, GitHub-connected, root directory locked to
-`portal/prototype` so only the mock ever ships). A push is not release proof:
-the release is complete only after `make verify-live` proves that the clean,
-pushed commit's Console artifact matches production and that Vercel reported
-success for the exact commit.
+Hosted URL: **https://devmatrix-console.vercel.app**. The GitHub-connected
+Vercel project currently has Root Directory set to `portal/prototype`, so this
+mock remains live until the owner switches the project to the repository root.
+After that coordinated switch, the same URL serves the committed real Console
+from `console/dist-hosted/index.html`; see
+[`console/README.md`](console/README.md#vercel-handoff). A push is not release
+proof: the release is complete only after `make verify-live` proves that the
+clean, pushed commit's Console artifact matches production and that Vercel
+reported success for the exact commit.
 
-```
+```sh
 make portal            # from the repo root → http://localhost:8787
 # or just open portal/prototype/index.html in a browser
 ```
