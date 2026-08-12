@@ -1,5 +1,0 @@
-{
-  "buildCommand": "cd portal/console && npm ci && npm run build:hosted",
-  "outputDirectory": "portal/console/dist-hosted",
-  "framework": null
-}

@@ -14,9 +14,12 @@ What actually runs now — the complete inventory:
   `devmatrix-console.vercel.app` currently has Root Directory set to
   `portal/prototype`, so `portal/prototype/index.html` remains live. The
   in-repository target is the committed, single-file
-  `portal/console/dist-hosted/index.html`; root `vercel.json` builds it with
-  `npm ci` and `npm run build:hosted` after the project is switched to the
-  repository root. No server, database, functions, or telemetry backend runs.
+  `portal/console/dist-hosted/index.html`, built deterministically and
+  verified against drift in CI. A repository-root `vercel.json` must land
+  **only** in the cutover commit: added while the Root Directory still points
+  at the prototype, it is read anyway and fails the build (observed
+  2026-08-12, deployment 5863328863). No server, database, functions, or
+  telemetry backend runs.
 - **The release chain is owned by [AGENTS.md](../AGENTS.md).** Commit,
   push, deploy, and verification rules live there; this file does not
   duplicate them.
@@ -35,10 +38,10 @@ What actually runs now — the complete inventory:
   switch commit, open **Vercel → devmatrix-console → Settings → Build and
   Deployment → Root Directory → Edit**, clear `portal/prototype` to select the
   repository root, and save. Do not separately redeploy the pre-switch commit.
-  The switch commit and this setting are one coordinated cutover: its push
-  builds with root `vercel.json`, and the default verifier fails closed if the
-  setting still points at the prototype. Until the setting changes, the
-  prototype continues to serve at the public URL.
+  The switch commit and this setting are one coordinated cutover: that commit
+  adds the root `vercel.json` and flips the verifier default together, and the
+  verifier fails closed if the setting still points at the prototype. Until the
+  setting changes, the prototype continues to serve at the public URL.
 - **The hosting decision and its trigger** are
   [ADR-0016](adr/ADR-0016-static-hosting-cloudflare.md): before the
   first sale, the public portal/docs move to static Cloudflare Pages —

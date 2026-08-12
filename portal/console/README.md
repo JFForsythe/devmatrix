@@ -33,21 +33,26 @@ local clean installs use `npm ci`; no additional `.npmrc` is required.
 
 ## Vercel handoff
 
-The repository-root [`vercel.json`](../../vercel.json) builds and publishes the
-hosted Console only when the Vercel project's Root Directory is the repository
-root. The `devmatrix-console` project is still configured with
-`portal/prototype`, so the mock design reference remains live until the owner
-changes that dashboard setting.
+The `devmatrix-console` project's Root Directory is still `portal/prototype`,
+so the mock design reference remains live. **Do not add a repository-root
+`vercel.json` before that setting changes** — it is read while the Root
+Directory still points at the prototype and fails the build (observed
+2026-08-12, deployment 5863328863). Build config and dashboard setting land
+together or not at all.
 
-Coordinate the setting with the switch commit: in Vercel, open
-**devmatrix-console → Settings → Build and Deployment → Root Directory → Edit**,
-clear `portal/prototype` so the repository root is selected, and save. Do this
-immediately before releasing the switch commit; its push then runs the root
-`vercel.json` build. Do not redeploy the pre-switch commit from the new root.
+The cutover, as one coordinated change: in Vercel, open **devmatrix-console →
+Settings → Build and Deployment → Root Directory → Edit**, clear
+`portal/prototype` so the repository root is selected, and save; then release a
+commit that adds the root `vercel.json` (`installCommand` `npm --prefix
+portal/console ci`, `buildCommand` `npm --prefix portal/console run
+build:hosted`, `outputDirectory` `portal/console/dist-hosted`) and flips
+`scripts/verify-live.mjs`'s `DEFAULT_FILE` to the hosted artifact. Set the
+Node.js Version to 20.x while in that settings page. Do not redeploy the
+pre-switch commit from the new root.
 
-`scripts/verify-live.mjs` defaults to the committed hosted artifact and will
-fail closed if production still serves the prototype. During the intentional
-pre-switch window only, the old deployment can be checked explicitly with
+`scripts/verify-live.mjs` defaults to the artifact production actually serves
+and fails closed if the two disagree. Before the cutover, the hosted artifact
+can be checked explicitly with
 `DEVMATRIX_LIVE_FILE=portal/prototype/index.html make verify-live`. Unset that
 override for the switch release.
 
