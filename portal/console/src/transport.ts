@@ -416,8 +416,16 @@ export class ConsoleTransport {
     } else if (method === "POST" && path === "/api/v1/apps/flights") {
       this.mock.flights = { ...this.mock.flights, ...(body as unknown as Partial<FlightsSettings>) };
       result = { ...this.mock.flights };
-    } else if (method === "POST" && path === "/api/v1/apps/flights/scan") {
-      result = { found: "http://10.0.4.9/tar1090/data/aircraft.json" };
+    } else if (method === "GET" && path === "/api/v1/apps/diag") {
+      result = {
+        fetch_cap: 65536,
+        psram: true,
+        apps: [
+          { id: "messages", enabled: true, result: "offline-app", http: 0, bytes: 0, attempts: 0, ok: 0, age_s: 0, rows: 2, has_data: true },
+          { id: "flights_list", enabled: false, result: "no-url", http: 0, bytes: 0, attempts: 4, ok: 0, age_s: 6, rows: 0, has_data: false },
+          { id: "custom", enabled: true, result: "ok", http: 200, bytes: 5088, attempts: 6, ok: 6, age_s: 9, rows: 3, has_data: true },
+        ],
+      };
     } else if (method === "POST" && path === "/api/v1/settings") {
       if (typeof body.tz === "string") this.mock.settings.tz = body.tz;
       result = { ok: true };
@@ -480,6 +488,10 @@ export class ConsoleTransport {
 
   post<T = ActionResult>(path: string, body?: unknown): Promise<T> {
     return this.request(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
+  }
+
+  get<T = unknown>(path: string): Promise<T> {
+    return this.request(path);
   }
 
   saveToken(token: string): void {

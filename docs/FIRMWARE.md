@@ -3,7 +3,10 @@
 > **Status: living tree.** The DK-01 firmware lives at
 > [`firmware/dk01/`](../firmware/dk01/README.md) and develops
 > continuously from P1 onward (ADR-0024, superseding ADR-0009's
-> disposable-spike posture). v0.10.0 fixes the app-fetch ceiling that made
+> disposable-spike posture). v0.11.0 removes the receiver scan entirely
+> (ADR-0032): the device never initiates a connection to an address the
+> owner didn't configure — receiver discovery becomes an owner-side
+> finder prompt in the Console. v0.10.0 fixes the app-fetch ceiling that made
 > real feeds silently fall back to the clock: the shared fetch buffer moves
 > from a 4 KiB internal-SRAM array to a 64 KiB PSRAM allocation (measured
 > need: a busy-airspace `aircraft.json` at 35 KB, an NWS observation at
@@ -88,8 +91,8 @@ firmware/
 Dual app slots (2 MB each, `ota_0`/`ota_1`) + a 256 KB TinyUF2 factory
 partition for USB recovery + a 3.7 MB `ffat` data partition reserved for
 future assets and apps. Framebuffers in PSRAM; DMA descriptors in
-internal RAM. v0.10.0 measures 1,367,327 B flash (65 % of a slot) and
-116,692 B static RAM (the app fetch buffer now lives in PSRAM);
+internal RAM. v0.11.0 measures 1,366,075 B flash (65 % of a slot) and
+116,692 B static RAM (the app fetch buffer lives in PSRAM);
 v0.8.0 measured 1,336,915 B / 120,396 B
 ([evidence](../hardware/evidence/2026-08-12-console-parity-verification.md)).
 A CI slot-occupancy and heap-headroom gate is **Ahead · gate P2**. The

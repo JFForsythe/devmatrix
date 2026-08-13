@@ -94,8 +94,10 @@ bytes, `ok`/`too-big`/`bad-json`/`no-url`/`no-aircraft`/`bind-miss`, plus
 the fetch-buffer size; the answer to "why is this app blank?"),
 `apps/messages` (GET/POST), `apps/messages/show`,
 `apps/custom` (GET/POST — shape in contracts/layout.md),
-`apps/custom/show`, `apps/flights` (GET/POST), `apps/flights/scan`,
+`apps/custom/show`, `apps/flights` (GET/POST),
 `apps/flights_list/show`, and `POST /update` (multipart `.bin`, OTA).
+There is deliberately no discovery/scan route: the device never opens a
+connection to an address the owner didn't configure (ADR-0032).
 Text submitted to `display/text` is capped at 120 characters. JSON
 bodies need `Content-Type: application/json`. Scripts get the token from the
 Console's **Dev console** view (**COPY WITH MY TOKEN**) or USB serial.

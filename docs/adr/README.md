@@ -34,7 +34,9 @@ not listed below is current as written.
   [ADR-0028](ADR-0028-mqtt-stack.md) (MQTT stack).
 - **How it is reached and trusted** —
   [ADR-0031](ADR-0031-browser-to-device-transport.md) (plain HTTP on the
-  LAN, permanently), [ADR-0029](ADR-0029-layered-display-api.md) (frame
+  LAN, permanently), [ADR-0032](ADR-0032-no-device-initiated-discovery.md)
+  (the box never scans — connections go only to owner-configured
+  addresses), [ADR-0029](ADR-0029-layered-display-api.md) (frame
   vs semantic layer), [ADR-0025](ADR-0025-hosted-console-domain.md)
   (hosted domain).
 

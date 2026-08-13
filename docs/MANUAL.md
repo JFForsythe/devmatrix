@@ -8,7 +8,7 @@ step-by-step instructions.
 Two status labels keep this manual honest (a P0 rule — no unsupported
 claim in this repo):
 
-- **Today** — current firmware v0.10.0 behavior. This slice is build-verified;
+- **Today** — current firmware v0.11.0 behavior. This slice is build-verified;
   final on-panel and live-receiver acceptance remains a hardware step.
 - **Ahead · gate X** — specified and coming; the gate names are
   [ROADMAP.md](../ROADMAP.md)'s. Nothing labeled Ahead is a promise the
@@ -218,9 +218,16 @@ remote path (ADR-0029).
 dump1090/readsb `aircraft.json` format (a PiAware Pi qualifies), plus
 any always-on machine with Node 18+.
 
-1. Console → **Apps** → **Flights list** → **SCAN MY NETWORK**. The
-   device finds common receiver images itself; or type the receiver URL
-   manually.
+1. Console → **Apps** → **Flights list** → type your receiver's
+   `aircraft.json` URL. The panel never scans your network (ADR-0032) —
+   it only talks to addresses you give it. Don't know the URL?
+   **COPY FINDER PROMPT** on that card puts a step-by-step request on
+   your clipboard for Claude, ChatGPT, or any assistant: it walks
+   through your router's connected-devices list (names like `piaware`
+   or `raspberrypi`) and browser checks of the standard paths
+   (`http://IP:8080/data/aircraft.json`,
+   `/skyaware/data/aircraft.json`, `/tar1090/data/aircraft.json`) —
+   no scanning tools anywhere.
 2. Set interval, rows, format, and List or Radar. Save — the config
    lives on the device, and any host machine obeys it.
 3. The Flights list card prints your exact run command under **OPTIONAL

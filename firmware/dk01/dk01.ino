@@ -43,7 +43,7 @@
 #include "apps_builtin.h"
 #include "mqtt_client.h"
 
-#define FW_VERSION "0.10.0"
+#define FW_VERSION "0.11.0"
 
 // A full-bright white frame can out-draw USB-C power and brown-out the
 // board (observed on the bench 2026-08-07: brownout reset at high slider
@@ -969,57 +969,10 @@ void handleClaimFinish() {
   sendJson(403, body);
 }
 
-// True if the URL serves dump1090/readsb-style aircraft.json (checks the
-// first 256 bytes only — no need to pull the whole file).
-bool probeAircraftJson(const String& url) {
-  HTTPClient http;
-  http.setConnectTimeout(700);
-  http.setTimeout(900);
-  if (!http.begin(url)) return false;
-  bool ok = false;
-  if (http.GET() == 200) {
-    WiFiClient* s = http.getStreamPtr();
-    char buf[257];
-    int n = 0;
-    uint32_t t0 = millis();
-    while (n < 256 && millis() - t0 < 800) {
-      int c = s->read();
-      if (c < 0) { delay(5); continue; }
-      buf[n++] = (char)c;
-    }
-    buf[n] = 0;
-    ok = strstr(buf, "\"aircraft\"") != nullptr;
-  }
-  http.end();
-  return ok;
-}
-
-// The device hunts for the owner's receiver itself (mDNS names the common
-// images announce, then the standard web paths), so the URL never has to
-// exist anywhere but here.
-void handleFlightsScan() {
-  if (!authed()) { deny(); return; }
-  // Generic receiver-image hostnames only. Third-party flight-data service
-  // names are banned by the clean-room gate (ADR-0023) even as hostnames;
-  // owners of other images type their URL in instead.
-  const char* hosts[] = {"piaware", "ultrafeeder", "adsb", "raspberrypi"};
-  const char* paths[] = {":8080/data/aircraft.json",
-                         "/skyaware/data/aircraft.json",
-                         "/tar1090/data/aircraft.json",
-                         ":8080/tar1090/data/aircraft.json"};
-  for (auto h : hosts) {
-    IPAddress ip = MDNS.queryHost(h, 400);
-    if ((uint32_t)ip == 0) continue;
-    for (auto p : paths) {
-      String url = String("http://") + ip.toString() + p;
-      if (probeAircraftJson(url)) {
-        sendJson(200, String("{\"found\":\"") + url + "\"}");
-        return;
-      }
-    }
-  }
-  sendJson(200, "{\"found\":null}");
-}
+// There is deliberately no receiver scan (ADR-0032): the box never
+// initiates a connection to an address the owner didn't configure.
+// Discovery happens on the owner's side; the Console hands them a
+// finder prompt for it.
 
 void handleSettingsGet() {
   if (!authed()) { deny(); return; }
@@ -1354,7 +1307,6 @@ void startConsole() {
             []() { handleAppShow(DMX_APP_CUSTOM); });
   server.on("/api/v1/apps/flights", HTTP_GET, handleFlightsGet);
   server.on("/api/v1/apps/flights", HTTP_POST, handleFlightsPost);
-  server.on("/api/v1/apps/flights/scan", HTTP_POST, handleFlightsScan);
   server.on("/api/v1/reboot", HTTP_POST, handleReboot);
   server.on("/api/v1/wifi/reset", HTTP_POST, handleWifiReset);
   server.on("/api/v1/factory/reset", HTTP_POST, handleFactoryReset);

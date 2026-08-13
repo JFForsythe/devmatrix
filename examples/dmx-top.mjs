@@ -163,7 +163,8 @@ const HELP = `commands:
   show <app>           messages | flights | custom
   clear                back to the rotation      bright <10-150>
   weather <STATION>    install NWS layout (e.g. weather KORD)
-  flights <url|scan>   set receiver URL, or let the device scan
+  flights <url>        set receiver URL + enable the list
+  flights prompt       print a finder prompt for your AI assistant
   enable/disable <app> toggle an app in the rotation
   diag                 log each app's last fetch verdict
   get/post <path> [json]   raw /api/v1 call
@@ -232,16 +233,26 @@ async function run(input) {
       return;
     }
     case "flights": {
-      if (arg === "scan") {
-        const found = await api("/api/v1/apps/flights/scan", { method: "POST" });
-        log(found.found ? `receiver found: ${found.found} — saving` : "no receiver answered");
-        if (found.found) await api("/api/v1/apps/flights", { method: "POST", body: { url: found.found } });
-      } else if (arg) {
-        await api("/api/v1/apps/flights", { method: "POST", body: { url: normalize(arg) } });
-        log(`receiver url set: ${arg}`);
-      } else { log("usage: flights <url> | flights scan"); return; }
+      // No device-side scan, on purpose (ADR-0032): the box never opens a
+      // connection to an address the owner didn't type.
+      if (arg === "prompt") {
+        console.log(`\nPaste this into Claude, ChatGPT, or any assistant on your computer:\n
+Help me find my ADS-B receiver's data URL on my home network. I run one of:
+PiAware, dump1090-fa, readsb, tar1090, or Ultrafeeder. I need the URL of its
+aircraft.json feed. Walk me through it: (1) open my router's connected-devices
+list and find a device named like piaware, raspberrypi, adsb, or ultrafeeder —
+note its IP. (2) In my browser, try these with that IP until one shows JSON
+containing "aircraft": http://IP:8080/data/aircraft.json ,
+http://IP/skyaware/data/aircraft.json , http://IP/tar1090/data/aircraft.json ,
+http://IP:8080/tar1090/data/aircraft.json . (3) Tell me the working URL — I'll
+run: flights <that url>. Do not use or suggest any network-scanning tools.\n`);
+        log("finder prompt printed above the panel — scroll up if needed");
+        return;
+      }
+      if (!arg) { log("usage: flights <url> | flights prompt"); return; }
+      await api("/api/v1/apps/flights", { method: "POST", body: { url: normalize(arg) } });
       await api("/api/v1/apps", { method: "POST", body: { id: "flights_list", enabled: true } });
-      log("flights list enabled");
+      log(`receiver url set + flights list enabled: ${arg}`);
       return;
     }
     case "enable": case "disable": {

@@ -53,6 +53,15 @@ and we would not want them to):
 - **The panel is the directory.** Once on WiFi, the panel shows its
   own address (`dmx-0952.local`) next to the claim code. Discovery is
   the owner reading the panel — never a cloud page scanning the LAN.
+- **The box never scans either (ADR-0032).** The device initiates
+  connections only to addresses the owner explicitly configured — SNTP,
+  the owner's MQTT broker, and owner-entered app sources. There are no
+  discovery probes: consumer router security suites flag
+  device-initiated multi-host probing, and a panel that gets its
+  owner's network flagged is a failure regardless of how polite the
+  probe was. Its mDNS *responder* only answers questions, never asks
+  them. Receiver discovery is owner-side (a finder prompt in the
+  Console), not device-side.
 - **LAN auth is the LAN token.** Every `/api/v1` route requires
   `Authorization: Bearer <LAN token>`. The token is minted at claim,
   surfaced in the Console (which renders copy-paste commands with it

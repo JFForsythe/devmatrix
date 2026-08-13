@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { Card, copyText, GateChip, LoadingCard, Status, ViewHeader } from "../components";
+import { weatherLayout } from "../layouts";
 import type { ConsoleTransport } from "../transport";
 import type {
   AppId,
@@ -73,7 +74,6 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
   const [customText, setCustomText] = useState("");
   const [customError, setCustomError] = useState<string | null>(null);
   const [status, setStatus] = useState<StatusMessage | null>(null);
-  const [scanning, setScanning] = useState(false);
   const [scene, setScene] = useState("");
   const [firstText, setFirstText] = useState("HELLO WORLD");
   const [firstBusy, setFirstBusy] = useState(false);
@@ -192,20 +192,7 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
     }
     setWeatherBusy(true);
     try {
-      const layout = {
-        v: 1,
-        source: {
-          url: `https://api.weather.gov/stations/${id}/observations/latest`,
-          interval_s: 600,
-          stale_after_s: 7200,
-        },
-        rows: [
-          { y: 5, color: [90, 170, 255], text: `WEATHER ${id}` },
-          { y: 17, color: [235, 235, 235], bind: "/properties/temperature/value", prefix: "TEMP ", suffix: " C" },
-          { y: 29, color: [120, 200, 120], bind: "/properties/windSpeed/value", prefix: "WIND ", suffix: " KMH" },
-        ],
-      };
-      const saved = await transport.post<CustomLayout>("/api/v1/apps/custom", layout);
+      const saved = await transport.post<CustomLayout>("/api/v1/apps/custom", weatherLayout(id));
       setCustomText(JSON.stringify(saved, null, 2));
       setCustomError(null);
       const savedApps = await transport.post<AppsSettings>("/api/v1/apps", { id: "custom", enabled: true });
@@ -247,22 +234,23 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
     }
   }
 
-  async function scan(): Promise<void> {
-    setScanning(true);
-    setStatus({ kind: "info", text: "The device is scanning common receiver addresses on your LAN…" });
-    try {
-      const result = await transport.post<{ found: string | null }>("/api/v1/apps/flights/scan");
-      if (result.found) {
-        setFlights((current) => current ? { ...current, url: result.found! } : current);
-        setStatus({ kind: "ok", text: `Found ${result.found}. Save to keep it.` });
-      } else {
-        setStatus({ kind: "error", text: "No receiver answered. Type its aircraft.json URL instead." });
-      }
-    } catch (error) {
-      setStatus({ kind: "error", text: error instanceof Error ? error.message : "Receiver scan failed." });
-    } finally {
-      setScanning(false);
-    }
+  // The box never scans a network (ADR-0032). Owners who don't know their
+  // receiver's address hand this prompt to any AI assistant — or follow it
+  // themselves. It deliberately forbids scanning tools there too.
+  async function copyFinderPrompt(): Promise<void> {
+    await copyText(
+      "Help me find my ADS-B receiver's data URL on my home network. I run one of: " +
+        "PiAware, dump1090-fa, readsb, tar1090, or Ultrafeeder. I need the URL of its " +
+        "aircraft.json feed. Walk me through it: (1) Open my router's connected-devices " +
+        "list and find a device named something like piaware, raspberrypi, adsb, or " +
+        "ultrafeeder — note its IP address. (2) In my browser, try these URLs with that " +
+        "IP until one shows JSON containing \"aircraft\": http://IP:8080/data/aircraft.json , " +
+        "http://IP/skyaware/data/aircraft.json , http://IP/tar1090/data/aircraft.json , " +
+        "http://IP:8080/tar1090/data/aircraft.json . (3) Tell me the working URL — I'll " +
+        "paste it into my Devmatrix panel's Flights app. Do not use or suggest any " +
+        "network-scanning tools; only my router's device list and my browser.",
+    );
+    setStatus({ kind: "ok", text: "Finder prompt copied — paste it into Claude, ChatGPT, or any assistant on your computer, then paste the URL it finds here." });
   }
 
   async function saveCustom(): Promise<void> {
@@ -392,10 +380,16 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
               <span>RECEIVER URL</span>
               <div class="field-action">
                 <input type="url" value={flights.url} placeholder="http://receiver/data/aircraft.json" onInput={(event) => setFlights({ ...flights, url: event.currentTarget.value })} />
-                <button class="btn" type="button" disabled={scanning} onClick={() => void scan()}>{scanning ? "SCANNING…" : "SCAN MY NETWORK"}</button>
+                <button class="btn" type="button" onClick={() => void copyFinderPrompt()}>COPY FINDER PROMPT</button>
               </div>
             </label>
-            <p class="note">The receiver URL stays in device NVS. It is never sent to a Devmatrix service.</p>
+            <p class="note">
+              The panel never scans your network (ADR-0032) — it only ever talks to addresses you give
+              it. Don't know your receiver's URL? COPY FINDER PROMPT puts a step-by-step request on
+              your clipboard for Claude, ChatGPT, or any assistant — it finds the URL using your
+              router's device list and browser, never a scanner. The URL stays in device NVS and is
+              never sent to a Devmatrix service.
+            </p>
             <div class="form-grid four">
               <label class="field"><span>FETCH · 1–60 S</span><input type="number" min={1} max={60} value={flights.interval_s} onInput={(event) => setFlights({ ...flights, interval_s: Math.min(60, Math.max(1, Number(event.currentTarget.value))) })} /></label>
               <label class="field"><span>ROWS · 1–5</span><select value={flights.rows} onChange={(event) => setFlights({ ...flights, rows: Number(event.currentTarget.value) })}>{[1, 2, 3, 4, 5].map((rows) => <option value={rows}>{rows}</option>)}</select></label>
