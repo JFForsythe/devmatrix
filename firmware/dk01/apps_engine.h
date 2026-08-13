@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
-// Small declarative-app primitives for DK-01. All buffers and app frames are
-// static: an app refresh must not grow the heap from one scheduler cycle to
-// the next. Keep the internal-SRAM watermark above the existing boot floor;
-// the shared 4 KiB fetch buffer is the largest new always-live allocation.
+// Small declarative-app primitives for DK-01. App frames are static and an
+// app refresh must not grow the heap from one scheduler cycle to the next.
+// The shared fetch buffer is allocated ONCE at boot from PSRAM: real feeds
+// are big (a busy-airspace aircraft.json measured 35 KB, an NWS observation
+// 5 KB — both silently exceeded the old 4 KiB internal-SRAM buffer, which is
+// exactly why "the app just shows the clock" happened). Internal SRAM keeps
+// only an 8 KiB fallback if PSRAM is somehow absent.
 
 #include <Adafruit_Protomatter.h>
 #include <Fonts/TomThumb.h>
@@ -13,11 +16,24 @@
 #include <WiFiClientSecure.h>
 #include <ctype.h>
 #include <math.h>
+#include "esp_heap_caps.h"
 
-static const size_t DMX_APP_FETCH_CAP = 4096;
+static const size_t DMX_APP_FETCH_CAP = 65536;      // PSRAM
+static const size_t DMX_APP_FETCH_FALLBACK = 8192;  // internal-heap fallback
 static const uint8_t DMX_APP_MAX_ROWS = 5;
 static const uint8_t DMX_APP_MAX_DEPTH = 8;
 static const uint8_t DMX_APP_BASELINES[DMX_APP_MAX_ROWS] = {5, 11, 17, 23, 29};
+
+// Why the last fetch behaved the way it did, per app — the difference
+// between "nothing shows and nobody knows why" and a one-line answer.
+struct DmxFetchDiag {
+  uint32_t attempts;
+  uint32_t okCount;
+  uint32_t lastAttemptMs;  // 0 = never tried
+  int lastHttpCode;        // <=0: transport error / not reached
+  size_t lastBytes;        // body bytes read, or announced size when too big
+  char lastResult[24];     // "ok", "too-big", "bad-json", "http-503", ...
+};
 
 struct DmxAppSchedulerSlot {
   bool enabled;
@@ -47,7 +63,24 @@ struct DmxJsonSpan {
   char type;
 };
 
-static char dmxAppFetchBuffer[DMX_APP_FETCH_CAP + 1];
+static char* dmxAppFetchBuffer = nullptr;
+static size_t dmxAppFetchCap = 0;
+static bool dmxAppFetchPsram = false;
+
+static void dmxFetchBufferInit() {
+  if (dmxAppFetchBuffer) return;
+  dmxAppFetchBuffer = (char*)heap_caps_malloc(DMX_APP_FETCH_CAP + 1,
+                                              MALLOC_CAP_SPIRAM |
+                                              MALLOC_CAP_8BIT);
+  if (dmxAppFetchBuffer) {
+    dmxAppFetchCap = DMX_APP_FETCH_CAP;
+    dmxAppFetchPsram = true;
+  } else {
+    dmxAppFetchBuffer = (char*)malloc(DMX_APP_FETCH_FALLBACK + 1);
+    dmxAppFetchCap = dmxAppFetchBuffer ? DMX_APP_FETCH_FALLBACK : 0;
+  }
+  if (dmxAppFetchBuffer) dmxAppFetchBuffer[0] = 0;
+}
 
 static bool dmxTimeDue(uint32_t nowMs, uint32_t deadlineMs) {
   return deadlineMs == 0 || (int32_t)(nowMs - deadlineMs) >= 0;
@@ -337,13 +370,31 @@ static bool dmxJsonPointerResolve(const char* json, size_t length,
   return true;
 }
 
-// Fetches one complete JSON document into the single shared static buffer.
+static void dmxDiagResult(DmxFetchDiag* diag, const char* result) {
+  if (diag) snprintf(diag->lastResult, sizeof diag->lastResult, "%s", result);
+}
+
+// Fetches one complete JSON document into the single shared PSRAM buffer.
 // HTTPS is supported with an encrypted but currently unauthenticated client;
 // the pre-P2 transport design still has no CA-store contract (SECURITY.md).
-static bool dmxFetchJson(const char* url, size_t& length) {
+// Every outcome lands in `diag` so /api/v1/apps/diag can explain a blank app.
+static bool dmxFetchJson(const char* url, size_t& length,
+                         DmxFetchDiag* diag = nullptr) {
   length = 0;
-  if (!url || (strncmp(url, "http://", 7) && strncmp(url, "https://", 8)))
+  if (diag) {
+    diag->attempts++;
+    diag->lastAttemptMs = millis();
+    diag->lastHttpCode = 0;
+    diag->lastBytes = 0;
+  }
+  if (!dmxAppFetchBuffer || dmxAppFetchCap == 0) {
+    dmxDiagResult(diag, "no-buffer");
     return false;
+  }
+  if (!url || (strncmp(url, "http://", 7) && strncmp(url, "https://", 8))) {
+    dmxDiagResult(diag, "bad-url");
+    return false;
+  }
   static WiFiClient plainClient;
   static WiFiClientSecure secureClient;
   HTTPClient http;
@@ -358,11 +409,22 @@ static bool dmxFetchJson(const char* url, size_t& length) {
   } else {
     began = http.begin(plainClient, String(url));
   }
-  if (!began) return false;
+  if (!began) {
+    dmxDiagResult(diag, "begin-failed");
+    return false;
+  }
   bool ok = false;
   int code = http.GET();
   int announced = http.getSize();
-  if (code == HTTP_CODE_OK && announced <= (int)DMX_APP_FETCH_CAP) {
+  if (diag) diag->lastHttpCode = code;
+  if (code < 0) {
+    dmxDiagResult(diag, "connect-failed");
+  } else if (code != HTTP_CODE_OK) {
+    if (diag) snprintf(diag->lastResult, sizeof diag->lastResult, "http-%d", code);
+  } else if (announced > (int)dmxAppFetchCap) {
+    if (diag) diag->lastBytes = (size_t)announced;
+    dmxDiagResult(diag, "too-big");
+  } else {
     NetworkClient* stream = http.getStreamPtr();
     uint32_t lastByteMs = millis();
     bool overflow = false;
@@ -378,16 +440,26 @@ static bool dmxFetchJson(const char* url, size_t& length) {
         int ch = stream->read();
         if (ch < 0) break;
         lastByteMs = millis();
-        if (length >= DMX_APP_FETCH_CAP) { overflow = true; break; }
+        if (length >= dmxAppFetchCap) { overflow = true; break; }
         dmxAppFetchBuffer[length++] = (char)ch;
       }
       if (overflow) break;
     }
     dmxAppFetchBuffer[length] = 0;
+    if (diag) diag->lastBytes = length;
     DmxJsonSpan root;
     bool complete = announced < 0 || length == (size_t)announced;
-    ok = !overflow && complete && length > 0 &&
-         dmxJsonRoot(dmxAppFetchBuffer, length, root);
+    if (overflow) {
+      dmxDiagResult(diag, "too-big");
+    } else if (!complete || length == 0) {
+      dmxDiagResult(diag, "short-read");
+    } else if (!dmxJsonRoot(dmxAppFetchBuffer, length, root)) {
+      dmxDiagResult(diag, "bad-json");
+    } else {
+      ok = true;
+      dmxDiagResult(diag, "ok");
+      if (diag) diag->okCount++;
+    }
   }
   http.end();
   if (!ok) { length = 0; dmxAppFetchBuffer[0] = 0; }

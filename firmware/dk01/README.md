@@ -89,7 +89,10 @@ start is open, finish wants the panel code and returns the token plus
 the identity key for pinning), `settings` (GET/POST,
 `tz`), `mqtt` (GET/POST; password is write-only), `token/rotate`,
 `reboot`, `wifi/reset`, `factory/reset`, `apps` (GET/POST enable + scene
-interval), `apps/messages` (GET/POST), `apps/messages/show`,
+interval), `apps/diag` (GET — per-app fetch verdicts: last HTTP code,
+bytes, `ok`/`too-big`/`bad-json`/`no-url`/`no-aircraft`/`bind-miss`, plus
+the fetch-buffer size; the answer to "why is this app blank?"),
+`apps/messages` (GET/POST), `apps/messages/show`,
 `apps/custom` (GET/POST — shape in contracts/layout.md),
 `apps/custom/show`, `apps/flights` (GET/POST), `apps/flights/scan`,
 `apps/flights_list/show`, and `POST /update` (multipart `.bin`, OTA).

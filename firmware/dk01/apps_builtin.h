@@ -26,6 +26,8 @@ static DmxAppSchedulerSlot dmxAppSlots[DMX_APP_COUNT] = {
   {true, 30000, 0}, {false, 1000, 0}, {false, 60000, 0}
 };
 static uint16_t dmxAppDurationS[DMX_APP_COUNT] = {10, 10, 10};
+// Fetch/render diagnostics per app. Messages never fetches; its entry says so.
+static DmxFetchDiag dmxAppDiag[DMX_APP_COUNT];
 
 struct DmxMessagesState {
   char phrases[8][65];
@@ -553,6 +555,11 @@ static bool dmxSetAppDuration(Preferences& prefs, uint8_t app,
 }
 
 static void dmxAppsBegin(Preferences& prefs, uint8_t flightsInterval) {
+  dmxFetchBufferInit();
+  memset(dmxAppDiag, 0, sizeof dmxAppDiag);
+  dmxDiagResult(&dmxAppDiag[DMX_APP_MESSAGES], "offline-app");
+  dmxDiagResult(&dmxAppDiag[DMX_APP_FLIGHTS_LIST], "idle");
+  dmxDiagResult(&dmxAppDiag[DMX_APP_CUSTOM], "idle");
   for (uint8_t i = 0; i < DMX_APP_COUNT; ++i) {
     bool enabledDefault = i == DMX_APP_MESSAGES;
     dmxAppSlots[i].enabled = prefs.getBool(DMX_APP_ENABLE_KEYS[i],
@@ -583,23 +590,32 @@ static void dmxAppsTick(const char* flightsUrl, uint8_t flightsInterval,
 
   dmxAppSlots[DMX_APP_FLIGHTS_LIST].refreshIntervalMs =
       (uint32_t)flightsInterval * 1000UL;
-  if (dmxAppSlots[DMX_APP_FLIGHTS_LIST].enabled && flightsUrl &&
-      flightsUrl[0] &&
+  if (dmxAppSlots[DMX_APP_FLIGHTS_LIST].enabled &&
       dmxTimeDue(nowMs, dmxAppSlots[DMX_APP_FLIGHTS_LIST].nextRunMs)) {
-    size_t length;
-    if (dmxFetchJson(flightsUrl, length)) {
-      uint32_t stale = max(15UL, (uint32_t)flightsInterval * 3UL);
-      dmxBuildFlightsFrame(flightsFormat, flightsRows, millis(), stale);
+    if (!flightsUrl || !flightsUrl[0]) {
+      dmxDiagResult(&dmxAppDiag[DMX_APP_FLIGHTS_LIST], "no-url");
+      dmxAppSlots[DMX_APP_FLIGHTS_LIST].nextRunMs = nowMs + 5000UL;
+    } else {
+      size_t length;
+      if (dmxFetchJson(flightsUrl, length,
+                       &dmxAppDiag[DMX_APP_FLIGHTS_LIST])) {
+        uint32_t stale = max(15UL, (uint32_t)flightsInterval * 3UL);
+        if (!dmxBuildFlightsFrame(flightsFormat, flightsRows, millis(),
+                                  stale))
+          dmxDiagResult(&dmxAppDiag[DMX_APP_FLIGHTS_LIST], "no-aircraft");
+      }
+      dmxAppSlots[DMX_APP_FLIGHTS_LIST].nextRunMs =
+          millis() + dmxAppSlots[DMX_APP_FLIGHTS_LIST].refreshIntervalMs;
     }
-    dmxAppSlots[DMX_APP_FLIGHTS_LIST].nextRunMs =
-        millis() + dmxAppSlots[DMX_APP_FLIGHTS_LIST].refreshIntervalMs;
   }
 
   if (dmxAppSlots[DMX_APP_CUSTOM].enabled && dmxCustom.hasSource &&
       dmxTimeDue(nowMs, dmxAppSlots[DMX_APP_CUSTOM].nextRunMs)) {
     size_t length;
-    if (dmxFetchJson(dmxCustom.url, length))
-      dmxBuildCustomFrame(dmxAppFetchBuffer, length, millis());
+    if (dmxFetchJson(dmxCustom.url, length, &dmxAppDiag[DMX_APP_CUSTOM])) {
+      if (!dmxBuildCustomFrame(dmxAppFetchBuffer, length, millis()))
+        dmxDiagResult(&dmxAppDiag[DMX_APP_CUSTOM], "bind-miss");
+    }
     dmxAppSlots[DMX_APP_CUSTOM].nextRunMs =
         millis() + dmxAppSlots[DMX_APP_CUSTOM].refreshIntervalMs;
   }

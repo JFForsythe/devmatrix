@@ -43,7 +43,7 @@
 #include "apps_builtin.h"
 #include "mqtt_client.h"
 
-#define FW_VERSION "0.9.2"
+#define FW_VERSION "0.10.0"
 
 // A full-bright white frame can out-draw USB-C power and brown-out the
 // board (observed on the bench 2026-08-07: brownout reset at high slider
@@ -748,6 +748,33 @@ void handleCustomPost() {
   handleCustomGet();
 }
 
+// Why is an app blank? This route answers instead of shrugging: per-app
+// fetch attempts, last HTTP code, byte count, and a one-word verdict.
+void handleAppsDiag() {
+  if (!authed()) { deny(); return; }
+  uint32_t nowMs = millis();
+  String body = String("{\"fetch_cap\":") + dmxAppFetchCap +
+                ",\"psram\":" + (dmxAppFetchPsram ? "true" : "false") +
+                ",\"apps\":[";
+  for (uint8_t i = 0; i < DMX_APP_COUNT; ++i) {
+    DmxAppFrame* frame = dmxAppFrame(i);
+    const DmxFetchDiag& d = dmxAppDiag[i];
+    if (i) body += ',';
+    body += String("{\"id\":\"") + DMX_APP_IDS[i] + "\",\"enabled\":" +
+            (dmxAppSlots[i].enabled ? "true" : "false") +
+            ",\"result\":\"" + d.lastResult + "\",\"http\":" +
+            d.lastHttpCode + ",\"bytes\":" + d.lastBytes +
+            ",\"attempts\":" + d.attempts + ",\"ok\":" + d.okCount +
+            ",\"age_s\":" +
+            (d.lastAttemptMs ? (nowMs - d.lastAttemptMs) / 1000UL : 0) +
+            ",\"rows\":" + (frame ? frame->rowCount : 0) +
+            ",\"has_data\":" +
+            (frame && frame->hasData ? "true" : "false") + "}";
+  }
+  body += "]}";
+  sendJson(200, body);
+}
+
 void handleAppShow(uint8_t app) {
   if (!authed()) { deny(); return; }
   manualAppScene = appScene(app);
@@ -1314,6 +1341,7 @@ void startConsole() {
   server.on("/api/v1/mqtt", HTTP_POST, handleMqttPost);
   server.on("/api/v1/apps", HTTP_GET, handleAppsGet);
   server.on("/api/v1/apps", HTTP_POST, handleAppsPost);
+  server.on("/api/v1/apps/diag", HTTP_GET, handleAppsDiag);
   server.on("/api/v1/apps/messages", HTTP_GET, handleMessagesGet);
   server.on("/api/v1/apps/messages", HTTP_POST, handleMessagesPost);
   server.on("/api/v1/apps/messages/show", HTTP_POST,
@@ -1401,6 +1429,9 @@ void setup() {
   flFormat = prefs.getString("fl_fmt", flFormat);
   flView = prefs.getString("fl_view", flView);
   dmxAppsBegin(prefs, flInterval);
+  Serial.printf("apps: fetch buffer %u bytes (%s)\n",
+                (unsigned)dmxAppFetchCap,
+                dmxAppFetchPsram ? "PSRAM" : "internal fallback");
   apiToken = prefs.getString("token", "");
   if (!apiToken.length()) {
     apiToken = makeToken();

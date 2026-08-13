@@ -8,7 +8,7 @@ step-by-step instructions.
 Two status labels keep this manual honest (a P0 rule — no unsupported
 claim in this repo):
 
-- **Today** — current firmware v0.9.2 behavior. This slice is build-verified;
+- **Today** — current firmware v0.10.0 behavior. This slice is build-verified;
   final on-panel and live-receiver acceptance remains a hardware step.
 - **Ahead · gate X** — specified and coming; the gate names are
   [ROADMAP.md](../ROADMAP.md)'s. Nothing labeled Ahead is a promise the
@@ -445,6 +445,7 @@ browser MQTT workbench are in
 | `401 unauthorized` | Stale token — re-pair (chapter 4) or re-copy from the Dev console view |
 | Panel resets at high brightness | Under-powered supply. The 150 cap exists for this; the Dashboard's reset-reason tile confirms a brown-out |
 | Clock is wrong | Settings → timezone; the clock needs one internet moment for SNTP after boot |
+| Weather / Flights list / any fetching app shows only the clock | The app has no usable data and is telling you why: check **`GET /api/v1/apps/diag`** (or run `node examples/dmx-top.mjs`) — `too-big` means firmware older than 0.10.0 (its 4 KB fetch cap was smaller than real feeds; update from Deploy), `no-url` means set the receiver URL, `http-…`/`connect-failed` means the source is unreachable, `no-aircraft`/`bind-miss` means the feed answered but held nothing to render |
 | Apps → Flights list saves but the radar shows nothing | The host script isn't running — chapter 8; check `systemctl status dmx-flights` |
 | MQTT stays disabled | Turn on **ENABLE MQTT** and enter a host; an empty host deliberately keeps MQTT off |
 | MQTT shows error | Check the broker address, port, per-device username/password and ACL from chapter 11; pre-P2 TLS also requires a trusted network path |
