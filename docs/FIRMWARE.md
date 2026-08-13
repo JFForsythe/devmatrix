@@ -3,7 +3,15 @@
 > **Status: living tree.** The DK-01 firmware lives at
 > [`firmware/dk01/`](../firmware/dk01/README.md) and develops
 > continuously from P1 onward (ADR-0024, superseding ADR-0009's
-> disposable-spike posture). v0.8.0 adds the optional esp-mqtt client from
+> disposable-spike posture). v0.9.0 implements ADR-0031's application-layer
+> device authentication: an Ed25519 identity key minted on first boot
+> (NVS, wiped by factory reset), open `GET /api/v1/identity` and
+> `POST /api/v1/identity/verify` (signs `"dmx-id-v1:<serial>:" + nonce`),
+> the key riding along on claim-finish and setup-join responses so the
+> Console pins it at the possession-proof moment, an exact-origin CORS
+> allowlist admitting only the hosted Console (never `*`, preflight
+> included), and a Host-header allowlist rejecting DNS-rebinding
+> requests. v0.8.0 adds the optional esp-mqtt client from
 > ADR-0028: NVS broker settings and authenticated REST/Console control, a
 > real `DMX-####-####` serial-rooted topic tree, retained QoS 1 LWT and
 > display/health state, versioned request/response envelopes with expiry
@@ -66,8 +74,8 @@ firmware/
 Dual app slots (2 MB each, `ota_0`/`ota_1`) + a 256 KB TinyUF2 factory
 partition for USB recovery + a 3.7 MB `ffat` data partition reserved for
 future assets and apps. Framebuffers in PSRAM; DMA descriptors in
-internal RAM. v0.8.0 measures 1,336,915 B flash (63 % of a slot) and
-120,396 B static RAM
+internal RAM. v0.9.0 measures 1,362,487 B flash (64 % of a slot) and
+120,652 B static RAM; v0.8.0 measured 1,336,915 B / 120,396 B
 ([evidence](../hardware/evidence/2026-08-12-console-parity-verification.md)).
 A CI slot-occupancy and heap-headroom gate is **Ahead · gate P2**. The
 Local Console is not a filesystem asset: it is a gzipped PROGMEM bundle

@@ -9,6 +9,44 @@ export function SecurityView({ transport }: { transport: ConsoleTransport }) {
   const [status, setStatus] = useState<StatusMessage | null>(null);
   const [newToken, setNewToken] = useState("");
   const [busy, setBusy] = useState(false);
+  const [identityStatus, setIdentityStatus] = useState<StatusMessage | null>(null);
+  const [identityBusy, setIdentityBusy] = useState(false);
+
+  async function verifyIdentityNow(): Promise<void> {
+    setIdentityBusy(true);
+    setIdentityStatus({ kind: "info", text: "Challenging the device with a fresh nonce…" });
+    try {
+      const { identity, verified, pinMatch } = await transport.verifyNow();
+      if (!verified) {
+        setIdentityStatus({
+          kind: "error",
+          text: "The device failed its identity proof. Something on the network may be answering in its place.",
+        });
+      } else if (!pinMatch) {
+        setIdentityStatus({
+          kind: "error",
+          text:
+            `Signature valid, but key ${identity.fingerprint} is NOT the key this browser pinned. ` +
+            "Expected after a reflash or factory reset — forget the device in Settings and reconnect. Otherwise, distrust it.",
+        });
+      } else {
+        setIdentityStatus({
+          kind: "ok",
+          text: `Verified: ${identity.device} holds the pinned key ${identity.fingerprint}.`,
+        });
+      }
+    } catch (error) {
+      const text = error instanceof Error ? error.message : "Identity check failed.";
+      setIdentityStatus({
+        kind: "error",
+        text: text.includes("404")
+          ? "This firmware predates identity verification (v0.9.0) — update it from the Deploy page."
+          : text,
+      });
+    } finally {
+      setIdentityBusy(false);
+    }
+  }
 
   async function act(path: string, pending: string, success: string): Promise<void> {
     setBusy(true);
@@ -32,6 +70,33 @@ export function SecurityView({ transport }: { transport: ConsoleTransport }) {
       <ViewHeader eyebrow="LOCAL TRUST CONTROLS" title="Security">
         Rotate shared LAN access or deliberately reset network and device state. Destructive actions are never one-click.
       </ViewHeader>
+
+      <Card
+        title="Device identity"
+        aside={
+          transport.isMock ? (
+            <span class="chip demo">SIMULATED</span>
+          ) : transport.pinnedFingerprint ? (
+            <span class="chip ok">ED25519 · PINNED</span>
+          ) : (
+            <span class="chip">ED25519</span>
+          )
+        }
+      >
+        <p class="lead">
+          The panel proves it is your panel: it signs a fresh challenge with a key minted on its first
+          boot, and this browser checks the signature against the key it pinned when you paired. mDNS
+          names can be squatted and plain HTTP proves nothing — this does.
+        </p>
+        <p>
+          Pinned key fingerprint:{" "}
+          <code>{transport.pinnedFingerprint || (transport.isMock ? "DEMO-MODE" : "none yet — verify or pair to pin one")}</code>
+        </p>
+        <button class="btn" type="button" disabled={identityBusy} onClick={() => void verifyIdentityNow()}>
+          {identityBusy ? "VERIFYING…" : "VERIFY NOW"}
+        </button>
+        <Status message={identityStatus} />
+      </Card>
 
       <div class="grid two">
         <Card title="Rotate LAN token" aside={<span class="chip warn">LOGS OUT EVERY CLIENT</span>}>

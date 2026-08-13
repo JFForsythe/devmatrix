@@ -13,7 +13,11 @@
 //     LAN token live only in device NVS, written at runtime (ADR-0023).
 //   - The LAN token is revealed exactly twice: on the setup hotspot
 //     (physical presence) and on the USB serial console (physical cable).
-//   - HTTP only on the LAN; TLS is an open design item (docs/SECURITY.md).
+//   - Plain HTTP on the LAN is the permanent transport (ADR-0031). TLS is
+//     not the authentication story, so the application layer is: the device
+//     holds an Ed25519 identity key and signs Console-supplied nonces, an
+//     exact-origin CORS allowlist admits only the hosted Console, and a
+//     Host allowlist rejects DNS-rebinding requests.
 //
 // Build: arduino-cli compile --fqbn esp32:esp32:adafruit_matrixportal_esp32s3 .
 // See README.md in this directory for the full quickstart.
@@ -31,13 +35,15 @@
 #include "esp_ota_ops.h"
 #include "esp_system.h"
 #include "mbedtls/base64.h"
+#include "mbedtls/sha256.h"
+#include <Ed25519.h>  // Crypto by Rhys Weatherley (device identity, ADR-0031)
 #include "web_setup.h"
 #include "web_console.h"
 #include "apps_engine.h"
 #include "apps_builtin.h"
 #include "mqtt_client.h"
 
-#define FW_VERSION "0.8.0"
+#define FW_VERSION "0.9.0"
 
 // A full-bright white frame can out-draw USB-C power and brown-out the
 // board (observed on the bench 2026-08-07: brownout reset at high slider
@@ -60,6 +66,16 @@ DNSServer dns;
 // ---------------------------------------------------------------- state
 String deviceId, apName, mdnsName, apiToken;
 bool setupMode = false;
+
+// Device identity (ADR-0031). mDNS is unauthenticated and plain HTTP
+// authenticates no server, so the box proves it is the box: an Ed25519
+// keypair minted on first boot (NVS, wiped by factory reset) signs any
+// Console-supplied nonce. The Console pins the public key at pair time.
+uint8_t idSecret[32], idPublic[32];
+String idPublicB64, idFingerprint;
+
+// The only cross-origin caller ever allowed (exact origin, never "*").
+static const char* HOSTED_ORIGIN = "https://devmatrix.flighttrackerled.com";
 
 // Scenes: what the panel is showing right now.
 #define SCENE_CLOCK 0
@@ -191,7 +207,54 @@ bool authed() {
   return server.header("Authorization") == ("Bearer " + apiToken);
 }
 
+String b64Encode(const uint8_t* data, size_t len) {
+  uint8_t out[128];
+  size_t olen = 0;
+  if (mbedtls_base64_encode(out, sizeof out, &olen, data, len) != 0) return "";
+  return String((const char*)out, olen);
+}
+
+// Fingerprint = first 4 bytes of SHA-256(pubkey), "XXXX-XXXX". Short enough
+// to read off a panel or serial log, long enough to catch a swapped key.
+void identityBegin() {
+  if (prefs.getBytes("idkey", idSecret, 32) != 32) {
+    for (int i = 0; i < 32; i += 4) {
+      uint32_t r = esp_random();
+      memcpy(idSecret + i, &r, 4);
+    }
+    prefs.putBytes("idkey", idSecret, 32);
+    Serial.println("identity: new Ed25519 device key minted (NVS)");
+  }
+  Ed25519::derivePublicKey(idPublic, idSecret);
+  idPublicB64 = b64Encode(idPublic, 32);
+  uint8_t digest[32];
+  mbedtls_sha256(idPublic, 32, digest, 0);
+  char fp[10];
+  snprintf(fp, sizeof fp, "%02X%02X-%02X%02X", digest[0], digest[1],
+           digest[2], digest[3]);
+  idFingerprint = fp;
+}
+
+// ADR-0031: reject requests whose Host header names anything but this box
+// (DNS rebinding lands here with the attacker's hostname). Empty Host is
+// allowed for HTTP/1.0-era tools; browsers always send one.
+bool hostAllowed() {
+  String h = server.hostHeader();
+  if (!h.length()) return true;
+  h.toLowerCase();
+  int colon = h.indexOf(':');
+  if (colon >= 0) h = h.substring(0, colon);
+  return h == mdnsName + ".local" || h == mdnsName ||
+         h == WiFi.localIP().toString();
+}
+
+bool corsOriginOk() { return server.header("Origin") == HOSTED_ORIGIN; }
+
 void sendJson(int code, const String& body) {
+  if (corsOriginOk()) {
+    server.sendHeader("Access-Control-Allow-Origin", HOSTED_ORIGIN);
+    server.sendHeader("Vary", "Origin");
+  }
   server.send(code, "application/json", body);
 }
 
@@ -782,6 +845,45 @@ void handleRotate() {
   sendJson(200, String("{\"token\":\"") + apiToken + "\"}");
 }
 
+String identityJson() {
+  return String("\"device\":\"") + deviceId + "\",\"alg\":\"ed25519\"," +
+         "\"pubkey\":\"" + idPublicB64 + "\",\"fingerprint\":\"" +
+         idFingerprint + "\"";
+}
+
+// Unauthenticated by design: the public key is public, and a browser must
+// be able to verify the box BEFORE it holds any token (ADR-0031).
+void handleIdentity() { sendJson(200, "{" + identityJson() + "}"); }
+
+// Sign a Console-supplied nonce. Message is domain-separated and bound to
+// the serial: "dmx-id-v1:<serial>:" + nonce bytes. A spoofer squatting the
+// mDNS name cannot answer this without the key in this box's NVS.
+void handleIdentityVerify() {
+  String nb64;
+  if (!jsonGet(server.arg("plain"), "nonce", nb64)) {
+    sendJson(400, "{\"error\":\"missing nonce\"}");
+    return;
+  }
+  uint8_t nonce[64];
+  size_t nlen = 0;
+  if (mbedtls_base64_decode(nonce, sizeof nonce, &nlen,
+                            (const unsigned char*)nb64.c_str(),
+                            nb64.length()) != 0 ||
+      nlen < 16) {
+    sendJson(400, "{\"error\":\"nonce must be 16..64 bytes, base64\"}");
+    return;
+  }
+  uint8_t msg[96];
+  String prefix = String("dmx-id-v1:") + deviceId + ":";
+  size_t plen = prefix.length();
+  memcpy(msg, prefix.c_str(), plen);
+  memcpy(msg + plen, nonce, nlen);
+  uint8_t sig[64];
+  Ed25519::sign(sig, idSecret, idPublic, msg, plen + nlen);
+  sendJson(200, "{" + identityJson() + ",\"sig\":\"" +
+                    b64Encode(sig, 64) + "\"}");
+}
+
 // Unauthenticated by design: anyone on the LAN may ASK to pair, but only
 // someone who can read the panel can FINISH. One active code at a time;
 // re-requesting extends the same code instead of churning it.
@@ -813,7 +915,10 @@ void handleClaimFinish() {
     claimCode = "";
     overlayText = "paired!";
     overlayUntil = millis() + 3000;
-    sendJson(200, String("{\"token\":\"") + apiToken + "\"}");
+    // Pairing is the possession-proof moment, so the identity key rides
+    // along here: the Console pins it now and verifies it ever after.
+    sendJson(200, String("{\"token\":\"") + apiToken + "\"," +
+                      identityJson() + "}");
     return;
   }
   if (++claimAttempts >= 5) {
@@ -1099,10 +1204,12 @@ void handleJoinStatus() {
   stepJoinMachine();
   if (joinState == JOIN_OK) {
     // Physical presence on the hotspot is the v0 claim ceremony: the token
-    // is revealed here, once, on the setup network only.
+    // (and the identity key to pin) is revealed here, once, on the setup
+    // network only.
     sendJson(200, String("{\"state\":\"joined\",\"ip\":\"") +
                       WiFi.localIP().toString() + "\",\"mdns\":\"" + mdnsName +
-                      ".local\",\"token\":\"" + apiToken + "\"}");
+                      ".local\",\"token\":\"" + apiToken + "\"," +
+                      identityJson() + "}");
   } else if (joinState == JOIN_TRYING) {
     sendJson(200, "{\"state\":\"joining\"}");
   } else if (joinState == JOIN_FAIL) {
@@ -1149,8 +1256,33 @@ void startSetupMode() {
 }
 
 void startConsole() {
-  const char* headers[] = {"Authorization", "Content-Length"};
-  server.collectHeaders(headers, 2);
+  const char* headers[] = {"Authorization", "Content-Length", "Origin"};
+  server.collectHeaders(headers, 3);
+  // One enforcement point for ADR-0031's firmware requirements: the Host
+  // allowlist (anti-rebinding) and the exact-origin CORS preflight. Runs
+  // before every handler, including not-found.
+  server.addMiddleware([](WebServer& srv, Middleware::Callback next) {
+    if (!hostAllowed()) {
+      sendJson(403, "{\"error\":\"unrecognized Host header\"}");
+      return true;
+    }
+    if (srv.method() == HTTP_OPTIONS &&
+        (srv.uri().startsWith("/api/v1/") || srv.uri() == "/update")) {
+      if (corsOriginOk()) {
+        srv.sendHeader("Access-Control-Allow-Origin", HOSTED_ORIGIN);
+        srv.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        srv.sendHeader("Access-Control-Allow-Headers",
+                       "Authorization, Content-Type");
+        srv.sendHeader("Access-Control-Max-Age", "600");
+        srv.sendHeader("Vary", "Origin");
+        srv.send(204, "text/plain", "");
+      } else {
+        srv.send(403, "text/plain", "");
+      }
+      return true;
+    }
+    return next();
+  });
   server.on("/", HTTP_GET, []() {
     server.sendHeader("Content-Encoding", "gzip");
     server.send_P(200, "text/html", (const char*)CONSOLE_HTML_GZ, CONSOLE_HTML_GZ_LEN);
@@ -1162,6 +1294,8 @@ void startConsole() {
   server.on("/api/v1/display/clear", HTTP_POST, handleClear);
   server.on("/api/v1/display/brightness", HTTP_POST, handleBrightness);
   server.on("/api/v1/identify", HTTP_POST, handleIdentify);
+  server.on("/api/v1/identity", HTTP_GET, handleIdentity);
+  server.on("/api/v1/identity/verify", HTTP_POST, handleIdentityVerify);
   server.on("/api/v1/claim/start", HTTP_POST, handleClaimStart);
   server.on("/api/v1/claim/finish", HTTP_POST, handleClaimFinish);
   server.on("/api/v1/token/rotate", HTTP_POST, handleRotate);
@@ -1263,6 +1397,8 @@ void setup() {
     apiToken = makeToken();
     prefs.putString("token", apiToken);
   }
+  identityBegin();
+  Serial.printf("identity: ed25519 fingerprint=%s\n", idFingerprint.c_str());
 
   String ssid = prefs.getString("ssid", "");
   if (!ssid.length()) startSetupMode();

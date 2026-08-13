@@ -36,7 +36,7 @@ export function Card({
   );
 }
 
-export function GateChip({ gate }: { gate: "M0" | "M1" | "M4" }) {
+export function GateChip({ gate }: { gate: "M0" | "M1" | "M4" | "C1" }) {
   return <span class="chip gate">ARRIVES AT GATE {gate}</span>;
 }
 

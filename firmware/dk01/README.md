@@ -46,6 +46,7 @@ owner-facing walkthrough — setup, Console, apps, updates, recovery — is
 arduino-cli core install esp32:esp32          # pinned family: 3.3.x
 arduino-cli lib install "Adafruit Protomatter" # 1.7.1
 arduino-cli lib install "ArduinoJson@7.4.3"
+arduino-cli lib install "Crypto@0.4.0"         # Rhys Weatherley — Ed25519 device identity
 arduino-cli compile --fqbn esp32:esp32:adafruit_matrixportal_esp32s3 \
   --output-dir out firmware/dk01
 ```
@@ -80,8 +81,12 @@ curl -H "$H" -H 'Content-Type: application/json' \
 
 Routes: `health`, `info`, `display/text`, `display/frame` (4096 bytes
 RGB565 little-endian, base64 in `{"b64":…}`), `display/brightness`,
-`display/clear`, `identify`, `claim/start` + `claim/finish` (pairing —
-start is open, finish wants the panel code), `settings` (GET/POST,
+`display/clear`, `identify`, `identity` (open GET — Ed25519 public key
+and fingerprint) + `identity/verify` (open POST `{"nonce":…}` — signs
+`"dmx-id-v1:<serial>:" + nonce` so a browser can prove this host is the
+panel, ADR-0031), `claim/start` + `claim/finish` (pairing —
+start is open, finish wants the panel code and returns the token plus
+the identity key for pinning), `settings` (GET/POST,
 `tz`), `mqtt` (GET/POST; password is write-only), `token/rotate`,
 `reboot`, `wifi/reset`, `factory/reset`, `apps` (GET/POST enable + scene
 interval), `apps/messages` (GET/POST), `apps/messages/show`,
@@ -102,9 +107,13 @@ Console's **Dev console** view (**COPY WITH MY TOKEN**) or USB serial.
 | `web_setup.h` | Captive-portal setup page (embedded, zero assets) |
 | `web_console.h` | GENERATED from `portal/console` — do not hand-edit; edit `portal/console/src` and run `npm run build` |
 
-## Honest limits (v0.8.0, pre-P2-freeze)
+## Honest limits (v0.9.0, pre-P2-freeze)
 
-- HTTP only on the LAN; TLS design is tracked in docs/SECURITY.md.
+- Plain HTTP on the LAN is permanent (ADR-0031). Server identity is the
+  Ed25519 signed-nonce proof above, not TLS; the CORS allowlist admits
+  only the hosted Console origin and the Host allowlist rejects DNS
+  rebinding. Expect the browser's "Not secure" chip — same as Home
+  Assistant, ESPHome, and OctoPrint.
 - Declarative-app fetches to `https://` sources are encrypted but not
   yet certificate-verified — the CA-store contract is P2 work. Prefer
   LAN sources until then.

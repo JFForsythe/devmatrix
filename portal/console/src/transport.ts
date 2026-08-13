@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { FRAME_BYTES } from "./frame";
+import { makeNonce, verifyIdentity, type DeviceIdentity } from "./identity";
 import { createMockState, MOCK_ADDRESS, MOCK_FLEET, MOCK_TOKEN, type MockState } from "./mock";
 import type {
   ActionResult,
@@ -17,8 +18,25 @@ import type {
 
 const TOKEN_KEY = "dmx_token";
 const DEVICE_KEY = "dmx_device_address";
+const PUBKEY_KEY = "dmx_device_pubkey";
+const FINGERPRINT_KEY = "dmx_device_fp";
+const SERIAL_KEY = "dmx_device_serial";
 
 type PairingListener = () => void;
+type ReachabilityListener = (online: boolean) => void;
+
+/** What ConsoleTransport.connectDevice learned about the box at `address`. */
+export interface ConnectResult {
+  health: Health;
+  identity: DeviceIdentity | null;
+  /**
+   * "verified"      — nonce signature valid, key pinned (or matched the pin)
+   * "legacy"        — firmware predates /api/v1/identity (< 0.9.0)
+   * "mismatch"      — signature valid but the key differs from the pin
+   * "bad-signature" — the identity endpoint answered but the proof failed
+   */
+  identityStatus: "verified" | "legacy" | "mismatch" | "bad-signature";
+}
 
 function storageGet(key: string): string {
   try {
@@ -50,6 +68,25 @@ function normalizeAddress(value: string): string {
   return /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
 }
 
+async function fetchJson<T>(url: string, init: RequestInit, timeoutMs: number): Promise<T> {
+  const abort = new AbortController();
+  const timer = window.setTimeout(() => abort.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...init, signal: abort.signal });
+    if (!response.ok) throw new Error(`The device answered HTTP ${response.status}.`);
+    return (await response.json()) as T;
+  } catch (error) {
+    if (error instanceof Error && error.name !== "AbortError" && error.message.startsWith("The device")) throw error;
+    throw new Error(
+      "Could not reach the panel from this page. Check that this computer is on the same " +
+        "Wi-Fi network, and allow the browser's local-network permission if it asks. " +
+        "On Safari, open the panel's address directly instead — it serves this same Console itself.",
+    );
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 function errorText(payload: unknown, fallback: string): string {
   if (payload && typeof payload === "object" && "error" in payload) {
     const message = (payload as { error?: unknown }).error;
@@ -61,9 +98,13 @@ function errorText(payload: unknown, fallback: string): string {
 export class ConsoleTransport {
   readonly mode: ConsoleMode;
   readonly baseUrl: string;
+  /** True on the hosted bundle when no device is stored: show the welcome flow. */
+  readonly needsWelcome: boolean;
   private token: string;
+  private online = true;
   private readonly mock: MockState;
   private pairingListener: PairingListener | undefined;
+  private reachabilityListener: ReachabilityListener | undefined;
   private pairingPromise: Promise<void> | undefined;
   private resolvePairing: (() => void) | undefined;
   private rejectPairing: ((reason: Error) => void) | undefined;
@@ -84,6 +125,7 @@ export class ConsoleTransport {
     }
     this.mode = deviceBuild || requestedAddress || storedAddress ? "live" : "mock";
     this.baseUrl = deviceBuild ? "" : requestedAddress || storedAddress;
+    this.needsWelcome = this.mode === "mock";
     this.token = this.mode === "mock" ? MOCK_TOKEN : handoffToken || storageGet(TOKEN_KEY);
     this.mock = createMockState();
   }
@@ -106,6 +148,122 @@ export class ConsoleTransport {
 
   setPairingListener(listener: PairingListener): void {
     this.pairingListener = listener;
+  }
+
+  setReachabilityListener(listener: ReachabilityListener): void {
+    this.reachabilityListener = listener;
+  }
+
+  get isOnline(): boolean {
+    return this.online;
+  }
+
+  get pinnedFingerprint(): string {
+    return storageGet(FINGERPRINT_KEY);
+  }
+
+  private noteReachability(online: boolean): void {
+    if (this.online !== online) {
+      this.online = online;
+      this.reachabilityListener?.(online);
+    }
+  }
+
+  /**
+   * Reach the box at `address`, prove it is the box (signed nonce), and pin
+   * its identity key. On success the address is stored and the page reloads
+   * into live mode — pairing follows on the first authenticated call.
+   * On "mismatch" nothing is stored; the caller must warn loudly.
+   */
+  async connectDevice(address: string, allowLegacy = false): Promise<ConnectResult> {
+    const base = normalizeAddress(address);
+    if (!base) throw new Error("Enter the address shown on the panel, like dmx-4e71.local.");
+
+    const health = await fetchJson<Health>(`${base}/api/v1/health`, {}, 8000);
+    let identity: DeviceIdentity | null = null;
+    let identityStatus: ConnectResult["identityStatus"] = "legacy";
+
+    const nonce = makeNonce();
+    let verifyResponse: Response | null = null;
+    try {
+      verifyResponse = await fetch(`${base}/api/v1/identity/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nonce }),
+      });
+    } catch {
+      verifyResponse = null; // treated as legacy firmware below
+    }
+    if (verifyResponse?.ok) {
+      identity = (await verifyResponse.json()) as DeviceIdentity;
+      if (!(await verifyIdentity(identity, nonce))) {
+        return { health, identity, identityStatus: "bad-signature" };
+      }
+      const pinned = storageGet(PUBKEY_KEY);
+      const sameDevice = storageGet(SERIAL_KEY) === identity.device;
+      if (pinned && sameDevice && pinned !== identity.pubkey) {
+        return { health, identity, identityStatus: "mismatch" };
+      }
+      identityStatus = "verified";
+    }
+
+    if (identityStatus === "legacy" && !allowLegacy) {
+      return { health, identity, identityStatus };
+    }
+
+    // A token from a previously connected box will not open this one.
+    if (storageGet(SERIAL_KEY) && storageGet(SERIAL_KEY) !== health.device) {
+      storageRemove(TOKEN_KEY);
+    }
+    storageSet(DEVICE_KEY, base);
+    storageSet(SERIAL_KEY, health.device);
+    if (identity && identityStatus === "verified") {
+      storageSet(PUBKEY_KEY, identity.pubkey);
+      storageSet(FINGERPRINT_KEY, identity.fingerprint);
+    }
+    return { health, identity, identityStatus };
+  }
+
+  /** The caller confirmed a key change (reflash/factory reset): re-pin. */
+  trustNewIdentity(identity: DeviceIdentity): void {
+    storageSet(PUBKEY_KEY, identity.pubkey);
+    storageSet(FINGERPRINT_KEY, identity.fingerprint);
+    storageRemove(TOKEN_KEY);
+  }
+
+  /** Forget this browser's device: address, token, and pinned key. */
+  forgetDevice(): void {
+    storageRemove(DEVICE_KEY);
+    storageRemove(TOKEN_KEY);
+    storageRemove(PUBKEY_KEY);
+    storageRemove(FINGERPRINT_KEY);
+    storageRemove(SERIAL_KEY);
+  }
+
+  /**
+   * Re-run the signed-nonce proof against the connected device. Returns the
+   * fresh identity plus whether the signature and the pin both held.
+   */
+  async verifyNow(): Promise<{ identity: DeviceIdentity; verified: boolean; pinMatch: boolean }> {
+    if (this.isMock) {
+      const identity = { device: this.mock.info.device, alg: "ed25519", pubkey: "(demo)", fingerprint: "DEMO-MODE" };
+      return { identity, verified: true, pinMatch: true };
+    }
+    const nonce = makeNonce();
+    const identity = await this.request<DeviceIdentity>(
+      "/api/v1/identity/verify",
+      { method: "POST", body: JSON.stringify({ nonce }) },
+      true,
+    );
+    const verified = await verifyIdentity(identity, nonce);
+    const pinned = storageGet(PUBKEY_KEY);
+    const pinMatch = !pinned || pinned === identity.pubkey;
+    if (verified && !pinned) {
+      storageSet(PUBKEY_KEY, identity.pubkey);
+      storageSet(FINGERPRINT_KEY, identity.fingerprint);
+      storageSet(SERIAL_KEY, identity.device);
+    }
+    return { identity, verified, pinMatch };
   }
 
   private waitForPairing(): Promise<void> {
@@ -140,12 +298,27 @@ export class ConsoleTransport {
   }
 
   async finishClaim(code: string): Promise<void> {
-    const result = await this.request<{ token: string }>(
+    const result = await this.request<{ token: string } & Partial<DeviceIdentity>>(
       "/api/v1/claim/finish",
       { method: "POST", body: JSON.stringify({ code }) },
       true,
       false,
     );
+    // Pairing is the possession-proof moment, so the device sends its
+    // identity key along (firmware 0.9+): pin it now, verify it forever.
+    if (result.pubkey && result.fingerprint && !this.isMock) {
+      const pinned = storageGet(PUBKEY_KEY);
+      if (pinned && pinned !== result.pubkey) {
+        throw new Error(
+          `This box's identity key (${result.fingerprint}) does not match the one this browser ` +
+            "pinned earlier. If the device was reflashed or factory reset that is expected — " +
+            "forget the device under Settings and connect again. Otherwise, do not trust it.",
+        );
+      }
+      storageSet(PUBKEY_KEY, result.pubkey);
+      storageSet(FINGERPRINT_KEY, result.fingerprint);
+      if (result.device) storageSet(SERIAL_KEY, result.device);
+    }
     this.finishPairing(result.token);
   }
 
@@ -167,8 +340,10 @@ export class ConsoleTransport {
     try {
       response = await fetch(`${this.baseUrl}${path}`, { ...init, headers });
     } catch {
+      this.noteReachability(false);
       throw new Error(`Could not reach ${this.address}.`);
     }
+    this.noteReachability(true);
 
     let payload: unknown = {};
     try {
@@ -263,6 +438,8 @@ export class ConsoleTransport {
       result = { ok: true, expires_s: 300 };
     } else if (method === "POST" && path === "/api/v1/claim/finish") {
       result = { token: this.mock.token };
+    } else if (path === "/api/v1/identity" || path === "/api/v1/identity/verify") {
+      result = { device: this.mock.info.device, alg: "ed25519", pubkey: "(demo)", fingerprint: "DEMO-MODE" };
     } else if (method === "POST") result = { ok: true, rebooting: path.includes("reset") || path.endsWith("reboot") };
     else return Promise.reject(new Error(`Mock route not implemented: ${method} ${path}`));
 

@@ -4,9 +4,11 @@
 [ADR-0027](../../docs/adr/ADR-0027-one-console-codebase.md). It uses the Preact,
 TypeScript, and Vite stack selected in
 [ADR-0014](../../docs/adr/ADR-0014-console-production-stack.md), including only
-system UI and native monospace fonts. Packet 2B ports the complete seven-view
+system UI and native monospace fonts. Packet 2B ported the complete seven-view
 Local Console, the live `/api/v1` transport and panel-code pairing flow, plus
-an interactive in-memory demo seeded from `docs/USER-STORY.md`.
+an interactive in-memory demo seeded from `docs/USER-STORY.md`. The tree now
+adds the hosted welcome/connect flow, the in-console Guide view (eight views
+total), and Ed25519 device-identity verification with key pinning (ADR-0031).
 
 ## Build targets
 
@@ -59,11 +61,16 @@ Unset both for the switch release.
 ## Runtime modes
 
 - The device build talks to same-origin `/api/v1` and `/update` routes.
-- The hosted build accepts `?device=<host>` and remembers it, but a browser
-  blocks those `http://` calls from an HTTPS origin as mixed content, so live
-  control from the hosted copy is blocked until the **Ahead · gate P1**
-  browser-transport spike lands (docs/SECURITY.md → Discovery & local
-  transport). The device-served build is the authoritative live path.
+- The hosted build opens with a welcome flow: enter the panel's address to
+  connect over the LAN (ADR-0031 — the browser's Local Network Access
+  permission on Chromium/Firefox; firmware v0.9.0+ answers with the
+  exact-origin CORS allowlist), or enter a clearly-labeled interactive demo.
+  `?device=<host>` still works and is remembered. Safari cannot reach LAN
+  devices from a hosted page; the device-served build is the documented
+  fallback there and remains the authoritative live path everywhere.
+- Connecting verifies the device's Ed25519 signed-nonce identity proof and
+  pins the public key in the browser (`src/identity.ts`); pairing re-checks
+  the pin, and Security → Device identity re-runs the proof on demand.
 - LAN bearer tokens are browser-local. A `401` opens claim-code pairing and
   retries the interrupted request after the panel code is accepted.
 
@@ -75,6 +82,8 @@ in `package.json` and their complete resolved closure is recorded in
 
 | Package | Exact version | License | Upstream |
 |---|---:|---|---|
+| `@noble/ed25519` | 2.3.0 | MIT | <https://github.com/paulmillr/noble-ed25519> |
+| `@noble/hashes` | 1.8.0 | MIT | <https://github.com/paulmillr/noble-hashes> |
 | `fflate` | 0.8.2 | MIT | <https://github.com/101arrowz/fflate> |
 | `preact` | 10.27.2 | MIT | <https://github.com/preactjs/preact> |
 | `vite` | 5.4.21 | MIT | <https://github.com/vitejs/vite> |

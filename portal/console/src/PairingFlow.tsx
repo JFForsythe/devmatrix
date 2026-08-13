@@ -61,8 +61,9 @@ export function PairingFlow({
         <span class="chip live">LIVE DEVICE</span>
         <h2 id="pair-title">Pair this browser</h2>
         <p>
-          The saved LAN token was missing or rejected. Ask the device to show a code, then type the six digits from the
-          panel. The interrupted action retries automatically.
+          This browser is not paired with the panel yet (or its token was rotated). Ask the device to
+          show a code, then type the six digits from the panel — reading the panel is the proof that
+          you are you. The interrupted action retries automatically.
         </p>
 
         {!started ? (

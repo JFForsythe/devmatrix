@@ -22,6 +22,8 @@ first; then use.
 | **Claim code** | Short code shown on the panel when a browser asks to pair. Reading the panel proves physical presence. Format: six digits, e.g. `482913`, shown as two panel rows of three for browser pairing today; the device ignores any separator the owner types. The **Ahead · gate M1** first-boot claim code is `XXX-XXX`. |
 | **Serial** | Device identity, printed + in cert. Format `DMX-####-####` (e.g. `DMX-4E71-0952`). |
 | **LAN token** | Per-device bearer credential minted at claim; required on every `/api/v1` call on the LAN. Rotatable/revocable; read-only scoped variants for integrations. |
+| **Device identity key** | Ed25519 keypair a device mints on first boot and keeps in NVS (wiped by factory reset). The device signs Console-supplied nonces with it so a browser can prove the host is the panel and not an mDNS spoofer (ADR-0031). The Console pins the public key at pairing. |
+| **Key fingerprint** | Short, human-checkable form of the device identity public key: first 4 bytes of its SHA-256, shown as `XXXX-XXXX` (e.g. `6EDE-F5A0`) in the Console's Security view and on USB serial. |
 | **App** | Anything an owner installs or runs to put content on the panel. Three tiers, defined below (ADR-0026). UI says "Apps". |
 | **Declarative app** | An app the device runs itself: a layout, data bindings, and a schedule, installed from the Console. The device fetches its own data. Needs no second machine and no broker. Bundle: `.dmapp` (ADR-0026). |
 | **Host app** | An app running on hardware the owner already operates, pushing content to the device over LAN REST or MQTT. For work the device cannot do — e.g. the Flights Overhead radar view (ADR-0026). |

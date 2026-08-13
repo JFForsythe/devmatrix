@@ -123,7 +123,21 @@ export function SettingsView({ transport }: { transport: ConsoleTransport }) {
               <div><dt>IP ADDRESS</dt><dd>{info.ip}</dd></div>
               <div><dt>CONSOLE TARGET</dt><dd>{transport.address}</dd></div>
             </dl>
-            <p class="note">A hosted Console remembers an address supplied with <code>?device=&lt;host&gt;</code> in this browser.</p>
+            <p class="note">A hosted Console remembers the connected address, pairing, and pinned identity key in this browser only.</p>
+            {!transport.isMock && (
+              <button
+                class="btn"
+                type="button"
+                onClick={() => {
+                  if (window.confirm("Forget this device in this browser? The stored address, LAN token, and pinned identity key are removed. The device itself is untouched.")) {
+                    transport.forgetDevice();
+                    window.location.href = window.location.pathname;
+                  }
+                }}
+              >
+                FORGET / SWITCH DEVICE…
+              </button>
+            )}
           </Card>
         </div>
       )}

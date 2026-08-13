@@ -73,13 +73,21 @@ and we would not want them to):
   as an advanced, opt-in path. mTLS remains reserved for the
   device→relay link, where no browser is involved.
 - **Because TLS is absent, the device authenticates at the application
-  layer.** mDNS is unauthenticated — any LAN host can claim the name —
-  and plain HTTP authenticates no server, so a bearer token alone can be
-  phished by a spoofer. The device therefore signs a Console-supplied
-  nonce with its device key, and the Console verifies it against a key
-  captured out-of-band at setup. A non-secure origin has no
-  `crypto.subtle`, so the device-served Console carries a small pure-JS
-  verifier while the hosted copy uses WebCrypto.
+  layer** (implemented in firmware 0.9.0). mDNS is unauthenticated — any
+  LAN host can claim the name — and plain HTTP authenticates no server,
+  so a bearer token alone can be phished by a spoofer. The device
+  therefore signs a Console-supplied nonce
+  (`"dmx-id-v1:<serial>:" + nonce`) with an Ed25519 device key minted on
+  first boot and held in NVS; the Console verifies the signature and
+  pins the public key at pairing time — the possession-proof moment —
+  then checks every later proof against the pin. The panel-readable
+  key fingerprint is the first 4 bytes of SHA-256 of the public key.
+  A non-secure origin has no `crypto.subtle`, so the Console carries a
+  small pure-JS verifier (@noble/ed25519); it prefers WebCrypto where
+  the browser's WebCrypto supports Ed25519. Firmware enforces the
+  exact-origin CORS allowlist (never `*`) and a Host-header allowlist
+  against DNS rebinding, and the token is a bearer header only — never
+  a cookie, so there is no ambient authority to forge.
 - **No WebAuthn on the device origin, ever.** Chrome refuses WebAuthn on
   origins with certificate errors, and bare IPs are not valid RP IDs.
   Passkeys are a Cloud Mode account credential on the hosted origin

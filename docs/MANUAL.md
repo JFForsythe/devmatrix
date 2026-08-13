@@ -8,7 +8,7 @@ step-by-step instructions.
 Two status labels keep this manual honest (a P0 rule — no unsupported
 claim in this repo):
 
-- **Today** — current firmware v0.8.0 behavior. This slice is build-verified;
+- **Today** — current firmware v0.9.0 behavior. This slice is build-verified;
   final on-panel and live-receiver acceptance remains a hardware step.
 - **Ahead · gate X** — specified and coming; the gate names are
   [ROADMAP.md](../ROADMAP.md)'s. Nothing labeled Ahead is a promise the
@@ -75,6 +75,22 @@ panel *is* the proof of possession: nothing to write down, and a lost
 browser never means factory reset — just pair again. To revoke every
 existing session at once: Security → **ROTATE LAN TOKEN**.
 
+Pairing also pins the device's **identity key**: the box signs every
+later challenge with an Ed25519 key minted on its first boot, and the
+Console verifies the signature against the key it pinned here — so an
+mDNS spoofer squatting `dmx-xxxx.local` cannot impersonate your panel
+(ADR-0031; [docs/SECURITY.md](SECURITY.md) → Discovery & local
+transport). Check or re-run the proof any time: Security → **Device
+identity** → **VERIFY NOW**.
+
+**Prefer starting from the hosted Console?** Open
+`devmatrix.flighttrackerled.com`, follow the welcome screen, and enter
+the panel's address — Chrome, Edge, and Firefox ask once for
+local-network permission and then talk straight to the panel over your
+LAN. Safari doesn't allow that yet; use the panel's own address there.
+Either way the panel stays 100 % local — the hosted page is a static
+file, and nothing routes through a server of ours.
+
 **Ahead · M1:** the full claim ceremony — session code on the panel
 plus a 2-second physical button hold, per
 [docs/SECURITY.md](SECURITY.md) → Ceremonies.
@@ -82,9 +98,11 @@ plus a 2-second physical button hold, per
 ## 5 · The Console, page by page — Today
 
 Served by the device itself at `http://dmx-xxxx.local/` — no internet
-needed. Today's device Console has seven views, converged with
+needed. Today's Console has eight views, converged with
 [docs/PORTAL.md](PORTAL.md) from one codebase per
-[ADR-0027](adr/ADR-0027-one-console-codebase.md):
+[ADR-0027](adr/ADR-0027-one-console-codebase.md). The hosted copy adds
+a welcome screen that walks a new owner from unboxing to a connected,
+identity-verified panel (or into a clearly-labeled interactive demo):
 
 - **Dashboard** — live status tiles: firmware version and slot, display
   refresh (Hz), free heap, uptime, Wi-Fi signal, IP address, current
@@ -116,16 +134,24 @@ needed. Today's device Console has seven views, converged with
   method and path, edit the JSON body where applicable, and build a
   ready-to-run `curl` command. **COPY WITH MY TOKEN** includes this
   browser's LAN token; health and claim routes remain open.
-- **Security** — **ROTATE LAN TOKEN** logs out every other client,
+- **Security** — the **Device identity** card shows the pinned Ed25519
+  key fingerprint and **VERIFY NOW** re-runs the signed-nonce proof
+  (chapter 4). **ROTATE LAN TOKEN** logs out every other client,
   **CHANGE WI-FI…** removes only Wi-Fi credentials and reboots to setup,
   and **FACTORY RESET** wipes device settings after you type the exact
   confirmation. **Ahead · gate M1** — optional account passkeys,
   hardware-key enrollment, and the timestamped exportable audit log.
 - **Settings** — choose a common **Clock timezone** preset or enter a
   custom **POSIX STRING**, then **SAVE TIMEZONE**. The same view shows
-  the hostname, IP address, and current Console target. Its **MQTT
-  broker** card holds the optional broker host/port, username, write-only
-  password, TLS and enable toggles, plus a live connection status chip.
+  the hostname, IP address, and current Console target, with
+  **FORGET / SWITCH DEVICE…** to clear this browser's stored address,
+  token, and pinned key. Its **MQTT broker** card holds the optional
+  broker host/port, username, write-only password, TLS and enable
+  toggles, plus a live connection status chip.
+- **Guide** — this manual's working summary, inside the Console: the
+  five-minute setup path, what every page does, the Local/Cloud split,
+  and first-line troubleshooting. Served by the panel itself, so the
+  instructions survive an internet outage.
 
 ## 6 · Push things from your own code — Today
 
@@ -404,6 +430,8 @@ browser MQTT workbench are in
 |---|---|
 | Captive portal never opened | Browse to `http://192.168.4.1` while on the `DEVMATRIX-XXXX` network |
 | `dmx-xxxx.local` not found | Your network blocks mDNS — use the IP the panel showed at setup; both work |
+| Hosted Console can't reach the panel | Same Wi-Fi? Allow the browser's local-network permission when asked (Chrome/Edge/Firefox). Safari can't do this — open the panel's own address instead. Firmware older than 0.9.0 also can't answer the hosted origin; update from the panel's own Deploy page first |
+| Identity warning (key mismatch) | A reflash or factory reset legitimately changes the device key — Settings → **FORGET / SWITCH DEVICE…**, then reconnect and re-pair. If you didn't reflash, stop and check what's answering on that address |
 | `401 unauthorized` | Stale token — re-pair (chapter 4) or re-copy from the Dev console view |
 | Panel resets at high brightness | Under-powered supply. The 150 cap exists for this; the Dashboard's reset-reason tile confirms a brown-out |
 | Clock is wrong | Settings → timezone; the clock needs one internet moment for SNTP after boot |

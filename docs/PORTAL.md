@@ -35,6 +35,7 @@ three questions: *what is my box doing, can I change it, can I trust it?*
 | **Dev console** | Integrate and debug | Device workbench (four minimal movable/resizable/removable/restorable panes profiled as REST, MQTT, logs, or a layout/binding inspector — an app REPL returns only if scripted apps ship, ADR-0026), API keys (scoped, revocable), API playground, WebSocket event tail, metrics history, device file manager |
 | **Security** | Trust, verify, own | LAN token rotation, Change Wi-Fi, factory reset (physical-access class), Passkeys & hardware keys, active sessions, audit log (export), root-of-trust status + enrollment, Local Mode toggle, Snapshots (E2EE backup/restore/clone), privacy & data controls, Eject |
 | **Settings** | Make it mine | Device name/timezone, network info, MQTT credentials + topic tree (user's broker), panel calibration, notifications (offline alerts ☁), plan & billing (Cloud), account |
+| **Guide** | Learn it without leaving it | In-console owner's guide: five-minute setup path, page-by-page reference, the Local/Cloud split, first-line troubleshooting — served by the device, works offline |
 
 Console-wide search is a combined search and command palette, available
 from every post-claim screen and from the keyboard (`Cmd/Ctrl+K`). It
@@ -140,13 +141,17 @@ flowchart LR
   dependency.
 - The production stack is decided and built: Preact + TypeScript + Vite
   at `portal/console/`, one codebase emitting the device's generated
-  gzipped header and the hosted static bundle (ADR-0014, ADR-0027). The
-  hosted mode is a mock demo, not the simulator.
-  The P1 browser-transport spike remains its acceptance gate: local
-  name resolution, trustworthy HTTPS, secure-context requirements,
-  Local Network Access permission, CORS, Host/Origin validation,
-  token storage, and all target browsers. Ordinary page JavaScript
-  cannot install or pin a device certificate.
+  gzipped header and the hosted static bundle (ADR-0014, ADR-0027).
+  The hosted copy opens with a welcome flow: connect a real panel over
+  the LAN (ADR-0031 path 2 — Local Network Access on Chromium/Firefox,
+  with the device-served path as the documented fallback), or enter a
+  clearly-labeled mock demo. Connecting verifies the device's signed
+  nonce and pins its Ed25519 identity key in that browser; firmware
+  enforces the exact-origin CORS allowlist and Host allowlist that
+  make the cross-origin path safe. Four named ADR-0031 browser
+  experiments (ws:// LNA exemption, `.local` HTTPS-Upgrades, Firefox
+  151→153 parity, macOS local-network permission) remain open P1
+  hardware-evidence items.
 - API contract: DRAFT contracts live in
   [contracts/](../contracts/README.md), including the per-transport
   capability descriptors; they freeze at gate P2 (ADR-0019).

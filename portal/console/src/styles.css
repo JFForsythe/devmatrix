@@ -374,6 +374,50 @@ nav a[aria-current="page"] .nav-pixel { background: var(--acc); }
   .manual-token-row { grid-template-columns: 1fr; }
 }
 
+/* Welcome flow (hosted first run) and the in-console Guide. */
+.welcome {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.welcome-hero { display: flex; flex-direction: column; gap: 12px; padding: 8px 2px 4px; }
+.welcome-hero .brand { padding: 0; }
+.welcome-hero h1 { margin: 10px 0 0; font-size: 2.3rem; line-height: 1.12; letter-spacing: -0.015em; }
+.welcome-hero > p { max-width: 620px; margin: 0; color: var(--ink2); }
+.welcome-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 0; }
+.welcome-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: start; }
+.welcome .steps li { margin: 2px 0; }
+.welcome .alert p { margin: 8px 0; }
+.welcome .alert .btn { margin: 6px 8px 0 0; }
+
+.guide-table { width: 100%; border-collapse: collapse; }
+.guide-table th {
+  width: 118px;
+  padding: 7px 12px 7px 0;
+  color: var(--ink);
+  font: 650 10.5px var(--mono);
+  letter-spacing: 0.055em;
+  text-align: left;
+  text-transform: uppercase;
+  vertical-align: top;
+  white-space: nowrap;
+}
+.guide-table td { padding: 7px 0; color: var(--ink2); }
+.guide-table tr + tr th, .guide-table tr + tr td { border-top: 1px solid var(--line); }
+.guide-list { display: grid; gap: 9px; margin: 0; padding-left: 22px; color: var(--ink2); }
+.guide-list strong { color: var(--ink); }
+
+.led.crit-led { background: var(--crit); box-shadow: 0 0 0 3px rgba(195, 50, 50, 0.12); }
+.topbar .chip { margin-right: 4px; }
+
+@media (max-width: 900px) {
+  .welcome-grid { grid-template-columns: 1fr; }
+  .welcome-hero h1 { font-size: 1.9rem; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation-duration: 0.01ms !important; }
 }
