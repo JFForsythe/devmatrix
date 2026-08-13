@@ -8,7 +8,7 @@ step-by-step instructions.
 Two status labels keep this manual honest (a P0 rule — no unsupported
 claim in this repo):
 
-- **Today** — current firmware v0.9.1 behavior. This slice is build-verified;
+- **Today** — current firmware v0.9.2 behavior. This slice is build-verified;
   final on-panel and live-receiver acceptance remains a hardware step.
 - **Ahead · gate X** — specified and coming; the gate names are
   [ROADMAP.md](../ROADMAP.md)'s. Nothing labeled Ahead is a promise the
@@ -118,23 +118,23 @@ identity-verified panel (or into a clearly-labeled interactive demo):
 - **Apps** — opens with **On the panel now**: what the panel is showing
   this second, what's up next, and the full rotation order — every SAVE
   or SHOW NOW is visible here immediately, and action results pop up as
-  a toast. **Your first app — 30 seconds** is a one-button walkthrough
-  (type words → they're saved into Messages, enabled, and shown), and
-  **Starter template · Live weather** installs a National Weather
-  Service layout in one click (ADR-0015's no-key provider; US METAR
-  stations). The **Pixlet bridge** card covers the 1,000+
-  community-built Tidbyt-ecosystem apps via the owner-hosted bridge
-  (chapter 7's host tier; installer in `examples/`). Below those, the
-  three on-device cards: **Messages** edits and rotates up to eight
-  offline phrases.
+  a toast. The **Messages** card leads with **your first app — 30
+  seconds**: type words, press **PUT IT ON THE PANEL**, and they're
+  saved, enabled, and showing; below the divider it edits and rotates
+  up to eight offline phrases.
   **Flights list** enables the small on-device list and configures its local
   receiver URL, fetch interval, rows, and speed/altitude value; the Radar
   choice and copied command still need the host app in chapter 8. **Custom
-  layout** validates and saves a 2 KB JSON layout with literal rows or RFC
-  6901 bindings. Each on-device card can be enabled, assigned a scene
-  interval, saved to NVS, or shown immediately. **Ahead · gate M4** — the
-  Community Registry adds more reviewed apps, permission sheets, and
-  one-click installation.
+  layout** leads with its starter template — **ADD LIVE WEATHER** installs
+  a National Weather Service layout in one click (ADR-0015's no-key
+  provider; US METAR stations) and fills the editor so you can see how
+  it's built — then validates and saves any 2 KB JSON layout with literal
+  rows or RFC 6901 bindings. Each on-device card can be enabled, assigned
+  a scene interval, saved to NVS, or shown immediately. The **Pixlet
+  bridge** card covers the 1,000+ community-built Tidbyt-ecosystem apps
+  via the owner-hosted bridge (chapter 7's host tier; installer in
+  `examples/`). **Ahead · gate M4** — the Community Registry adds more
+  reviewed apps, permission sheets, and one-click installation.
 - **Deploy** — shows the running version and slot. Choose a `.bin`, then
   **UPLOAD & REBOOT** to send it to the inactive OTA slot and watch
   progress while the device returns; chapter 9 covers the full process.

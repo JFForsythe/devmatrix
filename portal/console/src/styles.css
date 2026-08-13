@@ -429,6 +429,7 @@ nav a[aria-current="page"] .nav-pixel { background: var(--acc); }
 }
 .rotation-slot.live { border-color: var(--acc); background: var(--acc-soft); color: var(--acc); }
 .rotation-slot.off { border-style: dashed; color: var(--ink3); background: transparent; }
+.card-divider { margin: 18px 0 14px; border: 0; border-top: 1px solid var(--line); }
 .toast {
   position: fixed;
   bottom: 18px;

@@ -3,10 +3,12 @@
 > **Status: living tree.** The DK-01 firmware lives at
 > [`firmware/dk01/`](../firmware/dk01/README.md) and develops
 > continuously from P1 onward (ADR-0024, superseding ADR-0009's
-> disposable-spike posture). v0.9.1 rebuilds the embedded Console with the
-> Apps-page onboarding (on-the-panel-now rotation card, one-button first
-> app, ADR-0015 NWS weather template, Pixlet-bridge card); the firmware
-> logic is unchanged from v0.9.0, which implements ADR-0031's application-layer
+> disposable-spike posture). v0.9.1–v0.9.2 rebuild the embedded Console
+> with the Apps-page onboarding — the on-the-panel-now rotation card, the
+> one-button first-app walkthrough leading the Messages card, the
+> ADR-0015 NWS weather template leading the Custom-layout card, and the
+> Pixlet-bridge card — and harden `authed()` to a constant-time compare;
+> device logic is otherwise unchanged from v0.9.0, which implements ADR-0031's application-layer
 > device authentication: an Ed25519 identity key minted on first boot
 > (NVS, wiped by factory reset), open `GET /api/v1/identity` and
 > `POST /api/v1/identity/verify` (signs `"dmx-id-v1:<serial>:" + nonce`),
@@ -77,7 +79,7 @@ firmware/
 Dual app slots (2 MB each, `ota_0`/`ota_1`) + a 256 KB TinyUF2 factory
 partition for USB recovery + a 3.7 MB `ffat` data partition reserved for
 future assets and apps. Framebuffers in PSRAM; DMA descriptors in
-internal RAM. v0.9.1 measures 1,365,059 B flash (65 % of a slot) and
+internal RAM. v0.9.2 measures 1,365,075 B flash (65 % of a slot) and
 120,652 B static RAM; v0.8.0 measured 1,336,915 B / 120,396 B
 ([evidence](../hardware/evidence/2026-08-12-console-parity-verification.md)).
 A CI slot-occupancy and heap-headroom gate is **Ahead · gate P2**. The

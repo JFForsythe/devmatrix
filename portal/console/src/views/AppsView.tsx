@@ -331,7 +331,7 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
 
       {!loaded || !messageApp || !flightsApp || !customApp ? <LoadingCard /> : (
         <>
-          <Card title="Your first app — 30 seconds" aside={<span class="chip ok">START HERE</span>}>
+          <Card title="Messages — your first app" aside={<><span class="chip ok">START HERE</span> <span class="chip ok">ON DEVICE · OFFLINE</span></>}>
             <p class="lead">Type something. Press the button. Look at the panel. That's the whole product loop — everything else on this page is a variation of it.</p>
             <label class="field">
               <span>YOUR WORDS · {firstText.length}/64</span>
@@ -349,34 +349,12 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
                 </button>
               </div>
             </label>
-            <p class="note">This saves your words into the Messages app on the device, turns the app on, and shows it — watch "On the panel now" above flip to Messages.</p>
-          </Card>
+            <p class="note">Your words join the phrase list below, the app turns on, and the panel shows it — watch "On the panel now" above flip to Messages.</p>
 
-          <Card title="Starter template · Live weather" aside={<span class="chip ok">ONE CLICK · NO KEY</span>}>
-            <p class="lead">
-              Real weather on the panel from the US National Weather Service — free for any use, no
-              account. Set the station to your nearest airport code with a K in front.
-            </p>
-            <label class="field">
-              <span>NWS STATION</span>
-              <div class="field-action">
-                <input
-                  maxLength={5}
-                  style="max-width:140px"
-                  value={station}
-                  onInput={(event) => setStation(event.currentTarget.value.toUpperCase())}
-                />
-                <button class="btn primary" type="button" disabled={weatherBusy} onClick={() => void addWeather()}>
-                  {weatherBusy ? "INSTALLING…" : "ADD LIVE WEATHER"}
-                </button>
-              </div>
-            </label>
-            <p class="note">KORD is Chicago O'Hare; KJFK, KLAX, KDFW… any US METAR station works. It installs into the Custom layout card below — open it afterwards to see exactly how it's built, then change anything.</p>
-          </Card>
-          <Card title="Messages" aside={<span class="chip ok">ON DEVICE · OFFLINE</span>}>
+            <hr class="card-divider" />
             <div class="app-title-row">
               <div class="app-icon" aria-hidden="true">Aa</div>
-              <div><strong>A hardware-random phrase board.</strong><p>Up to eight 64-character phrases live only in device NVS; line breaks are preserved.</p></div>
+              <div><strong>A hardware-random phrase board.</strong><p>Up to eight 64-character phrases live only in device NVS; line breaks are preserved. Fine-tune the pack and its pace:</p></div>
             </div>
             <div class="inline-fields app-controls">
               <label class="check-chip"><input type="checkbox" checked={messageApp.enabled} onChange={(event) => patchApp("messages", { enabled: event.currentTarget.checked })} /> ENABLE IN ROTATION</label>
@@ -436,6 +414,22 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
               <div class="app-icon" aria-hidden="true">{`{}`}</div>
               <div><strong>Bind five rows to any small JSON feed.</strong><p>Literal-only layouts work offline; HTTP and HTTPS sources refresh on the device and retain dimmed stale data.</p></div>
             </div>
+            <label class="field">
+              <span>START WITH A TEMPLATE · LIVE US WEATHER · NO KEY</span>
+              <div class="field-action">
+                <input
+                  maxLength={5}
+                  style="max-width:140px"
+                  value={station}
+                  onInput={(event) => setStation(event.currentTarget.value.toUpperCase())}
+                />
+                <button class="btn primary" type="button" disabled={weatherBusy} onClick={() => void addWeather()}>
+                  {weatherBusy ? "INSTALLING…" : "ADD LIVE WEATHER"}
+                </button>
+              </div>
+            </label>
+            <p class="note">National Weather Service, free for any use. The station is your nearest US airport code with a K in front — KORD is Chicago O'Hare; KJFK, KLAX, KDFW all work. It fills the editor below so you can see exactly how it's built, then change anything.</p>
+            <hr class="card-divider" />
             <div class="inline-fields app-controls">
               <label class="check-chip"><input type="checkbox" checked={customApp.enabled} onChange={(event) => patchApp("custom", { enabled: event.currentTarget.checked })} /> ENABLE IN ROTATION</label>
               <label class="field compact"><span>SCENE · 3–300 S</span><input type="number" min={3} max={300} value={customApp.interval_s} onInput={(event) => patchApp("custom", { interval_s: Math.min(300, Math.max(3, Number(event.currentTarget.value))) })} /></label>
