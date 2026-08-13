@@ -43,7 +43,7 @@
 #include "apps_builtin.h"
 #include "mqtt_client.h"
 
-#define FW_VERSION "0.9.0"
+#define FW_VERSION "0.9.1"
 
 // A full-bright white frame can out-draw USB-C power and brown-out the
 // board (observed on the bench 2026-08-07: brownout reset at high slider
@@ -203,8 +203,17 @@ String makeToken() {
   return String(tok);
 }
 
+// Constant-time compare: a byte-by-byte timing side-channel over Wi-Fi is
+// not practically exploitable against a 128-bit random token, but closing
+// it costs five lines (length is public; content never short-circuits).
 bool authed() {
-  return server.header("Authorization") == ("Bearer " + apiToken);
+  String expected = "Bearer " + apiToken;
+  String got = server.header("Authorization");
+  if (got.length() != expected.length()) return false;
+  uint8_t diff = 0;
+  for (unsigned i = 0; i < expected.length(); i++)
+    diff |= (uint8_t)(got[i] ^ expected[i]);
+  return diff == 0;
 }
 
 String b64Encode(const uint8_t* data, size_t len) {

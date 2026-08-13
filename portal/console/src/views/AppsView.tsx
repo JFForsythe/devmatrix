@@ -53,6 +53,19 @@ function validateLayout(text: string): string | null {
   return null;
 }
 
+// What the /info scene names mean to a human, on the Apps page.
+const SCENE_LABELS: Record<string, string> = {
+  clock: "Clock",
+  messages: "Messages",
+  flights_list: "Flights list",
+  custom: "Custom layout",
+  text: "A pushed text overlay",
+  frame: "Pushed frames (host app)",
+  identify: "Identify flash",
+  pair: "Pairing code",
+};
+const ROTATION_ORDER: AppId[] = ["messages", "flights_list", "custom"];
+
 export function AppsView({ transport }: { transport: ConsoleTransport }) {
   const [apps, setApps] = useState<AppsSettings | null>(null);
   const [flights, setFlights] = useState<FlightsSettings | null>(null);
@@ -61,6 +74,33 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
   const [customError, setCustomError] = useState<string | null>(null);
   const [status, setStatus] = useState<StatusMessage | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [scene, setScene] = useState("");
+  const [firstText, setFirstText] = useState("HELLO WORLD");
+  const [firstBusy, setFirstBusy] = useState(false);
+  const [station, setStation] = useState("KORD");
+  const [weatherBusy, setWeatherBusy] = useState(false);
+
+  // Live "on the panel now" — the answer to "did that button do anything?".
+  useEffect(() => {
+    let active = true;
+    const tick = () =>
+      transport.info().then((info) => {
+        if (active) setScene(info.scene);
+      }).catch(() => {});
+    tick();
+    const timer = window.setInterval(tick, 2500);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [transport]);
+
+  // Success/info toasts clear themselves; errors stay until replaced.
+  useEffect(() => {
+    if (!status || status.kind === "error") return;
+    const timer = window.setTimeout(() => setStatus(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [status]);
 
   useEffect(() => {
     let active = true;
@@ -109,9 +149,77 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
   async function show(id: AppId): Promise<void> {
     try {
       await transport.post(`/api/v1/apps/${id}/show`);
-      setStatus({ kind: "ok", text: `${id.replace("_", " ")} pinned for its scene interval.` });
+      setScene(id);
+      setStatus({ kind: "ok", text: `${SCENE_LABELS[id]} is on the panel now — it holds for its scene interval, then the rotation continues.` });
     } catch (error) {
       setStatus({ kind: "error", text: error instanceof Error ? error.message : "Could not show app." });
+    }
+  }
+
+  // One button, three API calls: save the phrase, enable the app, put it on
+  // the panel. A first-time owner gets a visible win without learning the
+  // save/enable/show model first.
+  async function runFirstApp(): Promise<void> {
+    const phrase = firstText.trim().slice(0, 64);
+    if (!phrase || !messages) return;
+    setFirstBusy(true);
+    try {
+      const nextPhrases = [phrase, ...messages.phrases.filter((item) => item !== phrase)].slice(0, 8);
+      const saved = await transport.post<MessagesSettings>("/api/v1/apps/messages", { phrases: nextPhrases });
+      setMessages(saved);
+      const savedApps = await transport.post<AppsSettings>("/api/v1/apps", { id: "messages", enabled: true });
+      setApps(savedApps);
+      await transport.post("/api/v1/apps/messages/show");
+      setScene("messages");
+      setStatus({
+        kind: "ok",
+        text: "Look at the panel — your words appear within a few seconds. Messages is saved on the device and now part of the rotation.",
+      });
+    } catch (error) {
+      setStatus({ kind: "error", text: error instanceof Error ? error.message : "Could not run your first app." });
+    } finally {
+      setFirstBusy(false);
+    }
+  }
+
+  // One-click starter layout: live US weather from the National Weather
+  // Service — the decided no-key, any-purpose provider (ADR-0015).
+  async function addWeather(): Promise<void> {
+    const id = station.trim().toUpperCase();
+    if (!/^[A-Z0-9]{3,5}$/.test(id)) {
+      setStatus({ kind: "error", text: "Station looks wrong — use a US airport code with a K in front, like KORD or KJFK." });
+      return;
+    }
+    setWeatherBusy(true);
+    try {
+      const layout = {
+        v: 1,
+        source: {
+          url: `https://api.weather.gov/stations/${id}/observations/latest`,
+          interval_s: 600,
+          stale_after_s: 7200,
+        },
+        rows: [
+          { y: 5, color: [90, 170, 255], text: `WEATHER ${id}` },
+          { y: 17, color: [235, 235, 235], bind: "/properties/temperature/value", prefix: "TEMP ", suffix: " C" },
+          { y: 29, color: [120, 200, 120], bind: "/properties/windSpeed/value", prefix: "WIND ", suffix: " KMH" },
+        ],
+      };
+      const saved = await transport.post<CustomLayout>("/api/v1/apps/custom", layout);
+      setCustomText(JSON.stringify(saved, null, 2));
+      setCustomError(null);
+      const savedApps = await transport.post<AppsSettings>("/api/v1/apps", { id: "custom", enabled: true });
+      setApps(savedApps);
+      await transport.post("/api/v1/apps/custom/show");
+      setScene("custom");
+      setStatus({
+        kind: "ok",
+        text: `Live ${id} weather is on the panel and refreshes every 10 minutes from the National Weather Service — free, no key, no account.`,
+      });
+    } catch (error) {
+      setStatus({ kind: "error", text: error instanceof Error ? error.message : "Could not install the weather layout." });
+    } finally {
+      setWeatherBusy(false);
     }
   }
 
@@ -176,15 +284,95 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
   const customApp = app("custom");
   const loaded = apps && flights && messages && customText;
 
+  // The rotation as the firmware plays it: clock is always slot zero, then
+  // each enabled app in order. "Up next" falls out of the current scene.
+  const rotation = [
+    { key: "clock", label: "Clock", seconds: 10 },
+    ...ROTATION_ORDER.filter((id) => app(id)?.enabled).map((id) => ({
+      key: id as string,
+      label: SCENE_LABELS[id],
+      seconds: app(id)!.interval_s,
+    })),
+  ];
+  const liveIndex = rotation.findIndex((slot) => slot.key === scene);
+  const upNext = liveIndex >= 0 && rotation.length > 1 ? rotation[(liveIndex + 1) % rotation.length] : null;
+  const sceneLabel = scene ? SCENE_LABELS[scene] ?? scene : "…";
+
   return (
     <div class="view">
       <ViewHeader eyebrow="ON-DEVICE + HOST APPS · TODAY" title="Apps">
         Messages, Flights list, and Custom layout run on the DK-01. The animated Flights radar remains a host app.
       </ViewHeader>
-      <Status message={status} />
+
+      <Card title="On the panel now" aside={<span class={`chip ${transport.isMock ? "demo" : "ok"}`}>{transport.isMock ? "SIMULATED" : "LIVE"}</span>}>
+        <div class="now-playing">
+          <span class="now-scene">{sceneLabel}</span>
+          {upNext && <span class="now-next">up next: {upNext.label} · rotation below</span>}
+          {liveIndex < 0 && scene && (
+            <span class="now-next">
+              {scene === "frame"
+                ? "stays until the host app stops or BACK TO CLOCK on the Dashboard"
+                : "temporary — the rotation resumes when it ends"}
+            </span>
+          )}
+        </div>
+        <div class="rotation-strip" aria-label="Scene rotation order">
+          {rotation.map((slot) => (
+            <span key={slot.key} class={`rotation-slot ${slot.key === scene ? "live" : ""}`}>
+              {slot.label} · {slot.seconds}s
+            </span>
+          ))}
+          {ROTATION_ORDER.filter((id) => app(id) && !app(id)!.enabled).map((id) => (
+            <span key={id} class="rotation-slot off">{SCENE_LABELS[id]} · off</span>
+          ))}
+        </div>
+        <p class="note">The panel cycles through these scenes in order. ENABLE IN ROTATION on any app card adds it; SHOW NOW jumps straight to it.</p>
+      </Card>
 
       {!loaded || !messageApp || !flightsApp || !customApp ? <LoadingCard /> : (
         <>
+          <Card title="Your first app — 30 seconds" aside={<span class="chip ok">START HERE</span>}>
+            <p class="lead">Type something. Press the button. Look at the panel. That's the whole product loop — everything else on this page is a variation of it.</p>
+            <label class="field">
+              <span>YOUR WORDS · {firstText.length}/64</span>
+              <div class="field-action">
+                <input
+                  maxLength={64}
+                  value={firstText}
+                  onInput={(event) => setFirstText(event.currentTarget.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !firstBusy) void runFirstApp();
+                  }}
+                />
+                <button class="btn primary" type="button" disabled={firstBusy || !firstText.trim()} onClick={() => void runFirstApp()}>
+                  {firstBusy ? "SENDING…" : "PUT IT ON THE PANEL"}
+                </button>
+              </div>
+            </label>
+            <p class="note">This saves your words into the Messages app on the device, turns the app on, and shows it — watch "On the panel now" above flip to Messages.</p>
+          </Card>
+
+          <Card title="Starter template · Live weather" aside={<span class="chip ok">ONE CLICK · NO KEY</span>}>
+            <p class="lead">
+              Real weather on the panel from the US National Weather Service — free for any use, no
+              account. Set the station to your nearest airport code with a K in front.
+            </p>
+            <label class="field">
+              <span>NWS STATION</span>
+              <div class="field-action">
+                <input
+                  maxLength={5}
+                  style="max-width:140px"
+                  value={station}
+                  onInput={(event) => setStation(event.currentTarget.value.toUpperCase())}
+                />
+                <button class="btn primary" type="button" disabled={weatherBusy} onClick={() => void addWeather()}>
+                  {weatherBusy ? "INSTALLING…" : "ADD LIVE WEATHER"}
+                </button>
+              </div>
+            </label>
+            <p class="note">KORD is Chicago O'Hare; KJFK, KLAX, KDFW… any US METAR station works. It installs into the Custom layout card below — open it afterwards to see exactly how it's built, then change anything.</p>
+          </Card>
           <Card title="Messages" aside={<span class="chip ok">ON DEVICE · OFFLINE</span>}>
             <div class="app-title-row">
               <div class="app-icon" aria-hidden="true">Aa</div>
@@ -266,10 +454,36 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
         </>
       )}
 
+      <Card title="1,000+ community apps · Pixlet bridge" aside={<span class="chip ok">HOST APP · TODAY</span>}>
+        <div class="app-title-row">
+          <div class="app-icon" aria-hidden="true">▦</div>
+          <div>
+            <strong>The whole Tidbyt community catalog, on your panel.</strong>
+            <p>Transit, sports, stocks, games — community-built Pixlet apps render on a computer you own (a Pi, NAS, or Mac that stays on) and stream to the DK-01 over your LAN. Nothing routes through a Devmatrix server.</p>
+          </div>
+        </div>
+        <div class="command-block">
+          <div><span>ON THE COMPUTER THAT STAYS ON</span><button class="btn small" type="button" onClick={() => void copyText("git clone https://github.com/JFForsythe/devmatrix\nnode devmatrix/examples/install-pixlet-bridge.mjs")}>COPY</button></div>
+          <pre>{"git clone https://github.com/JFForsythe/devmatrix\nnode devmatrix/examples/install-pixlet-bridge.mjs"}</pre>
+        </div>
+        <p class="note">
+          The installer sets the bridge up as a service that survives reboots and asks for your LAN
+          token privately (Dev console → COPY WITH MY TOKEN). First-time setup also needs the free
+          Pixlet renderer and the community-apps folder on that computer — the short checklist is in
+          <code> examples/pixlet-bridge/README.md</code>.
+        </p>
+      </Card>
+
       <Card title="Community Registry" aside={<GateChip gate="M4" />}>
         <p class="lead">Reviewed declarative apps, permission sheets, and one-click installation arrive at gate M4.</p>
-        <p class="note">Today, the three cards above run on the device; only richer host apps such as the animated radar need another computer.</p>
+        <p class="note">Today, the three cards above run on the device; only richer host apps such as the animated radar and the Pixlet bridge need another computer.</p>
       </Card>
+
+      {status && (
+        <div class="toast" role={status.kind === "error" ? "alert" : "status"}>
+          <Status message={status} />
+        </div>
+      )}
     </div>
   );
 }
