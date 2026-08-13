@@ -17,12 +17,12 @@ must be fixed.
 
 | Capability | Local (free forever) | Cloud (subscription) |
 |---|---|---|
-| Setup & WiFi provisioning | ✓ USB Improv / SoftAP | — (always local) |
+| Setup & WiFi provisioning | ✓ SoftAP today · USB Improv **Ahead · gate M0** | — (always local) |
 | Claiming | ✓ possession + LAN token, no account | adds passkey account binding |
 | Mirror, push text/frames, scenes | ✓ on your LAN | ✓ from anywhere (relay) |
 | Install / upload apps | ✓ | ✓ remote |
 | Firmware OTA (stable/beta/dev) | ✓ static manifest, free | ✓ plus staged multi-site rollout |
-| USB recovery flash | ✓ browser WebSerial | — (inherently local) |
+| USB recovery flash | ✓ TinyUF2 USB today · browser WebSerial **Ahead · gate M2** | — (inherently local) |
 | Home Assistant / MQTT / SDKs | ✓ your broker, your LAN | — (unchanged; never hosted by us) |
 | Fleet view | ✓ same LAN | ✓ across homes/offices/sites |
 | Remote access | via your own VPN/Tailscale (documented) | ✓ built in, zero config |
@@ -33,6 +33,10 @@ must be fixed.
 | Mark lost / remote wipe / rotate | — (physical access is your tool) | ✓ |
 | Own signing key, BYO firmware | ✓ physical ceremony | ✓ plus CI deploy convenience |
 | Eject (self-host everything) | ✓ always | ✓ always |
+
+The matrix marks Local capability. Where a row is not yet built, its gate
+is named inline using the same Today/Ahead discipline as
+[docs/MANUAL.md](MANUAL.md).
 
 ## Who runs what, who pays for what
 

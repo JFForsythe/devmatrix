@@ -33,11 +33,15 @@ export function PairingFlow({
   }
 
   async function finish(): Promise<void> {
-    if (code.length !== 6) return;
+    // The panel shows the code as two rows of three, so owners often type a
+    // space or dash. The device ignores separators; accept them here too
+    // rather than blocking submit on a length check.
+    const digits = code.replace(/\D/g, "");
+    if (digits.length !== 6) return;
     setBusy(true);
     setStatus(null);
     try {
-      await transport.finishClaim(code);
+      await transport.finishClaim(digits);
       onClose();
     } catch (error) {
       setStatus({ kind: "error", text: error instanceof Error ? error.message : "That code was not accepted." });
@@ -82,7 +86,7 @@ export function PairingFlow({
                 }}
               />
             </label>
-            <button class="btn primary" type="button" disabled={busy || code.length !== 6} onClick={finish}>
+            <button class="btn primary" type="button" disabled={busy || code.replace(/\D/g, "").length !== 6} onClick={finish}>
               {busy ? "PAIRING…" : "PAIR & RETRY"}
             </button>
           </div>

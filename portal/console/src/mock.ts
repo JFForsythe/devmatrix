@@ -27,7 +27,7 @@ export const MOCK_FLEET: FleetDevice[] = [
   {
     name: "Workshop",
     serial: "DMX-4E71-1108",
-    address: "workshop.local · 10.0.4.23",
+    address: "dmx-1108.local · 10.0.4.23",
     firmware: "0.8.0",
     location: "home",
     online: true,
@@ -36,8 +36,8 @@ export const MOCK_FLEET: FleetDevice[] = [
   {
     name: "Guest Loft",
     serial: "DMX-3C22-0417",
-    address: "guest-loft.local · offline",
-    firmware: "0.6.0",
+    address: "dmx-0417.local · offline",
+    firmware: "0.8.0",
     location: "chalet",
     online: false,
     mock: true,

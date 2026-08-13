@@ -27,9 +27,10 @@ What actually runs now — the complete inventory:
   (`make verify-live`) compares the live response byte-for-byte with the
   committed artifact production actually serves — today
   `portal/prototype/index.html` — and the CI `verify-production` job runs
-  it on every push to `main`, additionally requiring a successful provider
-  deployment for the exact pushed commit. `DEVMATRIX_LIVE_FILE` overrides
-  the artifact path; use it to verify
+  it on every push to `main`, additionally requiring a successful
+  provider deployment for the exact pushed commit when the artifact
+  changed since the previous commit. `DEVMATRIX_LIVE_FILE` overrides the
+  artifact path; use it to verify
   `portal/console/dist-hosted/index.html` against a preview before the
   cutover. The switch commit flips the default in the same change as the
   dashboard setting — never before, or every release fails closed

@@ -46,6 +46,8 @@ through the repository's normal ADR and owner-document process, `docs/`,
 - Main firmware is C++ and always owns boot, display, provisioning, security,
   OTA, diagnostics, and the native clock. Downloadable apps use a sandbox
   selected by a real-hardware Lua-versus-Berry gate; Lua wins if both pass.
+  [ADR-0026](adr/ADR-0026-three-tier-app-model.md) defers scripted apps;
+  this gate runs only if that tier is revived.
 - Local operation remains complete and free: no account, company cloud, or
   phone-home requirement. Optional hosted Cloud is a paid, self-funding
   track that ships only when its own gates pass — same day as Local if
@@ -125,6 +127,9 @@ The real Console includes:
   own MQTT client over the multiplexed event socket — decided before the P2
   freeze so the pane cannot work in the simulator yet fail against real
   brokers.
+  [ADR-0026](adr/ADR-0026-three-tier-app-model.md) defers the app-REPL pane
+  with scripted apps. [ADR-0028](adr/ADR-0028-mqtt-stack.md) decided the
+  MQTT transport: the pane requires the owner's broker WebSocket listener.
 - Custom DOM terminals, not a full shell or heavy terminal emulator. The REPL
   runs in a disposable app sandbox and never exposes the ESP host.
 - System UI typography at normal 400 weight and a native monospace terminal
@@ -399,6 +404,16 @@ Feasibility spikes:
   in Chrome, Edge, Firefox, and Safari.
 - HTTPS/local-network/bootstrap experiments, Host/Origin protections, DNS
   rebinding, CSRF, tokens, CORS, and browser Local Network Access behavior.
+  **Run 2026-08-12; resolved by
+  [ADR-0031](adr/ADR-0031-browser-to-device-transport.md)
+  ([evidence](../hardware/evidence/2026-08-12-browser-transport-spike.md)).
+  Constraint (1) below was recorded wrongly and is corrected there:**
+  Local Network Access shipped (Chrome 141/142, Edge 143, Firefox 151)
+  and *is* a permission-gated mixed-content relaxation for `.local` and
+  private-IP literals — Safari excepted. Constraints (2) and (3) are
+  confirmed; (4) is confirmed and understated (the CA's own lifetime
+  binds first: 90 days today, 64 in 2027, 45 in 2028). Four experiments
+  remain open and named in ADR-0031. Original text follows.
   Four verified 2026 constraints get named experiments: (1) mixed-content
   blocking — an https page cannot fetch `http://device.local`, and Chrome's
   Local Network Access permission is additive, not a bypass; (2) Chrome
@@ -676,6 +691,8 @@ for it) at P0 so the documented and implemented release contracts match.
 - Preact/TypeScript/Vite is the candidate Console stack. The production
   choice formally lands at the stack-decision gate that ROADMAP.md,
   PORTAL.md, and ADR-0005 reserve, recorded by ADR in the P0 adoption set.
+  [ADR-0027](adr/ADR-0027-one-console-codebase.md) superseded
+  ADR-0005 and selected the production stack.
 - Weather remains no-cost using NWS for the U.S.; MET Norway is an attributed
   optional adapter. Open-Meteo's hosted free tier is excluded because it
   prohibits commercial-product use.

@@ -513,7 +513,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
       <p style="margin:8px 0 4px">This claim-flow demo starts after USB or SoftAP Wi-Fi setup. Your browser never scans the LAN: read both values from your DK-01.</p>
       <div class="claimfields">
         <label class="claimfield">DEVICE ADDRESS<input id="claimaddress" value="dmx-0952.local" autocomplete="off" spellcheck="false"></label>
-        <label class="claimfield code">CLAIM CODE<input id="claimcode" value="H7Q-4KD" maxlength="7" autocomplete="off" spellcheck="false"></label>
+        <label class="claimfield code">CLAIM CODE<input id="claimcode" value="482913" maxlength="6" autocomplete="off" spellcheck="false"></label>
       </div>
       <p class="mono" style="font-size:12px">Demo values are prefilled · serial DMX-4E71-0952</p>
       <button class="btn pri" style="width:100%" id="btnClaim">CLAIM THIS KIT</button>
@@ -532,7 +532,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
         <label class="claimfield">PANEL TEXT<input id="firstpixeltext" value="SHIP IT" maxlength="40" autocomplete="off"></label>
       </div>
       <div class="quickcmdrow">
-        <pre class="quickcmd" id="firstpixelcmd">curl -X POST https://study.local/api/v1/display/text -H "Authorization: Bearer dmx_lan_demo" -d '{"text":"SHIP IT"}'</pre>
+        <pre class="quickcmd" id="firstpixelcmd">curl -X POST https://dmx-0952.local/api/v1/display/text -H "Authorization: Bearer dmx_lan_demo" -d '{"text":"SHIP IT"}'</pre>
         <button class="btn sm ghost" id="btnCopyFirstPixel">COPY CURL</button>
       </div>
       <button class="btn pri" style="width:100%" id="btnFirstPixel">SEND “SHIP IT” TO THE PANEL</button>
@@ -625,7 +625,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
 
         <div class="card c4">
           <div class="chead"><h2>FIRMWARE</h2></div>
-          <div style="font:600 19px var(--mono)" id="fwver">v0.4.2</div>
+          <div style="font:600 19px var(--mono)" id="fwver">v0.8.0</div>
           <div style="margin:6px 0 12px;display:flex;gap:6px;align-items:center">
             <span class="chip" id="fwchan">stable</span><span class="chip ok" id="fwstate">✓ up to date</span>
           </div>
@@ -682,7 +682,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
 
     <!-- ================= APPS ================= -->
     <section class="view" id="view-apps" aria-label="Apps">
-      <div class="vhead"><h1>apps</h1><p>Your code, on your box. Every app declares its permissions up front and runs sandboxed — quotas enforced, watchdog armed.</p></div>
+      <div class="vhead"><h1>apps</h1><p>Your code, on your box. Every app declares its permissions up front and runs sandboxed — declared hosts, bounded fetches, and storage quotas enforced by the binding engine.</p></div>
       <div class="grid">
         <div class="card c8">
           <div class="chead"><h2 id="apps-device-title">INSTALLED ON STUDY</h2><span class="sub" id="apps-summary">3 apps · 46% storage</span></div>
@@ -718,12 +718,12 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
         <div class="card c6">
           <div class="chead"><h2 id="deploy-device-title">FIRMWARE · STUDY</h2></div>
           <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
-            <div style="font:600 22px var(--mono)" id="depver">v0.4.2</div>
+            <div style="font:600 22px var(--mono)" id="depver">v0.8.0</div>
             <label class="field" style="flex-direction:row;align-items:center;gap:8px">CHANNEL
               <select id="chansel"><option>stable</option><option>beta</option><option>dev</option></select></label>
           </div>
           <div class="rows" id="updrow" style="display:none">
-            <div class="row"><div class="grow"><div class="t">v0.5.0-beta.2 available</div>
+            <div class="row"><div class="grow"><div class="t">v0.9.0-beta.2 available</div>
               <div class="s">signed · ed25519 b7d2…44a1 · 1.9 MB · changelog →</div></div>
               <button class="btn pri sm" id="btnUpdate">UPDATE STUDY</button></div>
           </div>
@@ -762,7 +762,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
           <div class="workbench" id="workbench" aria-label="Movable CLI workbench"></div>
         </div>
         <div class="card c6" id="api-playground">
-          <div class="chead"><h2>API PLAYGROUND</h2><span class="sub" id="api-device-sub">study.local · /api/v1 · LAN token attached</span></div>
+          <div class="chead"><h2>API PLAYGROUND</h2><span class="sub" id="api-device-sub">dmx-0952.local · /api/v1 · LAN token attached</span></div>
           <div style="display:flex;gap:8px">
             <select id="epsel" aria-label="API endpoint" style="flex:1;background:var(--srf);border:1px solid var(--line2);border-radius:6px;padding:8px 11px;font:12px var(--mono)">
               <option value="info">GET /info</option>
@@ -883,7 +883,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
           <div class="chead" style="margin:16px 0 6px"><h2>NETWORK</h2></div>
           <div class="mono" style="font-size:11.5px;color:var(--ink2);line-height:2">
             ssid&nbsp;&nbsp;&nbsp;<span id="settings-ssid">chen-iot</span> · <span id="settings-rssi">−52 dBm</span><br>ip&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span id="settings-ip">10.0.4.22</span> <button class="btn sm ghost" id="settings-ip-copy" data-copy="10.0.4.22" style="margin-left:6px">COPY</button><br>
-            mdns&nbsp;&nbsp;&nbsp;<span id="settings-mdns">study.local</span><br>mac&nbsp;&nbsp;&nbsp;&nbsp;<span id="settings-mac">e4:b3:23:81:4e:71</span>
+            mdns&nbsp;&nbsp;&nbsp;<span id="settings-mdns">dmx-0952.local</span><br>mac&nbsp;&nbsp;&nbsp;&nbsp;<span id="settings-mac">e4:b3:23:81:4e:71</span>
           </div>
           <div class="chead" style="margin:16px 0 6px"><h2>PANEL</h2></div>
           <div style="display:grid;gap:14px">
@@ -1153,7 +1153,7 @@ function sceneBoot(m, t){
     m.text(address, 64 - off, 18, "#4a5a6e", 1);
   }
   if (el > 3 || reduced){
-    const code = "H7Q-4KD";
+    const code = "482913";
     const on = reduced || Math.floor(el * 2) % 2 === 0;
     m.text(code, Math.floor((64 - textW(code,1))/2), 25, on ? AMBER : "#5a3f0d", 1);
   }
@@ -1201,15 +1201,15 @@ function loop(t){
 /* ---------- mock state ---------- */
 const state = {
   devices: [
-    { id: "study", name: "Study", serial: "DMX-4E71-0952", ip: "10.0.4.22", fw: "0.4.2", chan: "stable", autoUpdate: true, lastCheck: "checked 2 min ago", online: true, onLan: true, relay: true, group: "home", mdns: "study.local",
+    { id: "study", name: "Study", serial: "DMX-4E71-0952", ip: "10.0.4.22", fw: "0.8.0", chan: "stable", autoUpdate: true, lastCheck: "checked 2 min ago", online: true, onLan: true, relay: true, group: "home", mdns: "dmx-0952.local",
       metrics: { uptime:"12d 04:11", uptimeNote:"since Jul 23 · 3 restarts · watchdog 0", heap:148, rssi:-52, channel:44, temp:38.2, ssid:"chen-iot", mac:"e4:b3:23:81:4e:71" },
-      fwhist: [{ v:"0.4.2", d:"Jul 28", ok:true, note:"healthy in 41 s" }, { v:"0.4.1", d:"Jul 12", ok:true, note:"healthy in 39 s" }] },
-    { id: "workshop", name: "Workshop", serial: "DMX-4E71-1108", ip: "10.0.4.23", fw: "0.4.2", chan: "stable", autoUpdate: false, lastCheck: "checked 18 min ago", online: true, onLan: true, relay: true, group: "home", mdns: "workshop.local",
+      fwhist: [{ v:"0.8.0", d:"Jul 28", ok:true, note:"healthy in 41 s" }, { v:"0.8.0", d:"Jul 12", ok:true, note:"healthy in 39 s" }] },
+    { id: "workshop", name: "Workshop", serial: "DMX-4E71-1108", ip: "10.0.4.23", fw: "0.8.0", chan: "stable", autoUpdate: false, lastCheck: "checked 18 min ago", online: true, onLan: true, relay: true, group: "home", mdns: "dmx-1108.local",
       metrics: { uptime:"6d 18:42", uptimeNote:"since Jul 29 · 1 restart · watchdog 0", heap:154, rssi:-61, channel:36, temp:41.0, ssid:"chen-iot", mac:"e4:b3:23:81:51:08" },
-      fwhist: [{ v:"0.4.2", d:"Jul 28", ok:true, note:"healthy in 44 s" }, { v:"0.4.2-beta.1", d:"Jul 20", ok:false, note:"auto-rollback · boot health failed" }, { v:"0.4.1", d:"Jul 12", ok:true, note:"healthy in 42 s" }] },
-    { id: "loft", name: "Guest Loft", serial: "DMX-3C22-0417", ip: "—", fw: "0.4.1", chan: "stable", autoUpdate: true, lastCheck: "checked 2 d ago", online: false, onLan: false, relay: true, group: "chalet", mdns: "guest-loft.local",
+      fwhist: [{ v:"0.8.0", d:"Jul 28", ok:true, note:"healthy in 44 s" }, { v:"0.8.0-beta.1", d:"Jul 20", ok:false, note:"auto-rollback · boot health failed" }, { v:"0.8.0", d:"Jul 12", ok:true, note:"healthy in 42 s" }] },
+    { id: "loft", name: "Guest Loft", serial: "DMX-3C22-0417", ip: "—", fw: "0.8.0", chan: "stable", autoUpdate: true, lastCheck: "checked 2 d ago", online: false, onLan: false, relay: true, group: "chalet", mdns: "dmx-0417.local",
       metrics: { uptime:"0d 00:00", uptimeNote:"last known · offline 2 d", heap:139, rssi:-73, channel:6, temp:34.7, ssid:"chalet-iot", mac:"3c:22:fb:10:04:17" },
-      fwhist: [{ v:"0.4.1", d:"Jul 12", ok:true, note:"healthy in 39 s" }] }
+      fwhist: [{ v:"0.8.0", d:"Jul 12", ok:true, note:"healthy in 39 s" }] }
   ],
   current: "study",
   device(){ return this.devices.find(d => d.id === this.current); },
@@ -1239,7 +1239,7 @@ const state = {
   },
   deviceKeys(id = this.current){ return this.keysByDevice[id] || []; },
   audit: [
-    { t: "21:42", who: "you",  act: "app.install", tgt: "mars-weather v0.3 → Study" },
+    { t: "21:42", who: "you",  act: "layout.save", tgt: "custom-layout v1 → Study" },
     { t: "21:40", who: "you",  act: "display.text", tgt: '"SHIP IT" → Study' },
     { t: "19:12", who: "auto", act: "ota.check", tgt: "stable · up to date" },
     { t: "18:03", who: "guest",act: "display.brightness", tgt: "40% → Guest Loft" },
@@ -1427,7 +1427,7 @@ function renderDevices(){
     switchDevice("study");
     claimStep(0);
     $("#claimaddress").value = "dmx-0952.local";
-    $("#claimcode").value = "H7Q-4KD";
+    $("#claimcode").value = "482913";
     $("#holdfill").style.width = "0%";
     $("#holdhint").textContent = "waiting for device…";
     $("#firstpixelname").value = state.device().name;
@@ -1467,15 +1467,15 @@ const TERMINAL_PROFILES = {
   logs: {
     label: "LOGS", placeholder: "tail warn"
   },
-  repl: {
-    label: "APP REPL", placeholder: 'draw("HELLO")'
+  layout: {
+    label: "LAYOUT INSPECTOR", placeholder: "trace /rows/0/bind"
   }
 };
 const WORKBENCH_DEFAULTS = [
   { id: "pane-rest", profile: "rest" },
   { id: "pane-mqtt", profile: "mqtt" },
   { id: "pane-logs", profile: "logs" },
-  { id: "pane-repl", profile: "repl" }
+  { id: "pane-layout", profile: "layout" }
 ];
 function terminalSeed(profile){
   const d = state.device();
@@ -1484,7 +1484,7 @@ function terminalSeed(profile){
     rest: [`Devmatrix CLI · ${access}`, "type help for mock commands"],
     mqtt: [`broker 10.0.4.2:1883 · ${deviceReachable(d) ? "connected" : "disconnected"}`, `root devmatrix/${d.serial}/`],
     logs: [`${d.name.toLowerCase()} · device log`, deviceReachable(d) ? "02:38:12 info  compositor: 30 fps" : "503 device unavailable"],
-    repl: [deviceReachable(d) ? "mars-weather · sandbox ready" : "mars-weather · device unavailable", `> device.name  // ${d.name}`]
+    layout: [deviceReachable(d) ? "custom layout · binding engine ready" : "custom layout · device unavailable", 'trace /rows/0/bind → /weather/temp_c → "21°C"']
   })[profile].map(text => ({ text, type: "" }));
 }
 function freshPane(spec){
@@ -1506,7 +1506,7 @@ function terminalContext(profile){
     rest: `${d.mdns} /api/v1`,
     mqtt: `devmatrix/${d.serial}/#`,
     logs: `${d.name.toLowerCase()} · live`,
-    repl: "mars-weather · sandbox"
+    layout: "custom layout · binding trace"
   })[profile];
 }
 function saveWorkbench(){
@@ -1582,7 +1582,7 @@ function runTerminalCommand(id, raw){
       rest: "get /info · get /metrics · post /display/text HELLO",
       mqtt: "sub <topic> · pub display/text HELLO",
       logs: "tail · tail warn · filter <text>",
-      repl: 'device.name · apps · draw("HELLO") · restart'
+      layout: "trace /rows/0/bind · inspect /rows/0 · validate"
     }[pane.profile];
     appendTerminalLine(pane, `${help}\nuniversal: push <text> · device · clear`, "ok");
   } else if (lower === "device"){
@@ -1612,14 +1612,11 @@ function runTerminalCommand(id, raw){
       const rows = LOG_LINES.filter(([lv, msg]) => !filter || lv.includes(filter) || msg.toLowerCase().includes(filter));
       appendTerminalLine(pane, rows.length ? rows.map(([lv, msg]) => `${lv.padEnd(5)} ${msg}`).join("\n") : "no matching log lines", rows.length ? "ok" : "");
     } else appendTerminalLine(pane, "log mock · type help");
-  } else if (pane.profile === "repl"){
-    if (lower === "device.name" || lower === "print(device.name)") appendTerminalLine(pane, state.device().name, "ok");
-    else if (lower === "apps") appendTerminalLine(pane, state.deviceApps().map(a => `${a.name} · ${a.running ? "running" : "stopped"}`).join("\n"), "ok");
-    else if (/^draw\(/i.test(command)){
-      const match = command.match(/draw\(["'](.+?)["']\)/i); const msg = match ? match[1] : "HELLO";
-      pushText(msg); appendTerminalLine(pane, `frame queued · ${msg.length * 12}px`, "ok");
-    } else if (lower === "restart") appendTerminalLine(pane, "mars-weather restarted · watchdog armed", "ok");
-    else appendTerminalLine(pane, "sandbox mock · type help");
+  } else if (pane.profile === "layout"){
+    if (lower === "trace" || lower === "trace /rows/0/bind") appendTerminalLine(pane, '/rows/0/bind → /weather/temp_c → 21.4 → "21°C"', "ok");
+    else if (lower === "inspect /rows/0") appendTerminalLine(pane, JSON.stringify({ y: 11, color: [255, 178, 36], bind: "/weather/temp_c", format: "%.0f°C" }, null, 2), "ok");
+    else if (lower === "validate") appendTerminalLine(pane, "layout v1 valid · 3 rows · declared bindings bounded", "ok");
+    else appendTerminalLine(pane, "layout inspector mock · type help");
   }
   renderWorkbench(id);
 }
@@ -1757,11 +1754,11 @@ function switchDevice(id){
   $("#fwver").textContent = "v" + d.fw; $("#depver").textContent = "v" + d.fw;
   $("#chansel").value = d.chan;
   $("#fwchan").textContent = d.chan;
-  $("#fwstate").textContent = d.chan !== "stable" && d.fw !== "0.5.0-beta.2" ? "update available"
-    : d.fw === "0.5.0-beta.2" ? "✓ healthy" : "✓ up to date";
+  $("#fwstate").textContent = d.chan !== "stable" && d.fw !== "0.9.0-beta.2" ? "update available"
+    : d.fw === "0.9.0-beta.2" ? "✓ healthy" : "✓ up to date";
   $("#tgAuto").setAttribute("aria-checked", String(d.autoUpdate));
   $("#lastcheck").textContent = d.lastCheck;
-  $("#updrow").style.display = d.chan !== "stable" && d.fw !== "0.5.0-beta.2" ? "block" : "none";
+  $("#updrow").style.display = d.chan !== "stable" && d.fw !== "0.9.0-beta.2" ? "block" : "none";
   $("#setname").value = d.name;   // keep Settings in sync with the selected device
   $("#apps-device-title").textContent = `INSTALLED ON ${d.name.toUpperCase()}`;
   $("#deploy-device-title").textContent = `FIRMWARE · ${d.name.toUpperCase()}`;
@@ -1836,7 +1833,7 @@ const SEARCH_SECTIONS = [
   { label: "Dev Console", detail: "Workbench, APIs, streams, and logs", kind: "page", view: "devconsole", keywords: "developer code terminal cli" },
   { label: "Security", detail: "Trust, audit, privacy, ownership, and optional account security", kind: "page", view: "security", keywords: "passkeys local mode snapshot guest keys" },
   { label: "Settings", detail: "Device, network, panel, and plan", kind: "page", view: "settings", keywords: "timezone gamma brightness notifications account" },
-  { label: "Device workbench", detail: "Four movable REST, MQTT, log, and app CLIs", kind: "tool", view: "devconsole", target: "#workbench-card", keywords: "coding area panes terminal repl move delete" },
+  { label: "Device workbench", detail: "REST, MQTT, log, and layout/binding inspector", kind: "tool", view: "devconsole", target: "#workbench-card", keywords: "coding area panes terminal layout binding move delete" },
   { label: "API playground", detail: "Try /api/v1 routes against the mock panel", kind: "tool", view: "devconsole", target: "#api-playground", keywords: "rest endpoint request json" },
   { label: "API keys", detail: "Create, copy, scope, or revoke a key", kind: "tool", view: "devconsole", target: "#api-keys", keywords: "token credential auth" },
   { label: "MQTT broker", detail: "Your broker and device topic tree", kind: "tool", view: "devconsole", target: "#api-keys", keywords: "home assistant topic publish subscribe" },
@@ -1997,9 +1994,9 @@ $("#btnCheck").onclick = () => {
   setTimeout(() => {
     d.lastCheck = "checked just now";
     if (state.current === d.id) $("#lastcheck").textContent = d.lastCheck;
-    const available = d.chan !== "stable" && d.fw !== "0.5.0-beta.2";
+    const available = d.chan !== "stable" && d.fw !== "0.9.0-beta.2";
     toast(available ? "Update available" : "Up to date",
-      available ? `${d.chan} · v0.5.0-beta.2 for ${d.name}` : `${d.chan} · v${d.fw} is current`, available ? undefined : "ok");
+      available ? `${d.chan} · v0.9.0-beta.2 for ${d.name}` : `${d.chan} · v${d.fw} is current`, available ? undefined : "ok");
   }, 900);
 };
 
@@ -2066,12 +2063,12 @@ $("#chansel").onchange = e => {
   const d = state.device();
   d.chan = e.target.value;
   const beta = e.target.value !== "stable";
-  $("#updrow").style.display = beta && d.fw !== "0.5.0-beta.2" ? "block" : "none";
+  $("#updrow").style.display = beta && d.fw !== "0.9.0-beta.2" ? "block" : "none";
   $("#fwchan").textContent = e.target.value;
-  $("#fwstate").textContent = beta && d.fw !== "0.5.0-beta.2" ? "update available" : "✓ up to date";
+  $("#fwstate").textContent = beta && d.fw !== "0.9.0-beta.2" ? "update available" : "✓ up to date";
   renderDevices();
   pushAudit("ota.channel", `${d.chan} → ${d.name}`);
-  if (beta) toast("Channel: " + e.target.value, "v0.5.0-beta.2 is available for " + d.name);
+  if (beta) toast("Channel: " + e.target.value, "v0.9.0-beta.2 is available for " + d.name);
 };
 $("#btnUpdate").onclick = () => {
   const d = state.device();   // capture target at click, not at completion
@@ -2079,16 +2076,16 @@ $("#btnUpdate").onclick = () => {
   fakeProgress($("#otaprog"), $("#otasteps"),
     ["downloading 1.9 MB…", "verifying sha256 + signature…", "writing slot B…", "rebooting into new build…", "boot health check…"],
     () => {
-      d.fw = "0.5.0-beta.2"; d.chan = "beta";
+      d.fw = "0.9.0-beta.2"; d.chan = "beta";
       if (state.current === d.id){
-        $("#depver").textContent = "v0.5.0-beta.2"; $("#fwver").textContent = "v0.5.0-beta.2";
+        $("#depver").textContent = "v0.9.0-beta.2"; $("#fwver").textContent = "v0.9.0-beta.2";
         $("#fwstate").textContent = "✓ healthy"; $("#updrow").style.display = "none";
       }
-      d.fwhist.unshift({ v: "0.5.0-beta.2", d: "now", ok: true, note: "healthy in 38 s" });
+      d.fwhist.unshift({ v: "0.9.0-beta.2", d: "now", ok: true, note: "healthy in 38 s" });
       if (state.current === d.id) renderFwHistory();
       renderDevices();
-      toast(d.name + " updated to v0.5.0-beta.2", "slot B live · rollback armed for 24 h", "ok");
-      pushAudit("ota.update", "v0.5.0-beta.2 → " + d.name);
+      toast(d.name + " updated to v0.9.0-beta.2", "slot B live · rollback armed for 24 h", "ok");
+      pushAudit("ota.update", "v0.9.0-beta.2 → " + d.name);
     });
 };
 let sheetOpener = null;
@@ -2194,12 +2191,12 @@ const WS_LINES = [
   '{"t":"scene.change","to":"clock"}',
   '{"t":"mqtt.state","topic":"devmatrix/DMX-4E71-0952/scene","v":"clock"}',
   '{"t":"button.press","which":"top","ms":180}',
-  '{"t":"app.tick","app":"mars-weather","ms":3.1}'
+  '{"t":"binding.resolve","path":"/weather/temp_c","ms":3.1}'
 ];
 const LOG_LINES = [
   ["info",  "wifi: rssi -52 dBm ch44"],
   ["info",  "compositor: 30 fps · 1.8 ms/frame"],
-  ["debug", "app[mars-weather]: fetch ok · 2.1 KB · 210 ms"],
+  ["debug", "binding[/weather/temp_c]: resolved · 21.4"],
   ["info",  "mqtt: publish scene=clock"],
   ["warn",  "app[github-stars]: rate limited · backing off 60 s"],
   ["debug", "ota: manifest checked · stable · up to date"]
@@ -2323,8 +2320,8 @@ $("#btnClaim").onclick = () => {
     toast("Check the claim code", "enter the 7-character code shown on the panel", "warn");
     $("#claimcode").focus(); return;
   }
-  if (address !== "dmx-0952.local" || code !== "H7Q-4KD"){
-    toast("Demo kit not found", "this static mock recognizes dmx-0952.local · H7Q-4KD", "warn");
+  if (address !== "dmx-0952.local" || code !== "482913"){
+    toast("Demo kit not found", "this static mock recognizes dmx-0952.local · 482913", "warn");
     (address !== "dmx-0952.local" ? $("#claimaddress") : $("#claimcode")).focus(); return;
   }
   if (claimTimer) clearInterval(claimTimer);

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "20.x"
+    "node": ">=20"
   },
   "scripts": {
     "build": "npm run build:hosted && npm run build:device",

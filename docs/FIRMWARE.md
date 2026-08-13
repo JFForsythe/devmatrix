@@ -63,15 +63,15 @@ firmware/
 
 ## Hardware budget (DK-01: 8 MB flash, 2 MB PSRAM)
 
-Dual app slots (~2.5 MB each) + LittleFS (~2.5 MB) for assets and apps.
-Framebuffers in PSRAM; DMA descriptors in internal RAM. CI fails if an
-app slot passes 85 % or boot heap headroom drops below the floor.
-The Local Console bundle is a versioned, cacheable LittleFS asset and
-must fit inside that budget alongside owner apps; P1 measures its
-compressed size and update behavior rather than assuming it fits.
-These numbers were set under the previous stack; P2 re-measures slot
-sizing and heap budgets under the Arduino-CLI/Protomatter build
-(ADR-0013).
+Dual app slots (2 MB each, `ota_0`/`ota_1`) + a 256 KB TinyUF2 factory
+partition for USB recovery + a 3.7 MB `ffat` data partition reserved for
+future assets and apps. Framebuffers in PSRAM; DMA descriptors in
+internal RAM. v0.8.0 measures 1,336,915 B flash (63 % of a slot) and
+120,396 B static RAM
+([evidence](../hardware/evidence/2026-08-12-console-parity-verification.md)).
+A CI slot-occupancy and heap-headroom gate is **Ahead · gate P2**. The
+Local Console is not a filesystem asset: it is a gzipped PROGMEM bundle
+compiled into the app image (ADR-0027).
 
 ## API surface (DRAFT — freeze at P2)
 
@@ -81,6 +81,9 @@ until the P2 freeze. The sketch below is illustrative:
 
 - REST `/api/v1`: info, settings, metrics, `display/text`,
   `display/frame`, `display/layout`, `notify`, scenes, screenshot.
+  Frames are 4,096 bytes (64×32 RGB565 little-endian) on the wire;
+  ADR-0029's bandwidth argument used an RGB888 figure and its
+  conclusion is unchanged.
 - WebSocket `/api/v1/stream`: binary frames in (20+ fps at 64×32),
   events out.
 - MQTT: `devmatrix/<serial>/...` command/state/availability
@@ -88,9 +91,12 @@ until the P2 freeze. The sketch below is illustrative:
   text, and notify entities with zero YAML. The DRAFT contract's scene
   entity remains a P2 compatibility item because HA scene payloads do not
   provide a command-template hook for fresh envelope timestamps/expiry.
-- Auth: every `/api/v1` route requires the LAN token (Bearer) over TLS;
-  mutating routes validate Host/Origin. Ceremony + transport live in
-  SECURITY.md → Discovery & local transport.
+- Auth: every `/api/v1` route requires the LAN token (Bearer) on a
+  plain-HTTP LAN origin (ADR-0031 — no certificate is ever on the
+  device's critical path); mutating routes validate Host/Origin, and the
+  device proves itself by signing a Console-supplied nonce with its
+  device key. Ceremony + transport live in SECURITY.md → Discovery &
+  local transport.
 
 ## App tiers (ADR-0026)
 

@@ -21,8 +21,8 @@ summaries; full gate criteria live in section 3 of
 - **P1 — Hardware bring-up + feasibility spikes**: panel intake and
   bench verification, MatrixPortal bring-up, the browser-security
   spike, unassisted-setup user tests. The Lua/Berry runtime spike is
-  dropped from this gate (ADR-0026). Disposable
-  feasibility firmware only. *Accept: controlled first pixel on
+  dropped from this gate (ADR-0026). Firmware is a living tree from P1
+  onward (ADR-0024). *Accept: controlled first pixel on
   target hardware; every product-killing unknown has evidence;
   MatrixPortal approved for production intent or replaced by a
   custom-controller plan.*
@@ -53,9 +53,11 @@ summaries; full gate criteria live in section 3 of
   update with company infrastructure blocked.*
 - **M4 — Apps and Registry**: declarative app engine (layout renderer,
   binding engine, schedule), `.dmapp` installer, permissions and
-  quotas, the bundled apps (Weather/Stocks/Messages/Flights Overhead,
-  ADR-0023), curated Registry plus unrestricted sideload. No on-device
-  scripting VM at launch (ADR-0026). *Accept: a user publishes,
+  quotas. Today's bundled apps are Messages, Flights list, and Custom
+  layout; M4 adds Weather, clock variants, and Registry apps. Stocks
+  stays disabled pending an owner key (ADR-0015). The curated Registry
+  also permits unrestricted sideload. No on-device scripting VM at
+  launch (ADR-0026). *Accept: a user publishes,
   installs, updates, and rolls back a documented app; a malicious app
   or hostile data source is contained; installed apps survive Registry
   or GitHub outages.*

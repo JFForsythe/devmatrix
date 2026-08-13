@@ -43,7 +43,8 @@ light/dark, nord, dracula, gruvbox — persisted per browser.
 - **Search** — use the top-bar control or `Cmd/Ctrl+K` to find pages,
   devices, apps, keys, settings, and developer tools.
 - **Dev Console → Device workbench** — four compact CLI panes start as
-  REST, MQTT, device logs, and app REPL. Change any pane's profile; drag
+  REST, MQTT, device logs, and a layout/binding inspector. Change any
+  pane's profile; drag
   or use its arrow controls to reorder it; remove and restore panes. The
   layout persists in the browser, but commands remain safe mock behavior.
 - **Per-device access truth** — switch devices or disconnect a device's

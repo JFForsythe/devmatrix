@@ -31,7 +31,8 @@ owner-facing walkthrough — setup, Console, apps, updates, recovery — is
 - **Clock** — SNTP native clock with seconds bar, shown whenever
   nothing else is.
 - **`/api/v1`** — Bearer-token HTTP API for everything the Console
-  does. The Console's API card writes the curl commands for you.
+  does. The Console's **Dev console** view writes the curl commands for
+  you.
 - **MQTT + Home Assistant** — optional outbound esp-mqtt connection to
   the owner's broker, contract envelopes and replay expiry, retained
   availability/display/health state, and zero-YAML light, text, and
@@ -52,7 +53,8 @@ arduino-cli compile --fqbn esp32:esp32:adafruit_matrixportal_esp32s3 \
 Console changes happen in `portal/console/`; edit `portal/console/src/`
 and run `npm run build` from `portal/console/` before compiling firmware.
 
-`out/dk01.ino.bin` is what the Console's **Update firmware** card wants.
+`out/dk01.ino.bin` is what the Console's **Deploy → OTA upload** card
+wants.
 
 ## First (and last) cable flash
 
@@ -81,10 +83,14 @@ RGB565 little-endian, base64 in `{"b64":…}`), `display/brightness`,
 `display/clear`, `identify`, `claim/start` + `claim/finish` (pairing —
 start is open, finish wants the panel code), `settings` (GET/POST,
 `tz`), `mqtt` (GET/POST; password is write-only), `token/rotate`,
-`reboot`, `wifi/reset`, `factory/reset`, and `POST /update` (multipart
-`.bin`, OTA). JSON bodies need
-`Content-Type: application/json`. Scripts get the token from the
-Console's API card ("Copy with my token") or USB serial.
+`reboot`, `wifi/reset`, `factory/reset`, `apps` (GET/POST enable + scene
+interval), `apps/messages` (GET/POST), `apps/messages/show`,
+`apps/custom` (GET/POST — shape in contracts/layout.md),
+`apps/custom/show`, `apps/flights` (GET/POST), `apps/flights/scan`,
+`apps/flights_list/show`, and `POST /update` (multipart `.bin`, OTA).
+Text submitted to `display/text` is capped at 120 characters. JSON
+bodies need `Content-Type: application/json`. Scripts get the token from the
+Console's **Dev console** view (**COPY WITH MY TOKEN**) or USB serial.
 
 ## Files
 

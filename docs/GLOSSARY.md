@@ -7,16 +7,19 @@ first; then use.
 |---|---|
 | **Devmatrix** | The platform/product. Never "DevMatrix" or "dev matrix". |
 | **DK-01** | First hardware model: ESP32-S3, 64×32 RGB matrix, 8 MB flash, 2 MB PSRAM. |
+| **App slot** | One of the two 2 MB OTA partitions (`ota_0`/`ota_1`) an app image boots from; updates write to the inactive slot. |
 | **MatrixPortal** | Adafruit MatrixPortal ESP32-S3 — DK-01's production-intent controller board (ADR-0012). |
 | **Protomatter** | Adafruit's open HUB75 matrix driver library — the pinned display driver (ADR-0013). |
 | **Console** | The portal (web app). One codebase, two connection modes. |
-| **Device workbench** | The Console's compact four-pane developer workspace. Each pane can be profiled as a REST CLI, MQTT CLI, device-log tail, or layout/binding inspector; panes are movable, resizable, removable, restorable, and saved locally. The prototype is mock-only. |
-| **Command palette** | The Console's keyboard-first search-and-act surface: pages, settings, devices, apps, actions, documentation, and local log results. |
+| **Local Console** | The complete Console bundled into and served by each device over the LAN — the authoritative copy; the hosted copy is a convenience (ADR-0025, ADR-0027). |
+| **Dev console** | The Console view for API commands, developer tools, and device debugging. |
+| **Device workbench** | The Console's compact four-pane developer workspace. Each pane can be profiled as a REST CLI, MQTT CLI, device-log tail, or layout/binding inspector; panes are movable, resizable, removable, restorable, and saved locally. Specified, not yet built in `portal/console/` — **Ahead · gate M2**. |
+| **Command palette** | The Console's keyboard-first search-and-act surface: pages, settings, devices, apps, actions, documentation, and local log results. Specified, not yet built in `portal/console/` — **Ahead · gate M2**. |
 | **Local Mode** | Console ↔ device directly over LAN. No account, no cloud. Free forever — the complete product (docs/MODES.md). |
 | **Cloud Mode** | Paid subscription layer: remote access, multi-site fleet, hosted E2EE snapshots, alerts. Adds reach, never capability (docs/MODES.md). |
 | **Sunset covenant** | If Cloud Mode ever ends: 12 months' notice + automatic Eject. A dead cloud costs convenience, never function. |
 | **Claiming** | Binding a device to its owner via proof of physical possession; mints the LAN token in the browser — no account involved (docs/MODES.md). A passkey account and explicit subscription confirmation are separate, optional Cloud Mode steps. |
-| **Claim code** | Short code shown on the panel when a browser asks to pair (and at first boot once M1 claiming ships). Reading the panel proves physical presence. Format `XXX-XXX`. |
+| **Claim code** | Short code shown on the panel when a browser asks to pair. Reading the panel proves physical presence. Format: six digits, e.g. `482913`, shown as two panel rows of three for browser pairing today; the device ignores any separator the owner types. The **Ahead · gate M1** first-boot claim code is `XXX-XXX`. |
 | **Serial** | Device identity, printed + in cert. Format `DMX-####-####` (e.g. `DMX-4E71-0952`). |
 | **LAN token** | Per-device bearer credential minted at claim; required on every `/api/v1` call on the LAN. Rotatable/revocable; read-only scoped variants for integrations. |
 | **App** | Anything an owner installs or runs to put content on the panel. Three tiers, defined below (ADR-0026). UI says "Apps". |

@@ -19,7 +19,7 @@ model is real. She ordered a DK-01 after a friend's demo.
   (USB Improv works too; either way, no app.)
 - **T+0:02 — WiFi.** She picks her network in the captive portal. The
   panel now shows its address and claim code:
-  `dmx-0952.local · H7Q-4KD`.
+  `dmx-0952.local · 482913` (the panel shows it as two rows of three).
 - **T+0:03 — Claim.** The start page asks for what the panel shows —
   it never scans her LAN (browsers can't, and shouldn't). Possession
   proof: the panel displays her session's code (`CLAIM → 7F2Q?`) and
@@ -32,7 +32,7 @@ Local and free; docs/MODES.md is the line.)*
 - **T+0:04 — First pixel.** She names it **Study**. The Console
   dashboard shows the Mirror — her actual panel, live. The quickstart
   hands her a copy-paste command with her LAN token already embedded:
-  `curl -X POST https://study.local/api/v1/display/text -H
+  `curl -X POST http://dmx-0952.local/api/v1/display/text -H
   "Authorization: Bearer dmx_lan_…" -d '{"text":"SHIP IT"}'`
   — and SHIP IT scrolls across the physical panel. She grins. Under
   five minutes, as promised.

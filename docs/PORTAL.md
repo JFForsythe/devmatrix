@@ -28,13 +28,13 @@ three questions: *what is my box doing, can I change it, can I trust it?*
 | Nav item | Job to be done | Key modules |
 |---|---|---|
 | **Welcome / Claim** (first run) | From box to claimed in minutes | enter the panel's local address + claim code, verify the session code on-panel, possession proof, LAN token mint, prove first pixel over LAN, then make the explicit Local-free choice; optional passkey account and separately confirmed Cloud subscription (☁) |
-| **Dashboard** | What is my box doing right now? | Mirror (live panel), quick text push, brightness, scene switch, stat tiles (uptime, heap, RSSI, temp), recent activity, firmware card, quick actions (screenshot, identify, reboot, quiet hours) |
+| **Dashboard** | What is my box doing right now? | Mirror (live panel), 64×32 paint canvas (frame push / live strokes), quick text push, brightness, scene switch, stat tiles (uptime, heap, RSSI, temp), recent activity, firmware card, quick actions (screenshot, identify, reboot, quiet hours) |
 | **Devices** | Manage my fleet (only mine) | Device cards, groups, claim-new flow, rename, transfer ownership, guest access (scoped links ☁), remove |
 | **Apps** | Run my code on my box | Installed apps with status + permission chips + resource meters, upload (.dmapp drag-drop → OTA), template link, community Registry browse/install, per-app logs, rollback, delete |
 | **Deploy** | Control what firmware runs | Current version + channel selector, update/rollback with history, staged rollout across fleet, USB flash from browser (WebSerial recovery), BYO builds (CI → signed with owner's enrolled key) |
-| **Dev Console** | Integrate and debug | Device workbench (four minimal movable/resizable/removable/restorable panes profiled as REST, MQTT, logs, or a layout/binding inspector — an app REPL returns only if scripted apps ship, ADR-0026), API keys (scoped, revocable), API playground, WebSocket event tail, MQTT credentials + topic tree (user's broker), metrics history, device file manager |
-| **Security** | Trust, verify, own | Passkeys & hardware keys, active sessions, audit log (export), root-of-trust status + enrollment, Local Mode toggle, Snapshots (E2EE backup/restore/clone), privacy & data controls, Eject |
-| **Settings** | Make it mine | Device name/timezone, network info, panel calibration, notifications (offline alerts ☁), plan & billing (Cloud), account |
+| **Dev console** | Integrate and debug | Device workbench (four minimal movable/resizable/removable/restorable panes profiled as REST, MQTT, logs, or a layout/binding inspector — an app REPL returns only if scripted apps ship, ADR-0026), API keys (scoped, revocable), API playground, WebSocket event tail, metrics history, device file manager |
+| **Security** | Trust, verify, own | LAN token rotation, Change Wi-Fi, factory reset (physical-access class), Passkeys & hardware keys, active sessions, audit log (export), root-of-trust status + enrollment, Local Mode toggle, Snapshots (E2EE backup/restore/clone), privacy & data controls, Eject |
+| **Settings** | Make it mine | Device name/timezone, network info, MQTT credentials + topic tree (user's broker), panel calibration, notifications (offline alerts ☁), plan & billing (Cloud), account |
 
 Console-wide search is a combined search and command palette, available
 from every post-claim screen and from the keyboard (`Cmd/Ctrl+K`). It
@@ -138,8 +138,10 @@ flowchart LR
   control, apps, deploy, developer tools, security, and Eject. The
   hosted Console is an optional distribution of the same client, not a
   dependency.
-- The production stack is decided: Preact + TypeScript + Vite, one
-  codebase for device-local and hosted-simulator modes (ADR-0014).
+- The production stack is decided and built: Preact + TypeScript + Vite
+  at `portal/console/`, one codebase emitting the device's generated
+  gzipped header and the hosted static bundle (ADR-0014, ADR-0027). The
+  hosted mode is a mock demo, not the simulator.
   The P1 browser-transport spike remains its acceptance gate: local
   name resolution, trustworthy HTTPS, secure-context requirements,
   Local Network Access permission, CORS, Host/Origin validation,
@@ -156,10 +158,11 @@ default, no company-run MQTT broker, no accounts required for LAN use.
 
 ## Open questions
 
-- Exact browser-to-device HTTPS trust/bootstrap design. This is a P1
-  launch blocker, not copy to paper over. (The production stack itself
-  is decided — ADR-0014 — with the P1 transport spike as its
-  acceptance gate.)
+- ~~Exact browser-to-device HTTPS trust/bootstrap design.~~ Closed by
+  the P1 spike: the device's local transport is plain HTTP, permanently,
+  with the hosted Console reaching it through the browser's Local
+  Network Access permission where available (ADR-0031;
+  [evidence](../hardware/evidence/2026-08-12-browser-transport-spike.md)).
 - ~~Domain/brand for the hosted Console.~~ Decided: the hosted Console
   is served from `devmatrix.flighttrackerled.com` (ADR-0025).
 - Enclosure question (bare panel vs stand) — affects photography, not

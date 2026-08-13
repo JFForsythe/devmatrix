@@ -238,7 +238,7 @@ export function DashboardView({ transport }: { transport: ConsoleTransport }) {
       <div class="grid two">
         <Card title="Quick text push" aside={<span class="chip">UP TO 300 S</span>}>
           <label class="field">
-            <span>TEXT · MULTI-LINE SUPPORTED</span>
+            <span>TEXT · MULTI-LINE SUPPORTED · 120 CHARACTERS MAX</span>
             <textarea rows={4} maxLength={120} value={text} onInput={(event) => setText(event.currentTarget.value)} />
           </label>
           <div class="inline-fields">

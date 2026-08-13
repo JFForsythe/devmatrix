@@ -26,6 +26,7 @@ closed-product code, logic, or schemas — ever.
 | Canonical names, serial/ID formats | docs/GLOSSARY.md |
 | Company-side ops: hosting, deploys, secrets, artifact monitoring | docs/OPERATIONS.md |
 | Public interface contracts (DRAFT until the P2 freeze) | contracts/ |
+| Host apps, example scripts, service installers | examples/README.md |
 | Manufacturing files, fixtures, hardware gate evidence | hardware/ |
 | Sequencing, gates, milestone acceptance | ROADMAP.md |
 | Decisions and their reasoning | docs/adr/ |
@@ -44,7 +45,9 @@ Rules:
    from the closed FlightTrackerLED products — ever. Independently
    built flight features fed by the owner's own local receiver are
    allowed; company aircraft feeds and third-party flight-data
-   services are not. The brand byline is the only shared element.
+   services are not. The brand byline and the hosted Console's domain
+   (devmatrix.flighttrackerled.com, ADR-0025) are the only shared
+   elements.
 2. **Local-first** (ADR-0003). Every device feature works on a LAN with
    the company unreachable. Cloud is convenience, never dependency.
 3. **Never brick.** Dual OTA slots, automatic rollback, USB recovery

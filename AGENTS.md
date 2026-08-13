@@ -21,7 +21,8 @@ the one-owner truth map.
 
 - Never open, search, compare against, copy, translate, or reuse FlightTracker
   source, internal docs, APIs, schemas, MQTT topics, provisioning, OTA, tests,
-  assets, naming, or architecture. Only the brand byline crosses the boundary.
+  assets, naming, or architecture. Only the brand byline and the hosted domain
+  (ADR-0025) cross the boundary.
 - Record public provenance in the PR for every new dependency and every
   borrowed public standard.
 - CI enforces a banned-identifier clean-room gate in

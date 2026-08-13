@@ -11,6 +11,10 @@ prose becomes AsyncAPI + JSON Schema in this directory
 ([README.md](README.md)); the firmware implementing it is an M2
 deliverable ([ROADMAP.md](../ROADMAP.md)).
 
+Implemented in firmware v0.8.0 (`mqtt_client.h`) except the Home
+Assistant scene entity; the implemented request verbs include
+`app.show`. Contract stays DRAFT until the P2 freeze.
+
 ## Topic tree
 
 The root namespace is `devmatrix/<serial>/`, where `<serial>` is the
@@ -146,9 +150,9 @@ topic write homeassistant/+/DMX-4E71-0952/config
 topic read homeassistant/status
 ```
 
-The device's MQTT username and password are entered — and rotated in
-one click — on the Console's MQTT credentials page
-([docs/SECURITY.md](../docs/SECURITY.md)).
+The device's MQTT username and password are entered on the Console
+([docs/PORTAL.md](../docs/PORTAL.md) owns the Console IA); the password
+field is write-only, and rotation is re-entering it.
 
 ## Console workbench
 

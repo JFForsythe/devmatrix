@@ -58,18 +58,32 @@ and we would not want them to):
   surfaced in the Console (which renders copy-paste commands with it
   embedded), and rotatable/revocable per device. Read-only scoped
   tokens are available for integrations.
-- **Browser trust is a P1 proof, not a solved claim.** The intended
-  local transport is HTTPS, and the panel can display a device
-  fingerprint for manual verification. Ordinary web-page JavaScript
-  cannot add a certificate trust anchor or pin a certificate for the
-  browser. The production Console stack is decided (ADR-0014); the P1
-  simulator and hardware spike must still prove a workable bootstrap
-  across supported browsers — local name resolution, certificate
-  trust, secure-context rules, Local Network Access permission, CORS,
-  and token storage — or the stack decision is revisited by a
-  superseding ADR. Until that passes, the exact LAN TLS mechanism is open.
-  mTLS remains reserved for the device→relay link, where no browser is
-  involved.
+- **The local transport is plain HTTP, permanently** (ADR-0031, decided
+  by the P1 spike —
+  [evidence](../hardware/evidence/2026-08-12-browser-transport-spike.md)).
+  No certificate is ever on the device's critical path: publicly trusted
+  certificates cannot be issued for `.local` or private IPs, and every
+  company-brokered scheme dies with the company inside a certificate
+  lifetime, breaking Local-first (ADR-0003). Owners reach the device by
+  top-level navigation, which mixed-content rules never touch. The
+  hosted Console may additionally reach it through the browser's Local
+  Network Access permission (Chromium and Firefox; never Safari), and
+  must degrade to the device-served path rather than fail. Optional
+  self-signed HTTPS with a panel-displayed fingerprint stays available
+  as an advanced, opt-in path. mTLS remains reserved for the
+  device→relay link, where no browser is involved.
+- **Because TLS is absent, the device authenticates at the application
+  layer.** mDNS is unauthenticated — any LAN host can claim the name —
+  and plain HTTP authenticates no server, so a bearer token alone can be
+  phished by a spoofer. The device therefore signs a Console-supplied
+  nonce with its device key, and the Console verifies it against a key
+  captured out-of-band at setup. A non-secure origin has no
+  `crypto.subtle`, so the device-served Console carries a small pure-JS
+  verifier while the hosted copy uses WebCrypto.
+- **No WebAuthn on the device origin, ever.** Chrome refuses WebAuthn on
+  origins with certificate errors, and bare IPs are not valid RP IDs.
+  Passkeys are a Cloud Mode account credential on the hosted origin
+  only; device-local authority is the LAN token plus physical presence.
 - **Rebinding/CSRF-hostile.** Mutating routes validate `Host` against
   the device's own names and reject foreign `Origin`s; combined with
   the bearer-token requirement. P1 must exercise DNS-rebinding and CSRF

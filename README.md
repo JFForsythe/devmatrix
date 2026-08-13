@@ -5,7 +5,7 @@
 A hackable 64×32 LED matrix appliance for people who want a beautiful
 object they fully control: open firmware, stable documented APIs, and a
 control portal (the **Console**) for shipping your own apps to your own
-hardware — over the air or over USB, from your browser.
+hardware — over the air from your browser, or over USB.
 
 Not the closed FlightTrackerLED appliance — a canvas platform with
 bundled apps, including a tiny local-only flight display fed by your

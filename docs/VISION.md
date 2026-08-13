@@ -33,13 +33,14 @@ expected; delight comes from how far the same box can go.
 1. First pixel in under 5 minutes, using only the quickstart.
 2. No app, no account, no cloud **required** — full control on your
    LAN, free forever (docs/MODES.md owns the split).
-3. Upload your own apps to the box: OTA from the Console, or USB flash
-   from the browser.
+3. Upload your own apps to the box: OTA from the Console today; browser
+   USB flash is **Ahead · gate M2**.
 4. Hosted OTA included — static files, free, fully self-hostable (the
    Eject path).
 5. MQTT + REST + WebSocket ready; Home Assistant discovery out of the box.
 6. Full implementation guide; versioned `/api/v1` contract.
-7. Never bricks: dual slots, auto-rollback, browser USB recovery.
+7. Never bricks: dual slots and USB recovery today; automatic rollback
+   is **Ahead · gate M0**.
 8. Cloud Mode is optional **and paid** — the subscription funds its own
    operations, and the sunset covenant (12-month notice + automatic
    Eject) means the box can never be held hostage.
@@ -52,7 +53,7 @@ surface for all four.
 | Tier | Who | What they do | Console surface |
 |---|---|---|---|
 | 0 — Configure | everyone | WiFi, brightness, scenes, quiet hours | Dashboard, Settings |
-| 1 — Integrate | smart-home users | push content via REST/MQTT/WS; JSON layouts; HA discovery | Dev Console, API keys |
+| 1 — Integrate | smart-home users | push content via REST/MQTT/WS; JSON layouts; HA discovery | Dev console, API keys |
 | 2 — Extend | tinkerers | install declarative apps (layout + bindings), no toolchain; run host apps on a machine you already own (ADR-0026) | Apps |
 | 3 — Fork | firmware devs | build/flash own firmware, enroll own signing key, self-host | Deploy (BYO builds), Eject |
 
@@ -67,6 +68,9 @@ redesign it here, in the open, differently, from cited public sources
 Flight display itself is in scope in exactly one narrow form:
 **Flights Overhead**, a bundled app fed only by an ADS-B
 receiver on the owner's LAN (the open dump1090/readsb JSON format).
+The radar view pushes raw frames, so it is frame-layer and same-LAN in
+Local Mode; Cloud Mode's paid relay (**Ahead · gate C1**) is the only
+remote path (ADR-0029).
 Local-only forever — no company aircraft feed, no third-party
 flight-data services. The closed products stay the turnkey content
 appliances; Devmatrix stays the canvas.

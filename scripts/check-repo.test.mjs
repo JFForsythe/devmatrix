@@ -11,9 +11,11 @@ import { fileURLToPath } from "node:url";
 import {
   CLEAN_ROOM_BANNED_ENCODED,
   CLEAN_ROOM_ALLOWED_ENCODED,
+  checkCanonicalSources,
   checkCanonicalStory,
   checkCleanRoom,
   checkCleanRoomContent,
+  checkDependencyProvenance,
   checkHtml,
   checkMarkdownLinks,
   checkPrototypeInventory,
@@ -91,6 +93,33 @@ test("canonical identifier drift reports the missing semantic value", () => {
   assert.match(issues[0].message, /second device name.*Workshop/);
 });
 
+test("canonical identifier drift scans both prototype and Console mock data", () => {
+  const complete = extractCanonicalIdentifiers(STORY_FIXTURE).identifiers.map(([, value]) => value).join("\n");
+  const issues = checkCanonicalSources(STORY_FIXTURE, new Map([
+    ["portal/prototype/index.html", complete],
+    ["portal/console/src/mock.ts", complete.replace("Workshop", "Garage")],
+  ]));
+  assert.equal(issues.length, 1);
+  assert.equal(issues[0].file, "portal/console/src/mock.ts");
+  assert.match(issues[0].message, /second device name.*Workshop/);
+});
+
+test("dependency provenance checker reports packages missing from the adjacent README", t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "devmatrix-provenance-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(root, "portal/console"), { recursive: true });
+  fs.writeFileSync(path.join(root, "portal/console/package.json"), JSON.stringify({
+    dependencies: { preact: "10.27.2" },
+    devDependencies: { vite: "5.4.21" },
+  }));
+  fs.writeFileSync(path.join(root, "portal/console/README.md"), "| `preact` | MIT |\n");
+
+  const issues = checkDependencyProvenance(root, ["portal/console/package.json"]);
+  assert.equal(issues.length, 1);
+  assert.equal(issues[0].check, "dependency-provenance");
+  assert.match(issues[0].message, /Package "vite"/);
+});
+
 test("Markdown scanner ignores code and external URLs", () => {
   const markdown = "[local](guide.md) [web](https://example.test) ` [sample](missing.md) `\n```md\n[fenced](missing.md)\n```";
   assert.deepEqual(extractMarkdownLinks(markdown).map(link => link.destination), ["guide.md", "https://example.test"]);
@@ -134,6 +163,26 @@ test("accepted ADRs remain immutable even when a superseding ADR is added", () =
 
   currentAdrs.set("docs/adr/ADR-0006-existing.md", ACCEPTED_0006);
   assert.deepEqual(evaluateAdrPolicy({ baselineAdrs, currentAdrs, changes: changes.slice(1) }), []);
+});
+
+test("the ADR directory index is exempt from the numbering and immutability rules", () => {
+  // README.md is the directory's forward-pointer index, not a decision
+  // record: immutable ADRs cannot say who superseded them, so it must.
+  const index = "# Decision log — index\n\nADR-0005 is superseded by ADR-0027.\n";
+  const baselineAdrs = new Map([
+    ["docs/adr/ADR-0007-existing.md", ACCEPTED_0007],
+    ["docs/adr/README.md", index],
+  ]);
+  const currentAdrs = new Map([
+    ["docs/adr/ADR-0007-existing.md", ACCEPTED_0007],
+    ["docs/adr/README.md", `${index}\nADR-0020 is refined by ADR-0031.\n`],
+  ]);
+  const changes = [{ status: "M", path: "docs/adr/README.md" }];
+  // The collectors drop the index before policy runs, so an edited index is
+  // neither a bad filename nor an immutability violation.
+  baselineAdrs.delete("docs/adr/README.md");
+  currentAdrs.delete("docs/adr/README.md");
+  assert.deepEqual(evaluateAdrPolicy({ baselineAdrs, currentAdrs, changes }), []);
 });
 
 test("accepted ADRs cannot be deleted, even when a replacement exists", () => {
@@ -312,10 +361,12 @@ function createBaselineRepo(t) {
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fixtureGit(root, ["init", "--quiet"]);
   fs.mkdirSync(path.join(root, "docs"));
+  fs.mkdirSync(path.join(root, "portal/console/src"), { recursive: true });
   fs.mkdirSync(path.join(root, "portal/prototype"), { recursive: true });
   fs.writeFileSync(path.join(root, "docs/USER-STORY.md"), STORY_FIXTURE);
+  fs.writeFileSync(path.join(root, "portal/console/src/mock.ts"), PROTOTYPE_FIXTURE);
   fs.writeFileSync(path.join(root, "portal/prototype/index.html"), PROTOTYPE_FIXTURE);
-  fixtureGit(root, ["add", "docs/USER-STORY.md", "portal/prototype/index.html"]);
+  fixtureGit(root, ["add", "docs/USER-STORY.md", "portal/console/src/mock.ts", "portal/prototype/index.html"]);
   fixtureGit(root, ["commit", "--quiet", "-m", "baseline"]);
   return root;
 }

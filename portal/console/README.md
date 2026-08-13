@@ -52,15 +52,18 @@ pre-switch commit from the new root.
 
 `scripts/verify-live.mjs` defaults to the artifact production actually serves
 and fails closed if the two disagree. Before the cutover, the hosted artifact
-can be checked explicitly with
-`DEVMATRIX_LIVE_FILE=portal/prototype/index.html make verify-live`. Unset that
-override for the switch release.
+can be checked against a preview deployment with
+`DEVMATRIX_LIVE_URL=<preview-url> DEVMATRIX_LIVE_FILE=portal/console/dist-hosted/index.html make verify-live`.
+Unset both for the switch release.
 
 ## Runtime modes
 
 - The device build talks to same-origin `/api/v1` and `/update` routes.
-- The hosted build uses live mode when `?device=<host>` is supplied (and
-  remembers that address locally); otherwise it uses clearly labeled mock data.
+- The hosted build accepts `?device=<host>` and remembers it, but a browser
+  blocks those `http://` calls from an HTTPS origin as mixed content, so live
+  control from the hosted copy is blocked until the **Ahead · gate P1**
+  browser-transport spike lands (docs/SECURITY.md → Discovery & local
+  transport). The device-served build is the authoritative live path.
 - LAN bearer tokens are browser-local. A `401` opens claim-code pairing and
   retries the interrupted request after the panel code is accepted.
 

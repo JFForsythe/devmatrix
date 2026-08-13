@@ -174,16 +174,21 @@ Shows aircraft your own ADS-B receiver hears — a live list, or an
 animated radar with altitude-colored aircraft, comet trails, runways,
 and green landing strobes. Local receiver only, by design
 ([docs/VISION.md](VISION.md) — never a company feed).
+The radar view pushes raw frames, so it is frame-layer and same-LAN in
+Local Mode; Cloud Mode's paid relay (**Ahead · gate C1**) is the only
+remote path (ADR-0029).
 
 **You need:** a receiver on your LAN speaking the open
 dump1090/readsb `aircraft.json` format (a PiAware Pi qualifies), plus
 any always-on machine with Node 18+.
 
-1. Console → **Flights** → **Scan my network**. The device finds
-   common receiver images itself; or type the receiver URL manually.
+1. Console → **Apps** → **Flights list** → **SCAN MY NETWORK**. The
+   device finds common receiver images itself; or type the receiver URL
+   manually.
 2. Set interval, rows, format, and List or Radar. Save — the config
    lives on the device, and any host machine obeys it.
-3. The Flights page prints your exact run command. It looks like:
+3. The Flights list card prints your exact run command under **OPTIONAL
+   RADAR HOST COMMAND**. It looks like:
 
    ```sh
    DMX_URL=http://dmx-xxxx.local DMX_TOKEN=<your LAN token> \
@@ -330,9 +335,9 @@ More examples and script details: [examples/README.md](../examples/README.md).
 
 1. Build the new `.bin` (chapter 2) — or take a published release
    artifact once releases begin (**Ahead · M0**, signed).
-2. Console → **Update** → choose the `.bin` → upload. It writes to the
-   inactive slot and reboots into it; the Dashboard shows the new
-   version and slot.
+2. Console → **Deploy** → **OTA upload** → choose the `.bin` → **UPLOAD
+   & REBOOT**. It writes to the inactive slot and reboots into it; the
+   Dashboard shows the new version and slot.
 
 **Honest limits, today:** images are length/magic-checked but not yet
 signature-verified, and rollback on a failed boot is not automatic —
@@ -402,7 +407,7 @@ browser MQTT workbench are in
 | `401 unauthorized` | Stale token — re-pair (chapter 4) or re-copy from the Dev console view |
 | Panel resets at high brightness | Under-powered supply. The 150 cap exists for this; the Dashboard's reset-reason tile confirms a brown-out |
 | Clock is wrong | Settings → timezone; the clock needs one internet moment for SNTP after boot |
-| Flights page saves but panel shows nothing | The host script isn't running — chapter 8; check `systemctl status dmx-flights` |
+| Apps → Flights list saves but the radar shows nothing | The host script isn't running — chapter 8; check `systemctl status dmx-flights` |
 | MQTT stays disabled | Turn on **ENABLE MQTT** and enter a host; an empty host deliberately keeps MQTT off |
 | MQTT shows error | Check the broker address, port, per-device username/password and ACL from chapter 11; pre-P2 TLS also requires a trusted network path |
 | Home Assistant did not discover the device | Confirm MQTT says connected and Home Assistant publishes `online` to `homeassistant/status`; then check the discovery-write ACL in the contract |

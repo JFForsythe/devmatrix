@@ -68,7 +68,7 @@ export function SecurityView({ transport }: { transport: ConsoleTransport }) {
       </div>
 
       <Card title="Factory reset" aside={<span class="chip crit">WIPES DEVICE SETTINGS</span>} className="danger-card">
-        <p class="lead">Erases Wi-Fi, the LAN token, timezone, brightness, and Flights configuration from NVS.</p>
+        <p class="lead">Erases Wi-Fi, the LAN token, timezone, brightness, MQTT credentials, messages, the custom layout, and Flights configuration from NVS.</p>
         <label class="field">
           <span>TYPE “FACTORY RESET” TO CONFIRM</span>
           <input value={confirmation} autoComplete="off" onInput={(event) => setConfirmation(event.currentTarget.value)} />

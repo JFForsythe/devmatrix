@@ -10,8 +10,27 @@ import { fileURLToPath } from "node:url";
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DEFAULT_ROOT = path.resolve(path.dirname(SCRIPT_PATH), "..");
 const PROTOTYPE_PATH = "portal/prototype/index.html";
+const CONSOLE_MOCK_PATH = "portal/console/src/mock.ts";
 const STORY_PATH = "docs/USER-STORY.md";
 const ADR_DIRECTORY = "docs/adr";
+// The directory's own index is not a decision record. Accepted ADRs are
+// immutable (CI enforces it byte-for-byte), so a reader landing on a
+// superseded ADR cannot be told so inside that file — the index carries the
+// forward pointers instead. Exactly this one filename is exempt from the
+// ADR-NNNN-slug rule and from the immutability rule.
+const ADR_INDEX_FILE = `${ADR_DIRECTORY}/README.md`;
+const DEPENDENCY_PROVENANCE_DIRECTORIES = [
+  "portal/console",
+  "examples/pixlet-bridge",
+];
+const CONSOLE_MOCK_IDENTIFIER_LABELS = new Set([
+  "primary serial",
+  "claim address",
+  "primary device name",
+  "second device name",
+  "third device name",
+  "firmware version",
+]);
 
 function issue(check, file, message, hint = "") {
   return { check, file, message, hint };
@@ -254,16 +273,63 @@ export function extractCanonicalIdentifiers(story) {
   return { identifiers, issues };
 }
 
-export function checkCanonicalStory(story, html, htmlFile = PROTOTYPE_PATH) {
+export function checkCanonicalStory(story, source, sourceFile = PROTOTYPE_PATH, includedLabels = null) {
   const extracted = extractCanonicalIdentifiers(story);
   const issues = [...extracted.issues];
   for (const [label, value] of extracted.identifiers) {
-    if (!html.includes(value)) {
+    if (includedLabels && !includedLabels.has(label)) continue;
+    if (!source.includes(value)) {
       issues.push(issue(
         "canonical-identifiers",
-        htmlFile,
+        sourceFile,
         `Missing canonical ${label}: "${value}".`,
         `Use the exact value from ${STORY_PATH}; mock data must tell one consistent story.`,
+      ));
+    }
+  }
+  return issues;
+}
+
+/** Hold both public mock datasets to the identifiers they share with the user story. */
+export function checkCanonicalSources(story, sources) {
+  const issues = [];
+  for (const [file, source] of sources) {
+    const includedLabels = file === CONSOLE_MOCK_PATH ? CONSOLE_MOCK_IDENTIFIER_LABELS : null;
+    issues.push(...checkCanonicalStory(story, source, file, includedLabels));
+  }
+  return issues;
+}
+
+/** Require every direct package dependency to be recorded beside its package.json. */
+export function checkDependencyProvenance(root, packageJsonPaths) {
+  const issues = [];
+  for (const packageJsonPath of [...packageJsonPaths].sort()) {
+    let manifest;
+    try {
+      manifest = JSON.parse(fs.readFileSync(path.join(root, packageJsonPath), "utf8"));
+    } catch {
+      continue; // The repository JSON check owns malformed manifests.
+    }
+
+    const readmePath = path.join(path.dirname(packageJsonPath), "README.md");
+    let readme = "";
+    try {
+      readme = fs.readFileSync(path.join(root, readmePath), "utf8");
+    } catch {
+      // A missing README means every declared package lacks its provenance entry.
+    }
+
+    const packages = unique([
+      ...Object.keys(manifest.dependencies || {}),
+      ...Object.keys(manifest.devDependencies || {}),
+    ]).sort();
+    for (const packageName of packages) {
+      if (readme.includes(packageName)) continue;
+      issues.push(issue(
+        "dependency-provenance",
+        readmePath,
+        `Package "${packageName}" from ${packageJsonPath} is missing from the adjacent README.md provenance table.`,
+        `Add ${packageName} and its public provenance before accepting the dependency.`,
       ));
     }
   }
@@ -744,13 +810,14 @@ function readAdrsFromDisk(root) {
   const entries = fs.readdirSync(directory, { withFileTypes: true })
     .filter(entry => entry.isFile() && entry.name.endsWith(".md"))
     .map(entry => `${ADR_DIRECTORY}/${entry.name}`)
+    .filter(file => file !== ADR_INDEX_FILE)
     .sort();
   return new Map(entries.map(file => [file, fs.readFileSync(path.join(root, file), "utf8")]));
 }
 
 function readBaselineAdrs(root, anchor) {
   const output = requireGit(root, ["ls-tree", "-r", "--name-only", "-z", anchor, "--", ADR_DIRECTORY], "Cannot list baseline ADRs");
-  const files = output.split("\0").filter(Boolean).sort();
+  const files = output.split("\0").filter(Boolean).filter(file => file !== ADR_INDEX_FILE).sort();
   return new Map(files.map(file => [
     file,
     requireGit(root, ["show", `${anchor}:${file}`], `Cannot read baseline ${file}`),
@@ -811,7 +878,7 @@ export function runRepositoryChecks({ root = DEFAULT_ROOT, argv = [], environmen
   const { requested, anchor } = comparison(root, options, environment);
   const issues = [];
 
-  for (const required of [PROTOTYPE_PATH, STORY_PATH]) {
+  for (const required of [PROTOTYPE_PATH, CONSOLE_MOCK_PATH, STORY_PATH]) {
     if (!fs.existsSync(path.join(root, required))) {
       issues.push(issue("required-files", required, "Required repository truth file is missing.", "Restore the file before running the remaining checks."));
     }
@@ -819,14 +886,24 @@ export function runRepositoryChecks({ root = DEFAULT_ROOT, argv = [], environmen
 
   let html = "";
   let story = "";
+  const canonicalSources = new Map();
   if (fs.existsSync(path.join(root, PROTOTYPE_PATH))) {
     html = fs.readFileSync(path.join(root, PROTOTYPE_PATH), "utf8");
+    canonicalSources.set(PROTOTYPE_PATH, html);
     issues.push(...checkHtml(html));
   }
+  if (fs.existsSync(path.join(root, CONSOLE_MOCK_PATH))) {
+    canonicalSources.set(CONSOLE_MOCK_PATH, fs.readFileSync(path.join(root, CONSOLE_MOCK_PATH), "utf8"));
+  }
   if (fs.existsSync(path.join(root, STORY_PATH))) story = fs.readFileSync(path.join(root, STORY_PATH), "utf8");
-  if (html && story) issues.push(...checkCanonicalStory(story, html));
+  if (story) issues.push(...checkCanonicalSources(story, canonicalSources));
 
   const repositoryFiles = visibleFiles(root);
+  const provenancePackages = repositoryFiles.filter(file =>
+    path.basename(file) === "package.json" &&
+    !file.includes("/node_modules/") &&
+    DEPENDENCY_PROVENANCE_DIRECTORIES.some(directory => file.startsWith(`${directory}/`)));
+  issues.push(...checkDependencyProvenance(root, provenancePackages));
   issues.push(...checkPrototypeInventory(repositoryFiles));
   issues.push(...checkRepositoryFiles(root, repositoryFiles));
   issues.push(...checkCleanRoom(root, repositoryFiles));
