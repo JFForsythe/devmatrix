@@ -19,7 +19,7 @@ export const MOCK_FLEET: FleetDevice[] = [
     name: "Study",
     serial: "DMX-4E71-0952",
     address: "dmx-0952.local · 10.0.4.22",
-    firmware: "0.8.0",
+    firmware: "0.12.0",
     location: "home",
     online: true,
     mock: true,
@@ -28,7 +28,7 @@ export const MOCK_FLEET: FleetDevice[] = [
     name: "Workshop",
     serial: "DMX-4E71-1108",
     address: "dmx-1108.local · 10.0.4.23",
-    firmware: "0.8.0",
+    firmware: "0.12.0",
     location: "home",
     online: true,
     mock: true,
@@ -37,7 +37,7 @@ export const MOCK_FLEET: FleetDevice[] = [
     name: "Guest Loft",
     serial: "DMX-3C22-0417",
     address: "dmx-0417.local · offline",
-    firmware: "0.8.0",
+    firmware: "0.12.0",
     location: "chalet",
     online: false,
     mock: true,
@@ -58,12 +58,12 @@ export interface MockState {
 }
 export function createMockState(): MockState {
   return {
-    health: { ok: true, device: "DMX-4E71-0952", fw: "0.8.0", mode: "run" },
+    health: { ok: true, device: "DMX-4E71-0952", fw: "0.12.0", mode: "run" },
     info: {
       device: "DMX-4E71-0952",
       name: "Study",
       serial: "DMX-4E71-0952",
-      fw: "0.8.0",
+      fw: "0.12.0",
       uptime_s: 1_052_820,
       heap_free: 151_552,
       rssi_dbm: -52,

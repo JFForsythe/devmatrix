@@ -18,13 +18,18 @@ extend it; breaking changes are avoided but not yet promised.
   server identity is the Ed25519 signed-nonce proof below, never TLS.
 - Auth: `Authorization: Bearer <LAN token>` on every route except
   those marked **open**. Failure: `401 {"error":"unauthorized"}`.
-  The token is a bearer header only — never a cookie.
-- Bodies are JSON and require `Content-Type: application/json`.
+  The token is a bearer header only — never a cookie. Tokens minted by
+  firmware 0.12.0+ are `dmx_lan_` + 32 hex characters; tokens from
+  earlier firmware are bare hex and remain valid until rotated.
+- Bodies are JSON, require `Content-Type: application/json`, and are
+  refused over 8 KB (`413`, firmware 0.12.0+); the multipart `/update`
+  path is exempt.
 - Errors are `{"error":"<human-readable message>"}` with a meaningful
   status (400 invalid input, 401 unauthorized, 403 wrong claim code,
-  404 unknown id, 410 expired claim code, 429 claim lockout,
-  500 store/OTA failure). A machine-readable error-code registry is a
-  P2 freeze item; today the message string is the contract.
+  404 unknown id, 410 expired claim code, 413 oversized body,
+  429 claim lockout, 500 store/OTA failure). A machine-readable
+  error-code registry is a P2 freeze item; today the message string is
+  the contract.
 - Browser cross-origin access: the firmware answers CORS preflight for
   `/api/v1/*` and `/update` with an **exact-origin allowlist**
   (the hosted Console origin only, never `*`) and validates the `Host`
@@ -75,8 +80,8 @@ declarative apps — docs/GLOSSARY.md).
 ### `GET /api/v1/info`
 
 ```json
-{"device":"DMX-4E71-0952","fw":"0.11.0","uptime_s":86432,
- "heap_free":118432,"rssi_dbm":-52,"ip":"10.0.4.22",
+{"device":"DMX-4E71-0952","serial":"DMX-4E71-0952","fw":"0.12.0",
+ "uptime_s":86432,"heap_free":118432,"rssi_dbm":-52,"ip":"10.0.4.22",
  "mdns":"dmx-0952.local","brightness":120,"refresh_hz":220,
  "slot":"ota_0","scene":"clock","reset_reason":"power-on"}
 ```
@@ -137,8 +142,10 @@ Anyone on the LAN may *ask* to pair; only someone who can read the
 panel can *finish* (possession proof; docs/SECURITY.md). One active
 code at a time.
 
-- `claim/start`: empty body → `{"ok":true,"expires_s":300}` and the
-  panel shows a 6-digit code. Codes live 5 minutes.
+- `claim/start`: empty body → `{"ok":true,"expires_s":<remaining>}`
+  and the panel shows a 6-digit code. Codes live 5 minutes;
+  re-requesting while a code is active re-shows it and reports the
+  remaining seconds without extending its life (firmware 0.12.0+).
 - `claim/finish` with `{"code":"482913"}` (non-digits are stripped, so
   separators are tolerated). Success →
   `{"token":"<LAN token>", ...identity fields...}` — the identity key
@@ -238,9 +245,11 @@ While unprovisioned the device serves, unauthenticated: `GET /`
 `POST /setup/join` (`{"ssid":"…","pass":"…"}` → `{"ok":true}`),
 `GET /setup/status` (`{"state":"idle|joining|failed"}` — or, once
 joined, `{"state":"joined","ip":…,"mdns":…,"token":…,` identity
-fields`}` — the v0 possession ceremony: the token is revealed once,
-on the setup network only; see the exposure-window note in
-docs/SECURITY.md), `POST /setup/done` (reboot into station mode), and
+fields`}` — the v0 possession ceremony: the token is revealed on the
+setup network only, and since firmware 0.12.0 the device auto-reboots
+onto the owner's Wi-Fi 90 s after a successful join, closing the
+window; see docs/SECURITY.md), `POST /setup/done` (reboot into
+station mode), and
 `GET /api/v1/health`. Every unknown URL 302-redirects to the portal
 (captive-portal probe behavior).
 

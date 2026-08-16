@@ -258,46 +258,50 @@ static bool dmxBuildFlightsFrame(const char* format, uint8_t wantedRows,
   if (!dmxJsonRoot(dmxAppFetchBuffer, length, root) ||
       !dmxJsonObjectGet(root, "aircraft", aircraftArray) ||
       aircraftArray.type != '[') return false;
-  size_t count = dmxJsonArraySize(aircraftArray, 256);
   double homeLat = 0, homeLon = 0;
   bool hasHome = dmxReceiverPosition(root, homeLat, homeLon);
-  int chosen[DMX_APP_MAX_ROWS] = {-1, -1, -1, -1, -1};
+  if (wantedRows > DMX_APP_MAX_ROWS) wantedRows = DMX_APP_MAX_ROWS;
+  // One pass over the array, keeping the nearest `wantedRows` in a tiny
+  // insertion-sorted list: O(count·rows). The previous per-row
+  // dmxJsonArrayGet rescan was O(rows·count²) — noticeable render stalls
+  // on a real 35 KB busy-airspace aircraft.json in loop().
+  double slotDist[DMX_APP_MAX_ROWS];
+  char slotLine[DMX_APP_MAX_ROWS][17];
+  uint8_t filled = 0;
+  const char* cursor = nullptr;
+  DmxJsonSpan aircraft;
+  size_t scanned = 0;
+  while (scanned < 256 && dmxJsonArrayNext(aircraftArray, cursor, aircraft)) {
+    ++scanned;
+    if (aircraft.type != '{') continue;
+    char line[17];
+    if (!dmxBuildFlightLine(aircraft, format, line)) continue;
+    double distance = (double)scanned;  // feed order when no home position
+    if (hasHome) {
+      double lat, lon;
+      if (!dmxObjectCoordinate(aircraft, "lat", lat) ||
+          !dmxObjectCoordinate(aircraft, "lon", lon)) continue;
+      distance = dmxMiles(homeLat, homeLon, lat, lon);
+    }
+    if (filled == wantedRows && distance >= slotDist[filled - 1]) continue;
+    uint8_t at = filled < wantedRows ? filled : (uint8_t)(wantedRows - 1);
+    while (at > 0 && slotDist[at - 1] > distance) {
+      slotDist[at] = slotDist[at - 1];
+      memcpy(slotLine[at], slotLine[at - 1], sizeof slotLine[at]);
+      --at;
+    }
+    slotDist[at] = distance;
+    snprintf(slotLine[at], sizeof slotLine[at], "%s", line);
+    if (filled < wantedRows) ++filled;
+  }
   DmxAppFrame next;
   dmxClearFrame(next);
   const uint8_t colors[][3] = {
     {235, 235, 235}, {40, 210, 230}, {255, 178, 36},
     {80, 230, 110}, {220, 100, 255}
   };
-  for (uint8_t row = 0; row < wantedRows && row < DMX_APP_MAX_ROWS; ++row) {
-    int best = -1;
-    double bestDistance = 1.0e30;
-    char bestLine[17] = "";
-    for (size_t index = 0; index < count; ++index) {
-      bool already = false;
-      for (uint8_t used = 0; used < row; ++used)
-        if (chosen[used] == (int)index) already = true;
-      if (already) continue;
-      DmxJsonSpan aircraft;
-      char line[17];
-      if (!dmxJsonArrayGet(aircraftArray, index, aircraft) ||
-          aircraft.type != '{' || !dmxBuildFlightLine(aircraft, format, line))
-        continue;
-      double distance = (double)index;
-      if (hasHome) {
-        double lat, lon;
-        if (!dmxObjectCoordinate(aircraft, "lat", lat) ||
-            !dmxObjectCoordinate(aircraft, "lon", lon)) continue;
-        distance = dmxMiles(homeLat, homeLon, lat, lon);
-      }
-      if (distance < bestDistance) {
-        best = index;
-        bestDistance = distance;
-        snprintf(bestLine, sizeof bestLine, "%s", line);
-      }
-    }
-    if (best < 0) break;
-    chosen[row] = best;
-    dmxCopyRow(next, row, DMX_APP_BASELINES[row], colors[row], bestLine);
+  for (uint8_t row = 0; row < filled; ++row) {
+    dmxCopyRow(next, row, DMX_APP_BASELINES[row], colors[row], slotLine[row]);
     next.rowCount = row + 1;
   }
   if (!next.rowCount) {

@@ -36,6 +36,12 @@ export interface ConnectResult {
    * "bad-signature" — the identity endpoint answered but the proof failed
    */
   identityStatus: "verified" | "legacy" | "mismatch" | "bad-signature";
+  /**
+   * True when "verified" pinned a key this browser had never seen —
+   * first-use trust, not authentication. The panel claim code is the
+   * actual first-contact possession proof; copy must not oversell this.
+   */
+  firstPin: boolean;
 }
 
 function storageGet(key: string): string {
@@ -182,33 +188,40 @@ export class ConsoleTransport {
     const health = await fetchJson<Health>(`${base}/api/v1/health`, {}, 8000);
     let identity: DeviceIdentity | null = null;
     let identityStatus: ConnectResult["identityStatus"] = "legacy";
+    let firstPin = false;
 
     const nonce = makeNonce();
     let verifyResponse: Response | null = null;
+    const verifyAbort = new AbortController();
+    const verifyTimer = window.setTimeout(() => verifyAbort.abort(), 8000);
     try {
       verifyResponse = await fetch(`${base}/api/v1/identity/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nonce }),
+        signal: verifyAbort.signal,
       });
     } catch {
       verifyResponse = null; // treated as legacy firmware below
+    } finally {
+      window.clearTimeout(verifyTimer);
     }
     if (verifyResponse?.ok) {
       identity = (await verifyResponse.json()) as DeviceIdentity;
       if (!(await verifyIdentity(identity, nonce))) {
-        return { health, identity, identityStatus: "bad-signature" };
+        return { health, identity, identityStatus: "bad-signature", firstPin };
       }
       const pinned = storageGet(PUBKEY_KEY);
       const sameDevice = storageGet(SERIAL_KEY) === identity.device;
       if (pinned && sameDevice && pinned !== identity.pubkey) {
-        return { health, identity, identityStatus: "mismatch" };
+        return { health, identity, identityStatus: "mismatch", firstPin };
       }
       identityStatus = "verified";
+      firstPin = !(pinned && sameDevice);
     }
 
     if (identityStatus === "legacy" && !allowLegacy) {
-      return { health, identity, identityStatus };
+      return { health, identity, identityStatus, firstPin };
     }
 
     // A token from a previously connected box will not open this one.
@@ -221,7 +234,7 @@ export class ConsoleTransport {
       storageSet(PUBKEY_KEY, identity.pubkey);
       storageSet(FINGERPRINT_KEY, identity.fingerprint);
     }
-    return { health, identity, identityStatus };
+    return { health, identity, identityStatus, firstPin };
   }
 
   /** The caller confirmed a key change (reflash/factory reset): re-pin. */
@@ -336,12 +349,18 @@ export class ConsoleTransport {
       headers.set("Content-Type", "application/json");
     }
 
+    // A device that accepts the socket but never answers must not hang
+    // the caller: polling views stack requests otherwise.
+    const abort = new AbortController();
+    const timer = window.setTimeout(() => abort.abort(), 10000);
     let response: Response;
     try {
-      response = await fetch(`${this.baseUrl}${path}`, { ...init, headers });
+      response = await fetch(`${this.baseUrl}${path}`, { ...init, headers, signal: abort.signal });
     } catch {
       this.noteReachability(false);
       throw new Error(`Could not reach ${this.address}.`);
+    } finally {
+      window.clearTimeout(timer);
     }
     this.noteReachability(true);
 
@@ -529,6 +548,8 @@ export class ConsoleTransport {
       new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("POST", `${this.baseUrl}/update`);
+        xhr.timeout = 180000;
+        xhr.ontimeout = () => reject(new Error("Firmware upload timed out."));
         xhr.setRequestHeader("Authorization", `Bearer ${this.token}`);
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));

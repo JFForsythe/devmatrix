@@ -56,8 +56,10 @@ and we would not want them to):
   unauthenticated; from a successful Wi-Fi join until the owner
   finishes setup, the joining page (or any client still on the
   hotspot) can read the minted LAN token. Exposure is bounded by RF
-  range and the seconds-long setup window; hardening (an AP password
-  shown on the panel, auto-closing the window) is tracked for gate M0.
+  range and time: since firmware 0.12.0 the device **auto-closes the
+  window** — it reboots onto the owner's Wi-Fi 90 s after a
+  successful join if Finish is never tapped. An AP password shown on
+  the panel remains a candidate M0 hardening.
 - **The panel is the directory.** Once on WiFi, the panel shows its
   own address (`dmx-0952.local`) next to the claim code. Discovery is
   the owner reading the panel — never a cloud page scanning the LAN.

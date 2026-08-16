@@ -3,7 +3,24 @@
 > **Status: living tree.** The DK-01 firmware lives at
 > [`firmware/dk01/`](../firmware/dk01/README.md) and develops
 > continuously from P1 onward (ADR-0024, superseding ADR-0009's
-> disposable-spike posture). v0.11.0 removes the receiver scan entirely
+> disposable-spike posture). v0.12.0 is the hardening pass from the
+> 2026-08-16 production-readiness review: the LAN token gains the
+> `dmx_lan_` prefix (instantly recognizable to secret scanners; older
+> bare-hex tokens stay valid), token and identity-key minting move
+> after the Wi-Fi driver starts so `esp_random` is hardware-strong,
+> JSON bodies are bounded at 8 KB (413), the open setup window
+> auto-closes 90 s after a successful join if Finish is never tapped,
+> re-requesting an active claim code no longer extends its life, OTA
+> images mark themselves valid on 30 s of stable uptime instead of
+> Wi-Fi join (a router outage can no longer roll back a healthy
+> image), the flights list builds in one pass (the per-row rescan
+> could stall rendering on a real 35 KB feed), brightness NVS writes
+> are debounced, a display-driver init failure reports and retries
+> instead of hanging silently forever, `/api/v1/info` gains `serial`,
+> and the token leaves the periodic serial stat line (boot-time reveal
+> only). The Console side adds request/upload timeouts, a CSP, honest
+> first-use-pinning wording, and a sterner legacy-firmware warning.
+> v0.11.0 removes the receiver scan entirely
 > (ADR-0032): the device never initiates a connection to an address the
 > owner didn't configure — receiver discovery becomes an owner-side
 > finder prompt in the Console. v0.10.0 fixes the app-fetch ceiling that made
@@ -93,8 +110,9 @@ firmware/
 Dual app slots (2 MB each, `ota_0`/`ota_1`) + a 256 KB TinyUF2 factory
 partition for USB recovery + a 3.7 MB `ffat` data partition reserved for
 future assets and apps. Framebuffers in PSRAM; DMA descriptors in
-internal RAM. v0.11.0 measures 1,366,075 B flash (65 % of a slot) and
-116,692 B static RAM (the app fetch buffer lives in PSRAM);
+internal RAM. v0.12.0 measures 1,367,855 B flash (65 % of a slot) and
+116,708 B static RAM (the app fetch buffer lives in PSRAM);
+v0.11.0 measured 1,366,075 B / 116,692 B;
 v0.8.0 measured 1,336,915 B / 120,396 B
 ([evidence](../hardware/evidence/2026-08-12-console-parity-verification.md)).
 A CI slot-occupancy and heap-headroom gate is **Ahead · gate P2**. The

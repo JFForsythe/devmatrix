@@ -22,7 +22,8 @@ owner-facing walkthrough — setup, Console, apps, updates, recovery — is
   shows a 6-digit code (white row, then blue), and typing it earns the
   LAN token. Reading the panel *is* the credential: nothing to write
   down, and losing a browser never means factory reset. Codes expire in
-  5 minutes and die after 5 wrong tries.
+  5 minutes and die after 5 wrong tries; asking again re-shows the
+  active code without extending its life.
 - **Local Console** — the device serves its own control page at
   `http://dmx-xxxx.local/`: status tiles, text push, a 64×32 paint
   canvas, brightness, identify, timezone, token rotation, and OTA
@@ -120,7 +121,9 @@ the fetch-buffer size; the answer to "why is this app blank?"),
 There is deliberately no discovery/scan route: the device never opens a
 connection to an address the owner didn't configure (ADR-0032).
 Text submitted to `display/text` is capped at 120 characters. JSON
-bodies need `Content-Type: application/json`. Scripts get the token from the
+bodies need `Content-Type: application/json` and are refused over
+8 KB (413). Tokens minted by firmware 0.12.0+ carry a `dmx_lan_`
+prefix; older bare-hex tokens stay valid. Scripts get the token from the
 Console's **Dev console** view (**COPY WITH MY TOKEN**) or USB serial.
 
 ## Files

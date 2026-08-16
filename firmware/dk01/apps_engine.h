@@ -275,6 +275,20 @@ static bool dmxJsonArrayGet(const DmxJsonSpan& array, size_t wanted,
   return false;
 }
 
+// Sequential array iteration: O(1) per element where dmxJsonArrayGet
+// rescans from the start on every lookup. `cursor` starts as nullptr.
+static bool dmxJsonArrayNext(const DmxJsonSpan& array, const char*& cursor,
+                             DmxJsonSpan& value) {
+  if (array.type != '[') return false;
+  const char* p = cursor ? cursor : dmxJsonWs(array.begin + 1, array.end - 1);
+  if (p >= array.end - 1) return false;
+  if (!dmxJsonScanValue(p, array.end, value, 0)) return false;
+  p = dmxJsonWs(value.end, array.end);
+  if (p < array.end && *p == ',') p = dmxJsonWs(p + 1, array.end);
+  cursor = p;
+  return true;
+}
+
 static size_t dmxJsonArraySize(const DmxJsonSpan& array, size_t stopAfter) {
   DmxJsonSpan ignored;
   size_t count = 0;

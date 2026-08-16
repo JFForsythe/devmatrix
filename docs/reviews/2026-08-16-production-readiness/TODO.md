@@ -71,27 +71,37 @@ complete.
 
 ## Group D — Firmware v0.12.0 + Console hardening
 
-- [ ] Token minting: `dmx_lan_` prefix (canon reconciliation)
-- [ ] Defer first-boot key/token mint until after radio start
-      (entropy P1)
-- [ ] Body-size cap ahead of auth (as far as the core allows)
-- [ ] Setup-mode Host middleware; post-join token window auto-close
-- [ ] Single-pass flights frame build (kills the O(n²) stall)
-- [ ] NVS brightness debounce
-- [ ] Rollback validity: mark-valid on stable uptime, not Wi-Fi join
-- [ ] Protomatter init failure: report + retry instead of infinite
-      hang
-- [ ] claim/start no longer extends an active code's expiry
-- [ ] Token dropped from the 10 s serial stat line (boot + claim
-      prints stay); fix "never logged" comment
-- [ ] `/api/v1/info` gains `serial`
-- [ ] Console: request/identity/OTA timeouts (AbortController)
-- [ ] Console: CSP meta; TOFU first-connect copy; legacy-downgrade
-      warning strengthened; DEMO chip label unified; mock fw version
-      → current
-- [ ] Rebuild both targets; determinism double-build; compile at
-      pinned core; docs updated in the same commit (FIRMWARE.md
-      changelog, README, MANUAL, SECURITY setup-window note)
+- [x] Token minting: `dmx_lan_` prefix (canon reconciliation; older
+      bare-hex tokens stay valid)
+- [x] First-boot key/token mint moved after Wi-Fi driver start
+      (entropy P1; bench-week run 6 still verifies on hardware)
+- [x] 8 KB JSON body cap (413) in console middleware; residual
+      pre-buffer copy documented as a core-level P2 item
+- [x] Setup mode: 2 KB body-cap middleware + 90 s post-join window
+      auto-close (Host allowlist is architecturally wrong for a
+      captive portal — it must answer every Host; documented instead)
+- [x] Single-pass flights frame build (O(count·rows) via new
+      dmxJsonArrayNext iterator)
+- [x] NVS brightness debounce (5 s, flushed from the stat tick; both
+      REST and MQTT paths)
+- [x] Rollback validity: mark-valid at 30 s stable uptime, decoupled
+      from Wi-Fi join
+- [x] Protomatter init failure: report + 10 s pause + restart (UF2
+      recovery reachable throughout)
+- [x] claim/start no longer extends an active code; reports remaining
+      seconds
+- [x] Token dropped from the 10 s serial stat line; header comment
+      corrected
+- [x] `/api/v1/info` gains `serial`
+- [x] Console: 10 s request timeout, 8 s identity-verify timeout,
+      180 s OTA timeout
+- [x] Console: CSP meta on both targets; first-use-pinning copy;
+      sterner legacy warning; DEMO chip unified to SAMPLE DATA; mock
+      fw → 0.12.0
+- [x] v0.12.0: compiles at pinned core (1,367,855 B / 65 %);
+      double-build byte-identical; FIRMWARE.md changelog + budget,
+      SECURITY, MANUAL, firmware README, contracts/rest.md updated in
+      the same commit
 
 ## Group E — Prep for hardware/owner work
 

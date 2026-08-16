@@ -29,11 +29,19 @@ export function WelcomeView({
 
   function applyResult(result: ConnectResult): void {
     if (result.identityStatus === "verified") {
+      // First contact is trust-on-first-use, not authentication: any
+      // responder's self-consistent key would pin. Say so — the panel's
+      // 6-digit code in the next step is the real possession proof.
+      const keyNote = result.firstPin
+        ? `its key ${result.identity?.fingerprint} is now pinned to this browser (first use — ` +
+          "every later connection must present this same key, and the panel's 6-digit code " +
+          "next proves you have the real panel)"
+        : `it presented the key this browser pinned earlier (${result.identity?.fingerprint})`;
       setStatus({
         kind: "ok",
         text:
-          `Found ${result.health.device} (firmware v${result.health.fw}) and verified its identity — ` +
-          `key ${result.identity?.fingerprint} is now pinned to this browser. Opening the Console…`,
+          `Found ${result.health.device} (firmware v${result.health.fw}) — identity proof passed; ` +
+          `${keyNote}. Opening the Console…`,
       });
       window.setTimeout(enterConsole, 1600);
     } else if (result.identityStatus === "bad-signature") {
@@ -54,7 +62,9 @@ export function WelcomeView({
         kind: "info",
         text:
           `Found ${result.health.device} on firmware v${result.health.fw}, which predates identity ` +
-          "verification (v0.9.0). You can continue and update it from the Deploy page.",
+          "verification (v0.9.0). Without it nothing proves this is your panel rather than a " +
+          "device impersonating it — connect only on a network you trust, and update from the " +
+          "Deploy page immediately. No key will be pinned until the update.",
       });
     }
   }

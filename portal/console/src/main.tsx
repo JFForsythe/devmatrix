@@ -87,7 +87,7 @@ function App() {
           <span><strong>DEVMATRIX</strong><small>CONSOLE</small></span>
         </div>
 
-        {transport.isMock && <span class="chip demo rail-demo">DEMO · MOCK DATA</span>}
+        {transport.isMock && <span class="chip demo rail-demo">DEMO · SAMPLE DATA</span>}
 
         <nav aria-label="Console views">
           {views.map((view) => (

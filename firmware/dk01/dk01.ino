@@ -9,10 +9,11 @@
 //      needed once.
 //
 // Security posture (v0, pre-P2-freeze):
-//   - No credentials are ever compiled in or logged. Wi-Fi creds and the
-//     LAN token live only in device NVS, written at runtime (ADR-0023).
-//   - The LAN token is revealed exactly twice: on the setup hotspot
-//     (physical presence) and on the USB serial console (physical cable).
+//   - No credentials are ever compiled in. Wi-Fi credentials are never
+//     logged; the LAN token lives only in device NVS (ADR-0023) and is
+//     revealed exactly twice: on the setup hotspot (physical presence)
+//     and once at boot on the USB serial console (physical cable) —
+//     never in the periodic stats.
 //   - Plain HTTP on the LAN is the permanent transport (ADR-0031). TLS is
 //     not the authentication story, so the application layer is: the device
 //     holds an Ed25519 identity key and signs Console-supplied nonces, an
@@ -43,7 +44,7 @@
 #include "apps_builtin.h"
 #include "mqtt_client.h"
 
-#define FW_VERSION "0.11.0"
+#define FW_VERSION "0.12.0"
 
 // A full-bright white frame can out-draw USB-C power and brown-out the
 // board (observed on the bench 2026-08-07: brownout reset at high slider
@@ -96,6 +97,8 @@ int manualAppScene = -1;
 uint32_t manualAppUntil = 0;
 
 uint8_t brightness = 110;          // 10..MAX_BRIGHTNESS, NVS-persisted
+bool brightDirty = false;          // NVS write pending (debounced)
+uint32_t brightLastNvsMs = 0;      // last NVS brightness write
 String tzPosix = "CST6CDT,M3.2.0,M11.1.0";  // NVS-persisted, default US Central
 
 // Flights Overhead companion-app config (NVS-persisted, edited in the
@@ -122,7 +125,7 @@ uint8_t claimAttempts = 0;
 #define JOIN_FAIL 3
 int joinState = JOIN_IDLE;
 bool joinIsBackground = false;     // silent retry of stored creds, not the portal
-uint32_t joinStart = 0, nextBgRetry = 0;
+uint32_t joinStart = 0, nextBgRetry = 0, joinOkAt = 0;
 String pendSsid, pendPass;
 
 // OTA upload state.
@@ -196,11 +199,30 @@ String jsonEscape(String s) {
   return s;
 }
 
+// "dmx_lan_" + 128 random bits as hex. The prefix makes a leaked token
+// instantly recognizable to secret scanners (and matches the docs/USER-STORY
+// canon); tokens minted by earlier firmware are bare hex and stay valid.
 String makeToken() {
-  char tok[33];
+  char tok[41];
+  memcpy(tok, "dmx_lan_", 8);
   for (int i = 0; i < 32; i += 8)
-    snprintf(tok + i, 9, "%08lx", (unsigned long)esp_random());
+    snprintf(tok + 8 + i, 9, "%08lx", (unsigned long)esp_random());
   return String(tok);
+}
+
+// Brightness changes arrive in bursts (a dragged slider, an HA evening
+// scene): apply immediately, but debounce the NVS write to spare flash
+// wear. Pending writes flush from the 10 s stat tick.
+void setBrightnessValue(uint8_t v) {
+  brightness = v;
+  uint32_t nowMs = millis();
+  if (nowMs - brightLastNvsMs >= 5000) {
+    prefs.putUChar("bright", brightness);
+    brightLastNvsMs = nowMs;
+    brightDirty = false;
+  } else {
+    brightDirty = true;
+  }
 }
 
 // Constant-time compare: a byte-by-byte timing side-channel over Wi-Fi is
@@ -518,8 +540,7 @@ bool mqttSetBrightness(uint8_t value, char* error, size_t errorCap) {
     strlcpy(error, "invalid-brightness", errorCap);
     return false;
   }
-  brightness = value;
-  prefs.putUChar("bright", brightness);
+  setBrightnessValue(value);
   lastShown = -1;
   return true;
 }
@@ -560,11 +581,11 @@ void handleInfo() {
   const esp_partition_t* part = esp_ota_get_running_partition();
   char body[460];
   snprintf(body, sizeof body,
-           "{\"device\":\"%s\",\"fw\":\"%s\",\"uptime_s\":%lu,"
+           "{\"device\":\"%s\",\"serial\":\"%s\",\"fw\":\"%s\",\"uptime_s\":%lu,"
            "\"heap_free\":%u,\"rssi_dbm\":%d,\"ip\":\"%s\",\"mdns\":\"%s.local\","
            "\"brightness\":%u,\"refresh_hz\":%lu,\"slot\":\"%s\",\"scene\":\"%s\","
            "\"reset_reason\":\"%s\"}",
-           deviceId.c_str(), FW_VERSION, millis() / 1000UL,
+           deviceId.c_str(), deviceId.c_str(), FW_VERSION, millis() / 1000UL,
            (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT),
            WiFi.RSSI(), WiFi.localIP().toString().c_str(), mdnsName.c_str(),
            brightness, (unsigned long)lastRefreshHz,
@@ -862,8 +883,7 @@ void handleBrightness() {
     sendJson(400, "{\"error\":\"value must be 10..150 (USB power budget)\"}");
     return;
   }
-  brightness = (uint8_t)v;
-  prefs.putUChar("bright", brightness);
+  setBrightnessValue((uint8_t)v);
   lastShown = -1;  // redraw current scene at the new level
   sendJson(200, "{\"ok\":true}");
 }
@@ -930,10 +950,15 @@ void handleClaimStart() {
     snprintf(c, sizeof c, "%06lu", (unsigned long)(esp_random() % 1000000UL));
     claimCode = c;
     claimAttempts = 0;
+    claimUntil = nowMs + 300000UL;
     Serial.println("claim: pair code now showing on the panel (5 min)");
   }
-  claimUntil = nowMs + 300000UL;
-  sendJson(200, "{\"ok\":true,\"expires_s\":300}");
+  // Asking again re-shows the active code but never extends its life —
+  // otherwise a LAN caller could keep the panel in pairing mode forever.
+  char body[48];
+  snprintf(body, sizeof body, "{\"ok\":true,\"expires_s\":%lu}",
+           (unsigned long)((claimUntil - nowMs) / 1000UL));
+  sendJson(200, body);
 }
 
 void handleClaimFinish() {
@@ -1178,6 +1203,7 @@ void stepJoinMachine() {
     prefs.putString("pass", pendPass);
     Serial.println("wifi: joined; credentials saved to NVS (never logged)");
     if (joinIsBackground) { delay(200); ESP.restart(); }
+    joinOkAt = millis();  // starts the bounded token-reveal window
     panelLines("wifi ok!", "finish setup", "on your phone");
   } else if (millis() - joinStart > 25000) {
     joinState = JOIN_FAIL;
@@ -1228,6 +1254,16 @@ void startSetupMode() {
   WiFi.softAP(apName.c_str());
   dns.start(53, "*", IPAddress(192, 168, 4, 1));
   WiFi.scanNetworks(true);
+  // The captive portal must answer every Host (that is how phones detect
+  // it), so no Host allowlist here — but bound POST bodies the same way
+  // console mode does. Setup bodies are tiny; 2 KB is generous.
+  server.addMiddleware([](WebServer& srv, Middleware::Callback next) {
+    if (srv.method() == HTTP_POST && srv.arg("plain").length() > 2048) {
+      sendJson(413, "{\"error\":\"body too large\"}");
+      return true;
+    }
+    return next();
+  });
   server.on("/", HTTP_GET, handleSetupPage);
   server.on("/setup/scan", HTTP_GET, handleScan);
   server.on("/setup/join", HTTP_POST, handleJoin);
@@ -1268,6 +1304,16 @@ void startConsole() {
       } else {
         srv.send(403, "text/plain", "");
       }
+      return true;
+    }
+    // Bound JSON bodies before any handler copies them (the multipart
+    // /update path streams and is exempt). The core has already buffered
+    // the body once by the time middleware runs; this stops the second
+    // copy and returns an honest 413. A pre-buffer cap needs core
+    // support — tracked as a P2 item.
+    if (srv.method() == HTTP_POST && srv.uri().startsWith("/api/v1/") &&
+        srv.arg("plain").length() > 8192) {
+      sendJson(413, "{\"error\":\"body too large (8 KB cap)\"}");
       return true;
     }
     return next();
@@ -1327,10 +1373,6 @@ void startStation(const String& ssid, const String& pass) {
     startSetupMode();
     return;
   }
-  // We booted, joined the network, and can serve — this image is good.
-  // If a future OTA image can't get this far, the bootloader's other slot
-  // plus this call are what "never brick" means in practice.
-  esp_ota_mark_app_valid_cancel_rollback();
   configTzTime(tzPosix.c_str(), "pool.ntp.org", "time.nist.gov");
   MDNS.begin(mdnsName.c_str());
   MDNS.addService("http", "tcp", 80);
@@ -1365,7 +1407,13 @@ void setup() {
   ProtomatterStatus st = matrix.begin();
   Serial.printf("protomatter.begin=%d\n", (int)st);
   if (st != PROTOMATTER_OK) {
-    for (;;) delay(1000);
+    // A wedged display driver must not hang the box forever with only a
+    // silent serial line: report, pause, and retry via reset. TinyUF2 USB
+    // recovery (double-press reset) stays reachable the whole time.
+    Serial.printf("FATAL: protomatter.begin=%d - restarting in 10 s\n",
+                  (int)st);
+    delay(10000);
+    ESP.restart();
   }
 
   Serial.printf("boot: reset_reason=%s\n", resetReasonStr());
@@ -1384,6 +1432,12 @@ void setup() {
   Serial.printf("apps: fetch buffer %u bytes (%s)\n",
                 (unsigned)dmxAppFetchCap,
                 dmxAppFetchPsram ? "PSRAM" : "internal fallback");
+  // esp_random() is hardware-strong only once the RF subsystem runs, so
+  // bring the Wi-Fi driver up BEFORE minting the LAN token and the
+  // once-per-lifetime identity key (bench-week run 6 verifies the
+  // entropy path on hardware). startSetupMode/startStation re-set the
+  // mode; this call just guarantees the driver is started first.
+  WiFi.mode(WIFI_STA);
   apiToken = prefs.getString("token", "");
   if (!apiToken.length()) {
     apiToken = makeToken();
@@ -1401,6 +1455,25 @@ void loop() {
   if (setupMode) dns.processNextRequest();
   server.handleClient();
   stepJoinMachine();
+
+  // 30 s of a running loop means display + server + apps came up: the
+  // image works, so cancel any pending rollback. Deliberately NOT tied
+  // to Wi-Fi join — a router outage on the first post-OTA boot must not
+  // roll back a healthy image (the device sits in setup/rejoin instead).
+  static bool otaMarkedValid = false;
+  if (!otaMarkedValid && millis() > 30000) {
+    otaMarkedValid = true;
+    esp_ota_mark_app_valid_cancel_rollback();
+  }
+
+  // Close the post-join token-reveal window (docs/SECURITY.md): if the
+  // owner never taps Finish, reboot onto their Wi-Fi 90 s after the
+  // join succeeded — the open hotspot (and /setup/status) dies with it.
+  if (setupMode && joinState == JOIN_OK && joinOkAt &&
+      millis() - joinOkAt > 90000) {
+    Serial.println("setup: finish not tapped; auto-closing setup window");
+    ESP.restart();
+  }
 
   // Background rejoin: stored creds exist but we're stuck in setup mode.
   if (setupMode && joinState == JOIN_IDLE && nextBgRetry &&
@@ -1429,14 +1502,21 @@ void loop() {
   uint32_t nowMs = millis();
   if (nowMs - lastStat >= 10000) {
     lastStat = nowMs;
+    if (brightDirty) {
+      prefs.putUChar("bright", brightness);
+      brightDirty = false;
+      brightLastNvsMs = nowMs;
+    }
     // getFrameCount() returns frames since its last call, so /10s = Hz.
+    // The token is deliberately NOT here: it prints once at boot (the
+    // physical-cable reveal) and re-printing it every 10 s only widens
+    // capture-from-logs exposure.
     lastRefreshHz = matrix.getFrameCount() / 10;
-    Serial.printf("refresh_hz=%lu heap_free=%u rssi=%d ip=%s token=%s\n",
+    Serial.printf("refresh_hz=%lu heap_free=%u rssi=%d ip=%s\n",
                   (unsigned long)lastRefreshHz,
                   (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL |
                                                     MALLOC_CAP_8BIT),
-                  WiFi.RSSI(), WiFi.localIP().toString().c_str(),
-                  apiToken.c_str());
+                  WiFi.RSSI(), WiFi.localIP().toString().c_str());
   }
   delay(4);
 }

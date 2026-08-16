@@ -52,7 +52,9 @@ chapter then applies only to forks and bare boards.
    password, and watch it join in real time — no blind reboot-and-hope.
 4. When the join succeeds, the panel shows its address, e.g.
    `dmx-xxxx.local`, and the phone that ran setup is signed in to the
-   Console automatically.
+   Console automatically. (If nothing taps Finish, the device closes
+   its setup hotspot by itself 90 seconds after the join and boots
+   onto your Wi-Fi.)
 
 **Wrong password?** The portal tells you and lets you retry — the
 device doesn't reboot into limbo. **Changed routers later?** Console →
@@ -71,7 +73,8 @@ The phone that ran setup is already paired. For every other browser:
 3. Type the code into that browser. It now holds the LAN token — the
    bearer credential every API call uses ([docs/GLOSSARY.md](GLOSSARY.md)).
 
-Codes expire after 5 minutes and die after 5 wrong tries. Reading the
+Codes expire after 5 minutes, die after 5 wrong tries, and asking
+again never extends an active code's life. Reading the
 panel *is* the proof of possession: nothing to write down, and a lost
 browser never means factory reset — just pair again. To revoke every
 existing session at once: Security → **ROTATE LAN TOKEN**.
