@@ -36,7 +36,10 @@ the one-owner truth map.
 An implementation is complete only when all of the following are true:
 
 1. Code, tests/checks, owner documentation, and any required ADR agree.
-2. `make check` and `git diff --check` pass from the repository root.
+2. `make check` and `git diff --check` pass from the repository root. A
+   change touching `portal/console/` also passes `make console-verify`
+   locally — the same rebuild-and-diff gate CI's console-build job
+   enforces, run before pushing instead of after.
 3. The exact changed-file diff and `git status --short` have been reviewed; no
    unrelated or generated files are included.
 4. The final report distinguishes **local**, **committed**, **pushed**, and

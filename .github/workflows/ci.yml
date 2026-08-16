@@ -6,6 +6,11 @@ on:
   push:
     branches:
       - main
+  schedule:
+    # Daily artifact-integrity re-verification (docs/OPERATIONS.md →
+    # Observability): re-proves the live artifact byte-for-byte and
+    # canaries the pinned firmware toolchain.
+    - cron: "17 9 * * *"
 
 permissions: {}
 
@@ -53,7 +58,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Set up Node.js 20
+      # Node 20 is deliberate here (not .node-version): it matches the
+      # Vercel project's Node.js Version so the committed dist-hosted
+      # artifact is byte-reproducible on both builders — see
+      # portal/console/README.md → Vercel handoff.
+      - name: Set up Node.js 20 (Vercel build parity)
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 20
@@ -62,6 +71,10 @@ jobs:
       - name: Install Console dependencies
         working-directory: portal/console
         run: npm ci
+
+      - name: Typecheck Console
+        working-directory: portal/console
+        run: npm run typecheck
 
       - name: Build hosted and device Console targets
         working-directory: portal/console
@@ -76,11 +89,49 @@ jobs:
           test -s portal/console/dist-device/index.html
           git diff --exit-code -- portal/console/dist-hosted/index.html firmware/dk01/web_console.h
 
+  firmware-compile:
+    name: Compile firmware
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up arduino-cli
+        uses: arduino/setup-arduino-cli@81d310742121c928ea9c8bbd407b4217b432ae02 # v2.0.0
+        with:
+          version: "1.5.1"
+
+      # Pins match firmware/dk01/README.md and the hardware evidence
+      # (core 3.3.11 — the exact version every bench run used). No
+      # cache by design: same integrity posture as package-manager-cache
+      # above, at the cost of a fresh core download per run.
+      - name: Install pinned core and libraries
+        run: |
+          arduino-cli config init --overwrite
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32@3.3.11
+          arduino-cli lib install "Adafruit Protomatter@1.7.1" "ArduinoJson@7.4.3" "Crypto@0.4.0"
+
+      - name: Compile DK-01 firmware
+        run: |
+          arduino-cli compile --fqbn esp32:esp32:adafruit_matrixportal_esp32s3 \
+            --warnings default --output-dir /tmp/fw-out firmware/dk01
+          test -s /tmp/fw-out/dk01.ino.bin
+          ls -l /tmp/fw-out/dk01.ino.bin
+
   verify-production:
     name: Verify production artifact
     if: >-
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      github.event_name == 'workflow_dispatch'
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule'
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 5

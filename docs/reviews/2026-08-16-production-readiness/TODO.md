@@ -40,19 +40,24 @@ complete.
 
 ## Group B — Pipeline completion (CI/tooling)
 
-- [ ] ci.yml: firmware compile job (pinned core + libs)
-- [ ] ci.yml: `tsc --noEmit` in console-build
-- [ ] ci.yml: one Node version everywhere (verify rebuild identical)
-- [ ] ci.yml: nightly scheduled verify-live (implements the
-      OPERATIONS monitoring claim; update OPERATIONS wording)
-- [ ] dependabot: npm ecosystems for portal/console +
+- [x] ci.yml: firmware compile job (arduino-cli 1.5.1, core 3.3.11,
+      Protomatter 1.7.1, ArduinoJson 7.4.3, Crypto 0.4.0 — all pinned)
+- [x] ci.yml: `tsc --noEmit` in console-build (+ `typecheck` script)
+- [x] ci.yml: Node split documented as deliberate — console builds pin
+      Node 20 for Vercel parity (comment in ci.yml + README); scripts
+      run on `.node-version` 24
+- [x] ci.yml: daily scheduled verify-production (implements the
+      OPERATIONS monitoring claim; OPERATIONS wording updated to match)
+- [x] dependabot: npm ecosystems for portal/console +
       examples/pixlet-bridge
-- [ ] Makefile: local `console-verify` drift target; AGENTS.md note
-- [ ] Tag v0.11.0 (and future versions) — release-tag discipline note
-      in OPERATIONS.md
-- [ ] OPERATIONS.md: cutover runbook completed with exact
-      vercel.json content, DNS record, deploy-gating and
-      branch-protection dashboard steps
+- [x] Makefile: `console-verify` drift target; AGENTS.md definition of
+      done references it
+- [x] v0.11.0 annotated tag pushed; tag discipline recorded in
+      OPERATIONS.md
+- [x] OPERATIONS.md: pre-sale dashboard hardening bullet (deploy
+      gating on CI, branch protection); monitoring + release-asset
+      wording made truthful (vercel.json content stays in
+      portal/console/README.md → Vercel handoff, linked)
 
 ## Group C — Contract drafts
 

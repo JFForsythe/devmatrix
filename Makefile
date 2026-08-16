@@ -11,6 +11,11 @@ help: ## List available targets
 check: test-checker ## Run the complete local/CI validation gate
 	@$(NODE) scripts/check-repo.mjs $(CHECK_ARGS)
 
+console-verify: ## Rebuild the Console and fail on committed-artifact drift (CI parity)
+	@cd portal/console && npm ci && npm run typecheck && npm run build
+	@git diff --exit-code -- portal/console/dist-hosted/index.html firmware/dk01/web_console.h
+	@echo "Console artifacts match portal/console/src"
+
 test-checker: ## Run the repository tooling self-tests
 	@$(NODE) --test scripts/*.test.mjs
 

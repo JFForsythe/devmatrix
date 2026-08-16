@@ -58,8 +58,22 @@ What actually runs now — the complete inventory:
   copy is a convenience and a demo, never a dependency
   ([docs/PORTAL.md](PORTAL.md)).
 - **Release artifacts** — firmware, recovery images, Registry
-  metadata, and app packages — ship as signed GitHub Release assets,
-  mirrorable and locally installable (ADR-0016).
+  metadata, and app packages — will ship as signed GitHub Release
+  assets, mirrorable and locally installable (ADR-0016). None exist
+  yet: the signing pipeline is gate M0 work. Since 2026-08-16 every
+  firmware version is annotated-tagged (`vX.Y.Z`, e.g. `v0.11.0`) so
+  versions, commits, and hardware evidence reconcile ahead of that
+  pipeline.
+- **Outstanding pre-sale dashboard hardening.** Two enforcement gaps
+  are dashboard-side and cannot be closed from the repository:
+  (1) Vercel deploys each push immediately, before CI concludes — a
+  failing commit still goes live until `verify-production` flags it;
+  enable build gating (deployment protection / required checks, or an
+  Ignored Build Step keyed on CI) before anything is sold. (2) The
+  private free-plan repository cannot enable branch protection;
+  making the repository public (GA requires public source anyway) or
+  upgrading the plan unlocks required status checks and force-push
+  protection for `main`.
 
 ## Secrets and credentials
 
@@ -93,9 +107,13 @@ The protection story, in order of proximity:
 
 - **Company side:** static artifact availability and integrity are
   monitored without any device telemetry — a GA requirement
-  ([ROADMAP.md](../ROADMAP.md)). Monitoring means the published hashes
-  and signatures stay fetchable and reconcile with the released
-  artifacts; there is no device telemetry to consume, by design.
+  ([docs/PRODUCTION-PLAN.md](PRODUCTION-PLAN.md) §GA). Implemented
+  today for the one live artifact: the CI `verify-production` job
+  re-proves the served page byte-for-byte against the committed
+  artifact on a **daily schedule** (`.github/workflows/ci.yml`) in
+  addition to every push. When release artifacts begin at gate M0,
+  monitoring extends to their hashes and signatures staying fetchable
+  and reconciling; there is no device telemetry to consume, by design.
 - **Owner side:** fleet visibility is the Console fleet view —
   same-LAN in Local Mode, cross-site via the paid Cloud track. The
   feature matrix in [docs/MODES.md](MODES.md) and the Console spec in
