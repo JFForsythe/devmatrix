@@ -15,11 +15,16 @@ treat any draft as frozen.
 
 | File | Surface | Status |
 |---|---|---|
+| [rest.md](rest.md) | The complete `/api/v1` LAN surface: routes, auth, identity + pairing protocols, diagnostics schema, error shape, setup-mode surface | DRAFT |
 | [mqtt.md](mqtt.md) | MQTT topic tree, envelope, Home Assistant discovery, broker setup | DRAFT |
 | [layout.md](layout.md) | Declarative v1 JSON source, rows, bindings, and stale behavior | DRAFT |
+| [ota.md](ota.md) | Today's authenticated `/update` upload + the gate M0 signed-manifest target | DRAFT |
 
-Plus this README. Files for the other surfaces appear when their
-drafts start — no empty scaffolds (ADR-0019).
+Plus this README. Still unwritten (P2 freeze work, no empty
+scaffolds — ADR-0019): the WebSocket stream (`/api/v1/stream`, not
+yet implemented in firmware), transport capability descriptors
+(ADR-0029), the `.dmapp` bundle format (gate M4), and a
+machine-readable error registry.
 
 ## What arrives when
 
