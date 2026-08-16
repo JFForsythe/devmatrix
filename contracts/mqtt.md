@@ -8,12 +8,16 @@ standards and the public
 [Home Assistant MQTT docs](https://www.home-assistant.io/integrations/mqtt/)
 ([ADR-0001](../docs/adr/ADR-0001-clean-room.md)). At the P2 freeze this
 prose becomes AsyncAPI + JSON Schema in this directory
-([README.md](README.md)); the firmware implementing it is an M2
-deliverable ([ROADMAP.md](../ROADMAP.md)).
+([README.md](README.md)). The core client shipped in firmware v0.8.0;
+the frozen contract, the Home Assistant conformance acceptance, and
+app topic-pattern enforcement are the gate M2/M4 deliverables
+([ROADMAP.md](../ROADMAP.md)).
 
 Implemented in firmware v0.8.0 (`mqtt_client.h`) except the Home
-Assistant scene entity; the implemented request verbs include
-`app.show`. Contract stays DRAFT until the P2 freeze.
+Assistant scene entity and the `event/<kind>` topic class, which no
+firmware publishes yet; the implemented request verbs are
+`display.text`, `display.brightness`, `display.clear`, and `app.show`.
+Contract stays DRAFT until the P2 freeze.
 
 ## Topic tree
 
@@ -27,7 +31,7 @@ canonical serial `DMX-4E71-0952`
 |---|---|---|
 | `devmatrix/DMX-4E71-0952/availability` | device (and broker LWT) | `online` / `offline`, retained |
 | `devmatrix/DMX-4E71-0952/state/<resource>` | device | Last known state, retained — e.g. `state/display`, `state/health` |
-| `devmatrix/DMX-4E71-0952/event/<kind>` | device | Transient occurrences, never retained — e.g. `event/button`, `event/app` |
+| `devmatrix/DMX-4E71-0952/event/<kind>` | device | Transient occurrences, never retained — e.g. `event/button`, `event/app`. **Planned — no firmware publishes events yet** |
 | `devmatrix/DMX-4E71-0952/request/<verb>` | client | Commands; verbs are dot-namespaced in one topic level, e.g. `request/display.text` |
 | `devmatrix/DMX-4E71-0952/response/<request-id>` | device | Exactly one response per request, correlated by the request's `id` |
 
@@ -42,12 +46,16 @@ Every message body is versioned JSON:
 - `v` — envelope version; `1` for this draft.
 - `id` — UUID unique to this message. A request's `id` names its
   response topic.
-- `ts` — RFC 3339 UTC creation time.
-- `expiry` — **requests only**: seconds after `ts` the request stays
-  valid. The device drops an expired request unexecuted and answers
-  the response topic with an error — a command must not fire long
-  after its sender gave up, or replay when a broker delivers a queued
-  session backlog.
+- `ts` — RFC 3339 UTC creation time; must be `Z`-suffixed (the device
+  rejects non-UTC timestamps as `invalid-envelope`).
+- `expiry` — **requests only, required and nonzero**: seconds after
+  `ts` the request stays valid. The device rejects an envelope that
+  omits `expiry` or sets it to `0` (`invalid-envelope`), drops an
+  expired request unexecuted, and answers the response topic with an
+  error — a command must not fire long after its sender gave up, or
+  replay when a broker delivers a queued session backlog. An upper
+  bound on `expiry` is a P2 freeze decision; senders should keep it
+  small (≤ 60).
 - `payload` — resource-specific body. Field names, units, and ranges
   freeze as JSON Schema at P2.
 
@@ -67,7 +75,11 @@ and Home Assistant expects plain availability payloads.
 | `response/<request-id>` | no | 1 | Correlated by topic; the requester unsubscribes after receipt |
 
 QoS 2 is unused by design: the envelope `id` makes handlers idempotent
-where it matters, at far lower cost on a small device.
+where it matters, at far lower cost on a small device. A duplicate
+delivery of an already-seen `id` is dropped **without a second
+response** — clients treat the first response as authoritative. A
+request whose `id` is missing or not a well-formed UUID is dropped
+silently (no valid response topic exists to answer on).
 
 ## Worked examples
 
@@ -105,6 +117,16 @@ Brightness uses the 0–255 Home Assistant light convention (draft; the
 P2 schema decides finally). The device confirms on the response topic
 and republishes the retained `state/display`.
 
+**Other implemented verbs.** `request/display.clear` takes an empty
+`payload` (`{}`) and returns the panel to its scheduled rotation.
+`request/app.show` takes `{"app": "<id>"}` where `<id>` is a bundled
+app id (`messages`, `flights_list`, `custom`).
+
+**Display state.** The retained `state/display` payload is
+`{"scene": "<name>", "brightness": <0–255, Home Assistant scale>}`.
+Note the scale differs from the REST route's 10–150 hardware range;
+reconciling the two is a P2 freeze item.
+
 **Health state.** Retained on
 `devmatrix/DMX-4E71-0952/state/health`, republished on change and on a
 slow heartbeat:
@@ -116,12 +138,16 @@ slow heartbeat:
              "rssi_dbm": -52, "temp_c": 41.2}}
 ```
 
+(`temp_c` is `0.0` on current firmware — the DK-01 reports no populated
+temperature reading yet; the field is reserved.)
+
 ## Home Assistant
 
 The device announces itself with standard
 [MQTT discovery](https://www.home-assistant.io/integrations/mqtt/)
 config messages under the public `homeassistant/` prefix, declaring
-light (brightness), scene, notify, and text entities whose availability
+light (brightness), notify, and text entities (the scene entity is
+deferred — see the exception at the top) whose availability
 is wired to `devmatrix/DMX-4E71-0952/availability`. The device also
 subscribes to Home Assistant's birth topic (`homeassistant/status`) and
 republishes discovery after a Home Assistant restart. The M2 acceptance

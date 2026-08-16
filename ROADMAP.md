@@ -7,7 +7,10 @@ Local never waits.**
 
 One ladder (ADR-0009). This file owns the sequence and the acceptance
 summaries; full gate criteria live in section 3 of
-[docs/PRODUCTION-PLAN.md](docs/PRODUCTION-PLAN.md).
+[docs/PRODUCTION-PLAN.md](docs/PRODUCTION-PLAN.md) — a preserved
+snapshot: where §3 and an owner doc or later ADR disagree (for
+example, the workbench and command palette are **Ahead · gate M2**
+per docs/GLOSSARY.md, not §3's M1 line), the owner doc or ADR wins.
 
 ## The ladder — P0 → GA
 

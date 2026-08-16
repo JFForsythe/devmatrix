@@ -68,6 +68,26 @@ macOS re-enumerates the port constantly — glob it, never hardcode it,
 and never hold a serial monitor open while uploading (the port is
 exclusive-open).
 
+## USB recovery (make a UF2)
+
+The TinyUF2 factory partition mounts the board as a USB drive on a
+double-press of reset ([docs/MANUAL.md](../../docs/MANUAL.md) ch. 10).
+The drive wants a `.uf2`, not the `.bin` the build produces — convert
+with `uf2conv.py` from Microsoft's public
+[uf2 repository](https://github.com/microsoft/uf2), using the ESP32-S3
+UF2 family id (offset 0 is the app-slot base TinyUF2 expects):
+
+```sh
+python3 uf2conv.py out/dk01.ino.bin -c -f 0xc47e5767 -b 0x00 \
+  -o out/dk01.uf2
+```
+
+Then double-press reset, wait for the board's UF2 drive (its volume
+name ends in `BOOT`), and drag `dk01.uf2` on. TinyUF2 writes it to an
+app slot and reboots. Bench-drill evidence for this path is queued in
+[hardware/procedures/bench-week.md](../../hardware/procedures/bench-week.md) —
+run it once and file the evidence before any sold unit.
+
 ## The API in 30 seconds
 
 ```sh
@@ -90,7 +110,8 @@ the identity key for pinning), `settings` (GET/POST,
 `tz`), `mqtt` (GET/POST; password is write-only), `token/rotate`,
 `reboot`, `wifi/reset`, `factory/reset`, `apps` (GET/POST enable + scene
 interval), `apps/diag` (GET — per-app fetch verdicts: last HTTP code,
-bytes, `ok`/`too-big`/`bad-json`/`no-url`/`no-aircraft`/`bind-miss`, plus
+bytes, `ok`/`too-big`/`bad-json`/`no-url`/`no-aircraft`/`bind-miss`/
+`connect-failed`/`http-<code>`, plus
 the fetch-buffer size; the answer to "why is this app blank?"),
 `apps/messages` (GET/POST), `apps/messages/show`,
 `apps/custom` (GET/POST — shape in contracts/layout.md),
@@ -112,7 +133,7 @@ Console's **Dev console** view (**COPY WITH MY TOKEN**) or USB serial.
 | `web_setup.h` | Captive-portal setup page (embedded, zero assets) |
 | `web_console.h` | GENERATED from `portal/console` — do not hand-edit; edit `portal/console/src` and run `npm run build` |
 
-## Honest limits (v0.9.0, pre-P2-freeze)
+## Honest limits (current tree, pre-P2-freeze)
 
 - Plain HTTP on the LAN is permanent (ADR-0031). Server identity is the
   Ed25519 signed-nonce proof above, not TLS; the CORS allowlist admits

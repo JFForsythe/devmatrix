@@ -26,17 +26,17 @@ See the IP line in [docs/VISION.md](docs/VISION.md).
 | Full DK-01 production execution blueprint | [docs/PRODUCTION-PLAN.md](docs/PRODUCTION-PLAN.md) |
 | Company-side ops — hosting, deploys, secrets | [docs/OPERATIONS.md](docs/OPERATIONS.md) |
 | Draft API contracts (MQTT first) | [contracts/README.md](contracts/README.md) |
-| Hardware gate evidence (P1 bring-up onward) | [hardware/evidence/](hardware/evidence/2026-08-07-board-alone-bringup.md) |
+| Hardware gate evidence, procedures, manufacturing files | [hardware/README.md](hardware/README.md) |
 | Why we decided X | [docs/adr/](docs/adr/) |
 | What happens next, and in what order | [ROADMAP.md](ROADMAP.md) |
 | Canonical names, IDs, formats | [docs/GLOSSARY.md](docs/GLOSSARY.md) |
 
 ## Try the Console
 
-Hosted URL: **https://devmatrix-console.vercel.app**. It continues to serve the
-mock design reference until the owner changes Vercel's Root Directory from
-`portal/prototype` to the repository root; the coordinated switch makes this
-URL serve the real, one-codebase Console.
+Hosted URL: **https://devmatrix-console.vercel.app**. Until the coordinated
+cutover ([docs/OPERATIONS.md](docs/OPERATIONS.md) owns the recipe and current
+state) it serves the mock design reference; the switch makes this URL serve
+the real, one-codebase Console.
 
 ```
 make portal        # or serve it locally at http://localhost:8787

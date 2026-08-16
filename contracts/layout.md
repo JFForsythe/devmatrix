@@ -26,9 +26,12 @@ One layout is a JSON object no larger than 2 KB:
 ```
 
 `v` is exactly `1`. `source` is either `null` for a completely offline
-literal layout, or an HTTP/HTTPS JSON source with a refresh interval of
-1–86,400 seconds and a stale threshold of 1–604,800 seconds. The device
-accepts only a complete response of 4 KB or less, follows at most two
+literal layout, or an HTTP/HTTPS JSON source object in which `url` (at
+most 192 characters), `interval_s` (1–86,400 seconds), and
+`stale_after_s` (1–604,800 seconds) are all required. The device
+accepts only a complete response of 64 KB (65,536 bytes) or less —
+firmware 0.10.0 raised this from 4 KB after real feeds exceeded it;
+older firmware reports `too-big` — follows at most two
 redirects, and keeps the last good frame when a later refresh fails.
 After `stale_after_s`, that frame is dimmed and gains a hollow dot in its
 top-right corner.
@@ -39,9 +42,16 @@ RGB channels from 0 through 255. Each row has exactly one of:
 
 - `text`: a literal string up to 64 characters, clipped to the panel's
   16-character row width; or
-- `bind`: an RFC 6901 JSON Pointer up to 64 characters. The resolved
-  value must be a string or number. Optional `prefix` and `suffix` are
-  each at most 16 characters, and optional `max` is 1–16 (default 16).
+- `bind`: a non-empty RFC 6901 JSON Pointer up to 64 characters,
+  starting with `/`. The resolved value must be a string or number
+  (at most 64 characters of resolved text; array indices up to 4096);
+  a pointer resolving to a boolean, `null`, object, or array renders
+  nothing for that row. Optional `prefix` and `suffix` are each at
+  most 16 characters, and optional `max` is 1–16 (default 16). `max`
+  truncates the fully composed row — prefix, value, and suffix
+  together — not the bound value alone, so a `max` shorter than the
+  prefix hides the value entirely. (Whether `max` should clip the
+  value instead is a P2 freeze decision.)
 
 Pointer traversal supports mixed object and array paths such as
 `/sensors/0/value`, decodes RFC 6901's `~0` and `~1` escapes, and stops

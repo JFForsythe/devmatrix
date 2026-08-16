@@ -58,8 +58,9 @@ chapter then applies only to forks and bare boards.
 device doesn't reboot into limbo. **Changed routers later?** Console →
 Security → **CHANGE WI-FI…** reopens this flow (or `POST /api/v1/wifi/reset`).
 
-**Ahead · P1/M0:** USB Improv setup (join Wi-Fi over the cable, no
-hotspot step) — specified in [docs/PORTAL.md](PORTAL.md).
+**Ahead · gate M0:** USB Improv setup (join Wi-Fi over the cable, no
+hotspot step) — specified in [docs/PORTAL.md](PORTAL.md);
+[docs/MODES.md](MODES.md) owns the gate.
 
 ## 4 · Claim the device and pair more browsers — Today
 
@@ -83,13 +84,16 @@ mDNS spoofer squatting `dmx-xxxx.local` cannot impersonate your panel
 transport). Check or re-run the proof any time: Security → **Device
 identity** → **VERIFY NOW**.
 
-**Prefer starting from the hosted Console?** Open
-`devmatrix.flighttrackerled.com`, follow the welcome screen, and enter
-the panel's address — Chrome, Edge, and Firefox ask once for
-local-network permission and then talk straight to the panel over your
-LAN. Safari doesn't allow that yet; use the panel's own address there.
-Either way the panel stays 100 % local — the hosted page is a static
-file, and nothing routes through a server of ours.
+**Prefer starting from the hosted Console?** **Ahead · hosted
+cutover** ([docs/OPERATIONS.md](OPERATIONS.md) owns the recipe; the
+domain is not live yet — until then the panel's own address above *is*
+the Console, and nothing is missing from it). Once
+`devmatrix.flighttrackerled.com` is live: open it, follow the welcome
+screen, and enter the panel's address — Chrome, Edge, and Firefox ask
+once for local-network permission and then talk straight to the panel
+over your LAN. Safari doesn't allow that yet; use the panel's own
+address there. Either way the panel stays 100 % local — the hosted
+page is a static file, and nothing routes through a server of ours.
 
 **Ahead · M1:** the full claim ceremony — session code on the panel
 plus a 2-second physical button hold, per
@@ -102,7 +106,8 @@ needed. Today's Console has eight views, converged with
 [docs/PORTAL.md](PORTAL.md) from one codebase per
 [ADR-0027](adr/ADR-0027-one-console-codebase.md). The hosted copy adds
 a welcome screen that walks a new owner from unboxing to a connected,
-identity-verified panel (or into a clearly-labeled interactive demo):
+identity-verified panel (or into a clearly-labeled interactive demo) —
+**Ahead · hosted cutover**, chapter 4:
 
 - **Dashboard** — live status tiles: firmware version and slot, display
   refresh (Hz), free heap, uptime, Wi-Fi signal, IP address, current
@@ -131,7 +136,7 @@ identity-verified panel (or into a clearly-labeled interactive demo):
   it's built — then validates and saves any 2 KB JSON layout with literal
   rows or RFC 6901 bindings. Each on-device card can be enabled, assigned
   a scene interval, saved to NVS, or shown immediately. The **Pixlet
-  bridge** card covers the 1,000+ community-built Tidbyt-ecosystem apps
+  bridge** card covers hundreds of community-built Tidbyt-ecosystem apps
   via the owner-hosted bridge (chapter 7's host tier; installer in
   `examples/`). **Ahead · gate M4** — the Community Registry adds more
   reviewed apps, permission sheets, and one-click installation.
@@ -402,7 +407,10 @@ The never-brick ladder, mildest first:
 
 The TinyUF2 factory partition survives every OTA, so USB recovery is
 always there even if both app slots are bad. Physical access is the
-recovery tool — by design ([docs/SECURITY.md](SECURITY.md)).
+recovery tool — by design ([docs/SECURITY.md](SECURITY.md)). To turn a
+compiled `.bin` into the UF2 file the drive wants, follow
+[firmware/dk01/README.md](../firmware/dk01/README.md) → "USB recovery
+(make a UF2)".
 
 ## 11 · Home Assistant and MQTT — Today
 
@@ -447,7 +455,7 @@ browser MQTT workbench are in
 |---|---|
 | Captive portal never opened | Browse to `http://192.168.4.1` while on the `DEVMATRIX-XXXX` network |
 | `dmx-xxxx.local` not found | Your network blocks mDNS — use the IP the panel showed at setup; both work |
-| Hosted Console can't reach the panel | Same Wi-Fi? Allow the browser's local-network permission when asked (Chrome/Edge/Firefox). Safari can't do this — open the panel's own address instead. Firmware older than 0.9.0 also can't answer the hosted origin; update from the panel's own Deploy page first |
+| Hosted Console can't reach the panel | (**Ahead · hosted cutover** — the hosted domain isn't live yet; chapter 4.) Same Wi-Fi? Allow the browser's local-network permission when asked (Chrome/Edge/Firefox). Safari can't do this — open the panel's own address instead. Firmware older than 0.9.0 also can't answer the hosted origin; update from the panel's own Deploy page first |
 | Identity warning (key mismatch) | A reflash or factory reset legitimately changes the device key — Settings → **FORGET / SWITCH DEVICE…**, then reconnect and re-pair. If you didn't reflash, stop and check what's answering on that address |
 | `401 unauthorized` | Stale token — re-pair (chapter 4) or re-copy from the Dev console view |
 | Panel resets at high brightness | Under-powered supply. The 150 cap exists for this; the Dashboard's reset-reason tile confirms a brown-out |

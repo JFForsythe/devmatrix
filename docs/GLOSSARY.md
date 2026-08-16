@@ -8,6 +8,7 @@ first; then use.
 | **Devmatrix** | The platform/product. Never "DevMatrix" or "dev matrix". |
 | **DK-01** | First hardware model: ESP32-S3, 64×32 RGB matrix, 8 MB flash, 2 MB PSRAM. |
 | **App slot** | One of the two 2 MB OTA partitions (`ota_0`/`ota_1`) an app image boots from; updates write to the inactive slot. |
+| **TinyUF2 factory partition** | The 256 KB factory bootloader partition that survives every OTA. Double-pressing reset mounts the board as a USB drive for drag-and-drop UF2 recovery — the floor of the never-brick ladder (docs/MANUAL.md ch. 10). |
 | **MatrixPortal** | Adafruit MatrixPortal ESP32-S3 — DK-01's production-intent controller board (ADR-0012). |
 | **Protomatter** | Adafruit's open HUB75 matrix driver library — the pinned display driver (ADR-0013). |
 | **Console** | The portal (web app). One codebase, two connection modes. |
@@ -20,8 +21,9 @@ first; then use.
 | **Sunset covenant** | If Cloud Mode ever ends: 12 months' notice + automatic Eject. A dead cloud costs convenience, never function. |
 | **Claiming** | Binding a device to its owner via proof of physical possession; mints the LAN token in the browser — no account involved (docs/MODES.md). A passkey account and explicit subscription confirmation are separate, optional Cloud Mode steps. |
 | **Claim code** | Short code shown on the panel when a browser asks to pair. Reading the panel proves physical presence. Format: six digits, e.g. `482913`, shown as two panel rows of three for browser pairing today; the device ignores any separator the owner types. The **Ahead · gate M1** first-boot claim code is `XXX-XXX`. |
+| **Claim attestation** | The signed record a device mints when claiming completes, binding device and claiming session. A later, optional Cloud account re-uses the same attestation (docs/SECURITY.md → Ceremonies; docs/MODES.md → the claim/account split). |
 | **Serial** | Device identity, printed + in cert. Format `DMX-####-####` (e.g. `DMX-4E71-0952`). |
-| **LAN token** | Per-device bearer credential minted at claim; required on every `/api/v1` call on the LAN. Rotatable/revocable; read-only scoped variants for integrations. |
+| **LAN token** | Per-device bearer credential minted at claim; required on every `/api/v1` call on the LAN. Rotatable/revocable; read-only scoped variants are **Ahead · gate M1**. |
 | **Device identity key** | Ed25519 keypair a device mints on first boot and keeps in NVS (wiped by factory reset). The device signs Console-supplied nonces with it so a browser can prove the host is the panel and not an mDNS spoofer (ADR-0031). The Console pins the public key at pairing. |
 | **Key fingerprint** | Short, human-checkable form of the device identity public key: first 4 bytes of its SHA-256, shown as `XXXX-XXXX` (e.g. `6EDE-F5A0`) in the Console's Security view and on USB serial. |
 | **App** | Anything an owner installs or runs to put content on the panel. Three tiers, defined below (ADR-0026). UI says "Apps". |
@@ -34,6 +36,7 @@ first; then use.
 | **Binding** | The link from a layout field to a data source (HTTPS JSON or an MQTT topic), with refresh interval and a stale indicator. |
 | **Bundled apps** | Declarative apps shipped on DK-01. Today: Messages, Flights list, and Custom layout. M4 adds Weather, clock variants, and reviewed Registry apps; Stocks remains disabled until an owner supplies a provider key and accepts its terms (ADR-0015). |
 | **Flights Overhead** | Bundled local-only aircraft display fed by an ADS-B receiver on the owner's LAN (open dump1090/readsb JSON). The list view is a declarative app; the 8 fps radar view is a host app and LAN-bound (ADR-0026, ADR-0029). Never a company feed or third-party flight-data service (ADR-0023). |
+| **Finder prompt** | Owner-side copy-paste prompt (Console → Apps → Flights list → COPY FINDER PROMPT) that walks any AI assistant through locating a receiver's `aircraft.json` URL from the router's device list and standard paths. The owner discovers; the box never scans (ADR-0032). |
 | **Frame layer** | Display API tier for raw 64×32 pixel frames — REST/WebSocket only, never MQTT; remote reach only via Cloud Mode's relay (ADR-0029). |
 | **Semantic layer** | Display API tier for text, layouts, bindings, scenes, and brightness — available on every transport, and therefore remote-safe (ADR-0029). |
 | **Registry** | Community index of apps/layouts (PR-based public repo). |

@@ -16,8 +16,9 @@
 // this script re-reads the device's config every few cycles and follows.
 // Data comes from YOUR ADS-B receiver (dump1090-fa / readsb / PiAware —
 // the open receiver ecosystem, ADR-0023) via its public aircraft.json
-// format. Privacy: receiver URL lives only in device NVS (typed or
-// scanned in the Console); no URL, token, or location is in this file.
+// format. Privacy: receiver URL lives only in device NVS (typed into
+// the Console — its COPY FINDER PROMPT helps locate the URL; the box
+// never scans, ADR-0032); no URL, token, or location is in this file.
 // Airport geometry below is public FAA data.
 //
 // Run:
@@ -92,7 +93,7 @@ async function syncConfig() {
   }
   if (!cfg.url) {
     console.error(
-      "No receiver configured. Console -> Flights -> “Scan my network”, then rerun.",
+      "No receiver configured. Console -> Apps -> Flights list -> enter your receiver's aircraft.json URL (COPY FINDER PROMPT helps find it), then rerun.",
     );
     process.exit(2);
   }

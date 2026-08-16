@@ -8,15 +8,11 @@ react to, not the production Console foundation.
 
 ## Run it
 
-Hosted URL: **https://devmatrix-console.vercel.app**. The GitHub-connected
-Vercel project currently has Root Directory set to `portal/prototype`, so this
-mock remains live until the owner switches the project to the repository root.
-After that coordinated switch, the same URL serves the committed real Console
-from `console/dist-hosted/index.html`; see
-[`console/README.md`](console/README.md#vercel-handoff). A push is not release
-proof: the release is complete only after `make verify-live` proves that the
-clean, pushed commit's Console artifact matches production and that Vercel
-reported success for the exact commit.
+Hosted URL: **https://devmatrix-console.vercel.app**. This mock remains
+live until the coordinated cutover. The hosting state and cutover recipe
+are owned by [docs/OPERATIONS.md](../docs/OPERATIONS.md); the
+developer-side handoff steps live in
+[`console/README.md`](console/README.md#vercel-handoff).
 
 ```sh
 make portal            # from the repo root → http://localhost:8787

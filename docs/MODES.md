@@ -19,19 +19,19 @@ must be fixed.
 |---|---|---|
 | Setup & WiFi provisioning | ✓ SoftAP today · USB Improv **Ahead · gate M0** | — (always local) |
 | Claiming | ✓ possession + LAN token, no account | adds passkey account binding |
-| Mirror, push text/frames, scenes | ✓ on your LAN | ✓ from anywhere (relay) |
+| Mirror, push text/frames, scenes | ✓ push text/frames/scenes today · live Mirror **Ahead · gate M1** | ✓ from anywhere (relay) |
 | Install / upload apps | ✓ | ✓ remote |
-| Firmware OTA (stable/beta/dev) | ✓ static manifest, free | ✓ plus staged multi-site rollout |
+| Firmware OTA | ✓ manual upload to the inactive slot today · signed manifest + channels (stable/beta/dev) **Ahead · gates M0/M1** | ✓ plus staged multi-site rollout |
 | USB recovery flash | ✓ TinyUF2 USB today · browser WebSerial **Ahead · gate M2** | — (inherently local) |
 | Home Assistant / MQTT / SDKs | ✓ your broker, your LAN | — (unchanged; never hosted by us) |
-| Fleet view | ✓ same LAN | ✓ across homes/offices/sites |
+| Fleet view | ✓ one device per browser today · same-LAN fleet **Ahead · gate M1** | ✓ across homes/offices/sites |
 | Remote access | via your own VPN/Tailscale (documented) | ✓ built in, zero config |
-| Snapshots (E2EE) | ✓ export/restore as files | ✓ hosted sync + retention |
-| Audit log | ✓ on-device ring buffer, exportable | ✓ synced, long retention |
+| Snapshots (E2EE) | export/restore as files **Ahead · gate M2** | ✓ hosted sync + retention |
+| Audit log | on-device ring buffer, exportable **Ahead · gate M1** | ✓ synced, long retention |
 | Guest access | share the LAN token (all-or-nothing) | ✓ scoped, expiring guest links |
 | Offline / security alerts | — | ✓ email + push |
 | Mark lost / remote wipe / rotate | — (physical access is your tool) | ✓ |
-| Own signing key, BYO firmware | ✓ physical ceremony | ✓ plus CI deploy convenience |
+| Own signing key, BYO firmware | physical ceremony **Ahead · gate M2** | ✓ plus CI deploy convenience |
 | Eject (self-host everything) | ✓ always | ✓ always |
 
 The matrix marks Local capability. Where a row is not yet built, its gate

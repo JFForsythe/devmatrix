@@ -13,7 +13,8 @@
 > 5 KB), and every fetch outcome is recorded per app and served by the new
 > authenticated `GET /api/v1/apps/diag` — attempts, last HTTP code, bytes,
 > and a one-word verdict (`ok`, `too-big`, `bad-json`, `no-url`,
-> `no-aircraft`, `bind-miss`) — so a blank app explains itself. The
+> `no-aircraft`, `bind-miss`, `connect-failed`, `http-<code>`) — so a
+> blank app explains itself. The
 > `examples/dmx-top.mjs` terminal panel front-ends it.
 > v0.9.1–v0.9.2 rebuild the embedded Console
 > with the Apps-page onboarding — the on-the-panel-now rotation card, the
@@ -47,8 +48,9 @@
 > brightness ceiling and reset-reason diagnostics after a bench
 > brown-out, small-font multi-line panel boards, and Flights Overhead
 > companion config — receiver URL, interval, rows, format, and
-> list/radar view — held in device NVS with an mDNS receiver scan, so
-> the owner's receiver address exists only on their own hardware.
+> list/radar view — held in device NVS, so the owner's receiver address
+> exists only on their own hardware (the v0.8.0-era mDNS receiver scan
+> was removed by v0.11.0 / ADR-0032).
 > API and OTA shapes stay DRAFT until the P2 freeze; M0 acceptance
 > (signed OTA, verified rollback, soak) still gates sold units. No
 > credentials are ever compiled in or committed — runtime NVS only
@@ -76,7 +78,7 @@ modules split out along these lines as they grow.
 firmware/
   core/      boot, settings store (NVS), logging, safe-mode
   display/   Protomatter glue, framebuffer, compositor, gamma, BDF fonts
-  net/       WiFi mgr, mDNS, SNTP, Improv-WiFi serial + SoftAP fallback
+  net/       WiFi mgr, mDNS responder, SNTP, Improv-WiFi serial + SoftAP fallback
   api/       REST /api/v1, WebSocket stream, OpenAPI spec
   mqtt/      client, topic tree per contracts/mqtt.md, HA discovery
   scenes/    built-ins (clock, ambient, info, notification overlay)

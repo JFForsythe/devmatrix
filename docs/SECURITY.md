@@ -26,15 +26,15 @@ Firmware trust is two distinct layers, not one "trust set"
 ([ADR-0021](adr/ADR-0021-two-layer-trust-model.md)): a permanent
 hardware root, and a wipeable software trust set it verifies.
 
-| Key | Layer & custody | Purpose |
-|---|---|---|
-| Secure Boot v2 digests (RSA-3072) | Hardware — one-way eFuse slots on ESP32-S3 | Root of trust for the boot chain; burning and revocation permanent, no erase path |
-| Release signing key (Ed25519) | Software OTA trust set; private key offline/HSM, company | Signs official firmware; verified by the RSA-signed chain |
-| Owner signing key (optional, Ed25519) | Software OTA trust set; owner's custody | Enrolled via ceremony; device then also accepts owner-signed firmware |
-| Per-device identity keypair + cert | Burned at provisioning (secure boot; flash encryption per the stance below) | Device authentication to relay (mTLS) and to LAN clients |
-| Account passkeys (WebAuthn) | User's authenticators | Only way into a Cloud account; hardware keys supported |
-| Device LAN token / pairing | Device NVS | Guards `/api/v1` on LAN; rotatable from Console |
-| Snapshot key | Derived on the user side | E2EE backups; never leaves user custody |
+| Key | Layer & custody | Purpose | Status |
+|---|---|---|---|
+| Secure Boot v2 digests (RSA-3072) | Hardware — one-way eFuse slots on ESP32-S3 | Root of trust for the boot chain; burning and revocation permanent, no erase path | **Ahead** — resolved on sacrificial boards at gate P2 |
+| Release signing key (Ed25519) | Software OTA trust set; private key offline/HSM, company | Signs official firmware; verified by the RSA-signed chain | **Ahead · gate M0** (signed OTA) |
+| Owner signing key (optional, Ed25519) | Software OTA trust set; owner's custody | Enrolled via ceremony; device then also accepts owner-signed firmware | **Ahead · gate M2** |
+| Per-device identity keypair + cert | Burned at provisioning (secure boot; flash encryption per the stance below) | Device authentication to relay (mTLS) and to LAN clients | LAN half **today** (first-boot Ed25519 identity key, v0.9.0+, ADR-0031); provisioning-burned cert + relay mTLS **Ahead · gate C1** |
+| Account passkeys (WebAuthn) | User's authenticators | Only way into a Cloud account; hardware keys supported | **Ahead · gate C0** |
+| Device LAN token / pairing | Device NVS | Guards `/api/v1` on LAN; rotatable from Console | **Today** |
+| Snapshot key | Derived on the user side | E2EE backups; never leaves user custody | **Ahead · gate M2** |
 
 Flash encryption stance (ADR-0021): either (a) Secure Boot without
 release-mode flash encryption, or (b) flash encryption with the
@@ -48,8 +48,16 @@ is where LAN products usually hand-wave (browsers cannot scan a LAN,
 and we would not want them to):
 
 - **Provisioning first.** Out of the box the device has no network.
-  Join it via Improv WiFi over USB (the start page talks to the cable,
-  not the LAN) or the `DEVMATRIX-XXXX` SoftAP captive portal. No app.
+  Join it via the `DEVMATRIX-XXXX` SoftAP captive portal today, or —
+  **Ahead · gate M0** ([docs/MODES.md](MODES.md) owns the gate) — Improv
+  WiFi over USB (the start page talks to the cable, not the LAN). No app.
+- **The setup window is open by design — and bounded.** The
+  `DEVMATRIX-XXXX` hotspot is unencrypted and its `/setup` surface is
+  unauthenticated; from a successful Wi-Fi join until the owner
+  finishes setup, the joining page (or any client still on the
+  hotspot) can read the minted LAN token. Exposure is bounded by RF
+  range and the seconds-long setup window; hardening (an AP password
+  shown on the panel, auto-closing the window) is tracked for gate M0.
 - **The panel is the directory.** Once on WiFi, the panel shows its
   own address (`dmx-0952.local`) next to the claim code. Discovery is
   the owner reading the panel — never a cloud page scanning the LAN.
@@ -66,7 +74,7 @@ and we would not want them to):
   `Authorization: Bearer <LAN token>`. The token is minted at claim,
   surfaced in the Console (which renders copy-paste commands with it
   embedded), and rotatable/revocable per device. Read-only scoped
-  tokens are available for integrations.
+  tokens for integrations are **Ahead · gate M1**.
 - **The local transport is plain HTTP, permanently** (ADR-0031, decided
   by the P1 spike —
   [evidence](../hardware/evidence/2026-08-12-browser-transport-spike.md)).
@@ -109,7 +117,9 @@ and we would not want them to):
 
 ## Ceremonies
 
-**Claiming** (proof of possession):
+**Claiming** (proof of possession — the full ceremony below is the
+gate M1 target; today's firmware pairs by panel code,
+[docs/MANUAL.md](MANUAL.md) ch. 4):
 1. Unclaimed device shows its claim code and LAN address on the panel
    (see Discovery & local transport — nothing secret is broadcast).
 2. User opens the start page and enters what the panel shows — or

@@ -29,6 +29,7 @@ closed-product code, logic, or schemas — ever.
 | Host apps, example scripts, service installers | examples/README.md |
 | Manufacturing files, fixtures, hardware gate evidence | hardware/ |
 | Sequencing, gates, milestone acceptance | ROADMAP.md |
+| Approved production blueprint; gate-criteria snapshot (§3) | docs/PRODUCTION-PLAN.md |
 | Decisions and their reasoning | docs/adr/ |
 | Repository workflow and definition of done | AGENTS.md |
 
