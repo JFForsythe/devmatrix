@@ -3,7 +3,12 @@
 > **Status: living tree.** The DK-01 firmware lives at
 > [`firmware/dk01/`](../firmware/dk01/README.md) and develops
 > continuously from P1 onward (ADR-0024, superseding ADR-0009's
-> disposable-spike posture). v0.12.0 is the hardening pass from the
+> disposable-spike posture). v0.12.1 is a Console-only rebuild: the
+> Apps page's Pixlet card now copies the one-command host setup
+> (`examples/setup-pixlet.mjs` — sha256-pinned engine download,
+> catalog clone, starter config, panel preflight) with the panel's own
+> address filled in; device logic is unchanged from v0.12.0.
+> v0.12.0 is the hardening pass from the
 > 2026-08-16 production-readiness review: the LAN token gains the
 > `dmx_lan_` prefix (instantly recognizable to secret scanners; older
 > bare-hex tokens stay valid), token and identity-key minting move
@@ -110,8 +115,9 @@ firmware/
 Dual app slots (2 MB each, `ota_0`/`ota_1`) + a 256 KB TinyUF2 factory
 partition for USB recovery + a 3.7 MB `ffat` data partition reserved for
 future assets and apps. Framebuffers in PSRAM; DMA descriptors in
-internal RAM. v0.12.0 measures 1,367,855 B flash (65 % of a slot) and
+internal RAM. v0.12.1 measures 1,367,919 B flash (65 % of a slot) and
 116,708 B static RAM (the app fetch buffer lives in PSRAM);
+v0.12.0 measured 1,367,855 B / 116,708 B;
 v0.11.0 measured 1,366,075 B / 116,692 B;
 v0.8.0 measured 1,336,915 B / 120,396 B
 ([evidence](../hardware/evidence/2026-08-12-console-parity-verification.md)).

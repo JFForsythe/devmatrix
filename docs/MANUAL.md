@@ -317,15 +317,25 @@ Pixlet engine and community catalog on **your** always-on machine, then pushes
 the rendered 64×32 frames straight to the DK-01. The company renders, proxies,
 and stores nothing for this feature (ADR-0030).
 
-**You need:** Node 20+, a [Tronbyt Pixlet](https://github.com/tronbyt/pixlet)
-binary for your platform, a local clone of the
-[community apps fork](https://github.com/tronbyt/apps), and your own API keys
-for any apps that call outside services. Install the bridge's one pinned GIF
-decoder dependency from `examples/pixlet-bridge/` with `npm install` after
-reviewing its provenance table.
+**You need:** Node 20+ on the always-on machine, plus your own API
+keys for any apps that call outside services. One command fetches the
+rest — the [Tronbyt Pixlet](https://github.com/tronbyt/pixlet) engine
+(sha256-pinned download), the
+[community apps catalog](https://github.com/tronbyt/apps), the
+bridge's one pinned GIF-decoder dependency — writes a starter config,
+and checks it can reach your panel (the Console's Pixlet card copies
+this with your panel's address filled in):
 
-Edit `examples/pixlet-bridge/bridge.config.json`, or put the config elsewhere
-and set `BRIDGE_CONFIG` to its absolute path:
+```sh
+git clone https://github.com/JFForsythe/devmatrix
+node devmatrix/examples/setup-pixlet.mjs --device http://dmx-xxxx.local
+```
+
+Prefer assembling the pieces by hand? The step-by-step path is in
+`examples/pixlet-bridge/README.md`.
+
+Edit `~/tronbyt/bridge.config.json` (written by the setup command), or
+craft your own anywhere and set `BRIDGE_CONFIG` to its absolute path:
 
 ```json
 {
@@ -354,10 +364,10 @@ From the repository root, check the complete setup, push one app for one
 animation cycle, then install the rotation as a background service:
 
 ```sh
+export BRIDGE_CONFIG="$HOME/tronbyt/bridge.config.json"   # or your own
 DMX_TOKEN='<LAN token>' node examples/pixlet-bridge/bridge.mjs --check
-DMX_TOKEN='<LAN token>' node examples/pixlet-bridge/bridge.mjs --once weather
-node examples/install-pixlet-bridge.mjs \
-  --config "$PWD/examples/pixlet-bridge/bridge.config.json"
+DMX_TOKEN='<LAN token>' node examples/pixlet-bridge/bridge.mjs --once dvdlogo
+node examples/install-pixlet-bridge.mjs --config "$BRIDGE_CONFIG"
 ```
 
 The installer securely prompts for the token, records the absolute

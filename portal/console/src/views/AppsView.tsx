@@ -451,13 +451,15 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
           </div>
         </div>
         <div class="command-block">
-          <div><span>ON THE COMPUTER THAT STAYS ON</span><button class="btn small" type="button" onClick={() => void copyText("git clone https://github.com/JFForsythe/devmatrix\nnode devmatrix/examples/install-pixlet-bridge.mjs")}>COPY</button></div>
-          <pre>{"git clone https://github.com/JFForsythe/devmatrix\nnode devmatrix/examples/install-pixlet-bridge.mjs"}</pre>
+          <div><span>ON THE COMPUTER THAT STAYS ON — ONE COMMAND</span><button class="btn small" type="button" onClick={() => void copyText(`git clone https://github.com/JFForsythe/devmatrix\nnode devmatrix/examples/setup-pixlet.mjs --device http://${transport.host}`)}>COPY SETUP COMMAND</button></div>
+          <pre>{`git clone https://github.com/JFForsythe/devmatrix\nnode devmatrix/examples/setup-pixlet.mjs --device http://${transport.host}`}</pre>
         </div>
         <p class="note">
-          The installer sets the bridge up as a service that survives reboots and asks for your LAN
-          token privately (Dev console → COPY WITH MY TOKEN). First-time setup also needs the free
-          Pixlet renderer and the community-apps folder on that computer — the short checklist is in
+          That one command installs everything: the free Pixlet renderer (an integrity-pinned
+          download), the 1,000+ community-apps catalog, a starter rotation, and a reachability check
+          against this panel. Make it permanent afterwards with
+          <code> node devmatrix/examples/install-pixlet-bridge.mjs</code> — it asks for your LAN
+          token privately (Dev console → COPY WITH MY TOKEN). Manual steps and details:
           <code> examples/pixlet-bridge/README.md</code>.
         </p>
       </Card>

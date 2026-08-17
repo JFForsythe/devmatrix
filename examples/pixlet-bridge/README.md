@@ -6,7 +6,25 @@ size, decodes the resulting GIF on the owner's machine, and sends RGB565 frames
 directly to a DK-01 over the LAN `/api/v1/display/frame` endpoint. The company
 runs no renderer, proxy, or app service (ADR-0030).
 
-## Prerequisites
+## One-command setup
+
+Everything below (engine, catalog, dependency, starter config, panel
+preflight) in one idempotent run — the same command the Console's
+Pixlet card copies with your panel's address filled in:
+
+```sh
+git clone https://github.com/JFForsythe/devmatrix
+node devmatrix/examples/setup-pixlet.mjs --device http://dmx-xxxx.local
+```
+
+The engine download is verified against sha256 pins recorded in
+[`../setup-pixlet.mjs`](../setup-pixlet.mjs) before it is extracted
+(the upstream release publishes no checksums, so the script is the
+integrity record). Re-running is safe; an existing
+`bridge.config.json` is never overwritten. Prefer assembling the
+pieces yourself? The manual path follows.
+
+## Prerequisites (manual path)
 
 - Node 20 or newer.
 - A Tronbyt Pixlet release for this machine, either on `PATH` as `pixlet` or at
