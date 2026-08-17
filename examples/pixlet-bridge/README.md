@@ -55,13 +55,16 @@ Edit `bridge.config.json`, or set `BRIDGE_CONFIG` to another JSON file:
 ```
 
 An app may be a path relative to `appsDir`, or a catalog name such as
-`weather`. A catalog name resolves using the usual
-`apps/<name>/<name>.star` layout. Config values must be strings, numbers,
-booleans, or `null`; they are passed to Pixlet as `key=value` arguments.
+`weather`. A catalog name resolves by preferring the app *directory*
+`apps/<name>/` (whose `.star` file may be snake_cased differently from
+the directory), falling back to the flat `apps/<name>/<name>.star`
+layout. Config values must be strings, numbers, booleans, or `null`;
+they are passed to Pixlet as `key=value` arguments.
 
 The bridge invokes the Tronbyt CLI as
-`pixlet render --output <temporary.gif> <app.star> [key=value ...]`, with a
-30-second render timeout. It never scales output: anything other than 64×32 is
+`pixlet render --format gif --output <temporary.gif> <app.star>
+[key=value ...]` — `--format gif` is required because the Tronbyt fork
+emits WebP by default — with a 30-second render timeout. It never scales output: anything other than 64×32 is
 rejected with the app name in the error.
 
 ## Run and diagnose

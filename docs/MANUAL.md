@@ -139,7 +139,7 @@ identity-verified panel (or into a clearly-labeled interactive demo) —
   it's built — then validates and saves any 2 KB JSON layout with literal
   rows or RFC 6901 bindings. Each on-device card can be enabled, assigned
   a scene interval, saved to NVS, or shown immediately. The **Pixlet
-  bridge** card covers hundreds of community-built Tidbyt-ecosystem apps
+  bridge** card covers 1,000+ community-built Tidbyt-ecosystem apps
   via the owner-hosted bridge (chapter 7's host tier; installer in
   `examples/`). **Ahead · gate M4** — the Community Registry adds more
   reviewed apps, permission sheets, and one-click installation.
@@ -310,7 +310,7 @@ It then runs `systemctl daemon-reload` and
 
 </details>
 
-### Hundreds of community apps — the Pixlet bridge
+### A thousand community apps — the Pixlet bridge
 
 The owner-hosted Pixlet bridge runs the open-source, Tronbyt-maintained
 Pixlet engine and community catalog on **your** always-on machine, then pushes
