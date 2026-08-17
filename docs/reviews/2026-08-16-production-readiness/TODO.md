@@ -118,6 +118,14 @@ complete.
       record + verify-live default flip (runbook: OPERATIONS.md)
 - [J] Deploy gating on CI + branch protection (needs public repo or
       plan upgrade — dashboard actions)
-- [HW] Execute bench week per hardware/procedures/bench-week.md
+- [HW] Execute bench week per hardware/procedures/bench-week.md —
+      **partially executed 2026-08-16 evening** (evidence:
+      2026-08-16-v0120-ota-and-hardening-verification.md): on-hardware
+      OTA to v0.12.0, run 7 curl-level, Ed25519 interop closed, run 1
+      partial with a **199 Hz refresh flag opened**. Remaining (on the
+      next unit — this board is being repurposed): soak (2),
+      current/thermal (3), UF2 drill (4), destructive rollback (5),
+      entropy fresh-mint (6), browser-page CSRF/LNA (7/8), panel
+      intake (9), and the refresh re-measure
 - [HW] 8–12 unassisted user tests (M1 overlap)
 - [J] Enclosure / harness / BOM / cost model (mechanical)
