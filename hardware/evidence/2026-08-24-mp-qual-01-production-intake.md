@@ -122,3 +122,38 @@ qualification.
 A successful flash does not approve this lot for production. Continue with the
 MatrixPortal qualification gates in [the production plan](../../docs/PRODUCTION-PLAN.md)
 and [bench-week procedure](../procedures/bench-week.md).
+
+## Addendum — same-day factory-fresh close-out (23:18 UTC)
+
+The repository shipped v0.12.3 (commit `4e84a0f`) after this intake run. The
+unit was deliberately **left on v0.12.2**, the exact build this record's
+hashes describe: v0.12.3's only device-visible change is the optional
+`lease_ms` frame lease, which v0.12.2 ignores harmlessly (verified in
+source — its frame handler reads only `b64`), and unverified-on-hardware
+firmware does not belong on a unit hours before shipment. The owner can OTA
+later from the Console.
+
+To leave the unit factory-fresh, the NVS partition (offset `0x9000`, size
+`0x5000`, confirmed by parsing the partition table read back from this
+device's flash) was erased over USB with esptool 5.2.0, then the board was
+hard-reset. A blank NVS is byte-for-byte the state a factory-new unit boots
+with; it wipes the Wi-Fi credentials, LAN API token, Ed25519 identity key,
+and brightness/timezone, while both OTA app slots and the TinyUF2 factory
+partition were untouched. During an earlier token-recovery attempt the board
+was briefly left in ROM download mode and recovered by hard reset; the NVS
+wipe made token recovery unnecessary, and no token or credential was ever
+recorded.
+
+Post-wipe verification, all from the bench host:
+
+- Serial telemetry reports setup mode: `rssi=0 ip=0.0.0.0`, free internal
+  heap 160,656 bytes, and `refresh_hz=200` while driving the setup status
+  card.
+- The unit's former LAN address no longer answers (credentials gone).
+- The open `DEVMATRIX-[redacted]` setup hotspot is broadcasting (observed at
+  RSSI −37, no security — the out-of-box pairing path).
+
+Still open for the operator before boxing: visual confirmation and
+photograph of the corrected compact-font setup card on the panel, the
+TinyUF2 double-reset USB-recovery check, and physical inspection/packaging.
+The loaded-telemetry 199 Hz gate result above is unchanged by this addendum.
