@@ -325,6 +325,10 @@ async function renderRadarFrame() {
   try {
     const r = await post("/api/v1/display/frame", {
       b64: bytes.toString("base64"),
+      // Loop mode holds a 10 s lease (renewed every 125–500 ms push) so a
+      // dead host frees the panel; --once keeps the frame persistent, as it
+      // always did, because nothing renews after a single push.
+      lease_ms: ONCE ? 0 : 10_000,
     });
     framePushes++;
     if (!r.ok) framePushFails++;

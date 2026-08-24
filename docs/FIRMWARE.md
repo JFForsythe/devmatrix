@@ -3,7 +3,19 @@
 > **Status: living tree.** The DK-01 firmware lives at
 > [`firmware/dk01/`](../firmware/dk01/README.md) and develops
 > continuously from P1 onward (ADR-0024, superseding ADR-0009's
-> disposable-spike posture). v0.12.1 is a Console-only rebuild: the
+> disposable-spike posture). v0.12.3 adds an optional host-frame
+> lease: `POST /api/v1/display/frame` takes `lease_ms` (0 or
+> 250–30,000; omitted or 0 keeps the persistent behavior), every frame
+> renews it, and on expiry the panel returns to its own clock/rotation
+> — a host app that dies or loses power can no longer freeze the
+> display on its last frame. `display/clear` and the MQTT clear drop
+> the lease too, and the bundled bridge and flights hosts now hold
+> short renewed leases (sized to outlive their own frame delays, 10–30 s). v0.12.2 moves the four-line status cards to the compact
+> TomThumb 3×5 font after the MatrixPortal intake photograph showed
+> the classic 6 px font clipping 16-character names like
+> `DEVMATRIX-FFFF` on the 64 px panel
+> ([intake evidence](../hardware/evidence/2026-08-24-mp-qual-01-production-intake.md)).
+> v0.12.1 is a Console-only rebuild: the
 > Apps page's Pixlet card now copies the one-command host setup
 > (`examples/setup-pixlet.mjs` — sha256-pinned engine download,
 > catalog clone, starter config, panel preflight) with the panel's own
@@ -115,8 +127,11 @@ firmware/
 Dual app slots (2 MB each, `ota_0`/`ota_1`) + a 256 KB TinyUF2 factory
 partition for USB recovery + a 3.7 MB `ffat` data partition reserved for
 future assets and apps. Framebuffers in PSRAM; DMA descriptors in
-internal RAM. v0.12.1 measures 1,367,919 B flash (65 % of a slot) and
+internal RAM. v0.12.3 measures 1,368,959 B flash (65 % of a slot) and
 116,708 B static RAM (the app fetch buffer lives in PSRAM);
+v0.12.2 measured 1,367,939 B / 116,708 B
+([intake evidence](../hardware/evidence/2026-08-24-mp-qual-01-production-intake.md));
+v0.12.1 measured 1,367,919 B / 116,708 B;
 v0.12.0 measured 1,367,855 B / 116,708 B;
 v0.11.0 measured 1,366,075 B / 116,692 B;
 v0.8.0 measured 1,336,915 B / 120,396 B

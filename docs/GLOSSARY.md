@@ -31,6 +31,7 @@ first; then use.
 | **Host app** | An app running on hardware the owner already operates, pushing content to the device over LAN REST or MQTT. For work the device cannot do — e.g. the Flights Overhead radar view (ADR-0026). |
 | **App host** | The owner's always-on machine running host apps: Raspberry Pi, NAS, Home Assistant box, mini PC. Never company hardware (ADR-0016). |
 | **Pixlet bridge** | Owner-hosted host app that renders open-source Pixlet community apps (Tronbyt-maintained fork, Apache-2.0) at 64×32 and pushes frames over the LAN API. Each owner runs their own; the company renders nothing (ADR-0030). |
+| **Pixlet Easy Mode** | The localhost-only browser manager for the Pixlet bridge (`examples/pixlet-manager/`): catalog search, schema-driven app settings, GIF preview, claim-code pairing, one-shot test push, and rotation editing over the same owner-side `bridge.config.json`. Binds to `127.0.0.1`; the LAN token stays in a mode-`0600` secret file. |
 | **Scripted app** | An app running as sandboxed code in an on-device VM. Deferred out of launch; additive if a runtime clears the docs/PRODUCTION-PLAN.md bar (ADR-0026). |
 | **Layout** | The declarative description of what the panel shows: regions, text, glyphs, and colours, rendered by the device. |
 | **Binding** | The link from a layout field to a data source (HTTPS JSON or an MQTT topic), with refresh interval and a stale indicator. |

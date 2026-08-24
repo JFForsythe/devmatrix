@@ -18,6 +18,7 @@ Evidence index (newest first):
 
 | Date | File | What it proves |
 |---|---|---|
+| 2026-08-24 | [mp-qual-01-production-intake](evidence/2026-08-24-mp-qual-01-production-intake.md) | MatrixPortal S3 intake sample: full supplier-image backup, v0.12.2 verified write, 64×32 panel mapping, Wi-Fi/API smoke; **199 Hz loaded refresh and USB recovery remain open** |
 | 2026-08-17 | [pixlet-bridge-live-proof](evidence/2026-08-17-pixlet-bridge-live-proof.md) | ADR-0030 end-to-end on hardware: Tronbyt Pixlet v0.53.1 → 150 coalesced frames → authenticated frame API → panel; catalog measured at 1,045 apps |
 | 2026-08-16 | [v0120-ota-and-hardening-verification](evidence/2026-08-16-v0120-ota-and-hardening-verification.md) | On-hardware OTA v0.11.0→v0.12.0 (slot swap, config survival); all v0.12.0 hardening behaviors live; Ed25519 firmware↔noble interop closed; token-format rotation; **199 Hz refresh flag opened** |
 | 2026-08-13 | [hosted-connect-verification](evidence/2026-08-13-hosted-connect-verification.md) | Hosted welcome/connect + Ed25519 identity flow vs a protocol-exact mock (16 checks); hardware acceptance open |

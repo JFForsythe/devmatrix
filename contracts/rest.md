@@ -74,7 +74,7 @@ declarative apps — docs/GLOSSARY.md).
 
 ### `GET /api/v1/health` — open
 
-`{"ok":true,"device":"DMX-4E71-0952","fw":"0.11.0","mode":"run"}` —
+`{"ok":true,"device":"DMX-4E71-0952","fw":"0.12.3","mode":"run"}` —
 `mode` is `run` or `setup`. Safe for monitoring; carries no secrets.
 
 ### `GET /api/v1/info`
@@ -99,8 +99,16 @@ Response `{"ok":true}`.
 
 ### `POST /api/v1/display/frame`
 
-Request: `{"b64":"<base64>"}` decoding to **exactly 4,096 bytes** —
-one 64×32 RGB565 little-endian frame. Any other length:
+Request: `{"b64":"<base64>","lease_ms":3000}` decoding to **exactly
+4,096 bytes** — one 64×32 RGB565 little-endian frame. `lease_ms` is
+optional: `0` or omitted preserves the frame until `display/clear`; a value
+from 250–30,000 returns the display to its clock/rotation unless another
+frame renews the lease. A `lease_ms` that is present but not a plain
+integer (a quoted number, `null`, a float) is rejected
+`400 {"error":"lease_ms must be an integer, 0 or 250..30000"}` — it is
+never silently treated as persistent. Host apps should use a short lease
+so a dead host cannot freeze the panel indefinitely, sized to outlive the
+longest gap between their own pushes. Any other decoded length:
 `400 {"error":"bad b64: need exactly 4096 bytes"}`. The frame layer is
 REST (and, later, the WebSocket stream) only — never MQTT
 (ADR-0029).

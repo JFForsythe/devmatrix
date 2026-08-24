@@ -11,26 +11,41 @@
 //      verifies it against a sha256 recorded below BEFORE extracting —
 //      the upstream release publishes no checksums, so this file is the
 //      integrity record (computed 2026-08-17 from the tagged assets).
-//   3. Shallow-clones the community apps catalog (1,000+ apps).
+//   3. Checks out the community apps catalog (1,000+ apps) at an
+//      approved, immutable commit without discarding local changes.
 //   4. Installs the bridge's one pinned npm dependency.
-//   5. Writes a starter bridge.config.json (never overwrites yours).
+//   5. Writes a mode-0600 starter bridge.config.json. On reruns,
+//      --device updates only device.url and preserves the rest.
 //   6. If DMX_TOKEN is set and a device address was given, runs the
 //      bridge preflight against your panel.
 //
 // Provenance (ADR-0030): engine github.com/tronbyt/pixlet v0.53.1
-// (Apache-2.0); catalog github.com/tronbyt/apps. Both run on YOUR
+// (Apache-2.0); catalog github.com/tronbyt/apps at commit
+// d0141abcb2f6c92192f2bed0509ae9678915d61c. Both run on YOUR
 // machine — the company renders, proxies, and stores nothing. Your LAN
 // token is read from the DMX_TOKEN environment variable and is never
 // written to disk or printed by this script.
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PIXLET_VERSION = "v0.53.1";
+const APPS_REPOSITORY = "https://github.com/tronbyt/apps.git";
+const APPS_COMMIT = "d0141abcb2f6c92192f2bed0509ae9678915d61c";
 const PIXLET_SHA256 = {
   "darwin-amd64": "2f5c130f23f011867fb3c007862bb24c9eb33d33057b4d264104f6d5c3c9dc97",
   "darwin-arm64": "c7616ebef774c15f2fff1e1f6f849456871c3c9d1cff6cdcb7ecd78944ce60bd",
@@ -45,6 +60,66 @@ const fail = (msg) => {
   process.exit(1);
 };
 
+function isObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function parseConfig(configPath) {
+  let parsed;
+  try {
+    parsed = JSON.parse(readFileSync(configPath, "utf8"));
+  } catch (error) {
+    throw new Error(`Cannot parse ${configPath} as JSON: ${error.message}`);
+  }
+  if (!isObject(parsed)) throw new Error(`${configPath} must contain a JSON object.`);
+  if (parsed.device !== undefined && !isObject(parsed.device)) {
+    throw new Error(`${configPath} device must be a JSON object.`);
+  }
+  return parsed;
+}
+
+function writeConfigAtomic(configPath, config) {
+  const temporaryPath = `${configPath}.tmp-${process.pid}-${Date.now()}`;
+  try {
+    writeFileSync(temporaryPath, `${JSON.stringify(config, null, 2)}\n`, {
+      encoding: "utf8",
+      flag: "wx",
+      mode: 0o600,
+    });
+    chmodSync(temporaryPath, 0o600);
+    renameSync(temporaryPath, configPath);
+    chmodSync(configPath, 0o600);
+  } finally {
+    if (existsSync(temporaryPath)) rmSync(temporaryPath);
+  }
+}
+
+function runSelfTest() {
+  const testDir = mkdtempSync(join(tmpdir(), "devmatrix-setup-pixlet-"));
+  const configPath = join(testDir, "bridge.config.json");
+  try {
+    const original = {
+      device: { url: "http://old.local", tokenEnv: "DMX_TOKEN" },
+      rotation: [{ app: "clock", duration_s: 30, config: { timezone: "UTC" } }],
+      extension: { preserved: true },
+    };
+    writeFileSync(configPath, `${JSON.stringify(original, null, 2)}\n`, { mode: 0o644 });
+    const updated = parseConfig(configPath);
+    updated.device.url = "http://new.local";
+    writeConfigAtomic(configPath, updated);
+    const actual = parseConfig(configPath);
+    if (actual.device.url !== "http://new.local") throw new Error("device.url was not updated");
+    if (actual.device.tokenEnv !== "DMX_TOKEN") throw new Error("device settings were not preserved");
+    if (actual.rotation[0].config.timezone !== "UTC" || actual.extension.preserved !== true) {
+      throw new Error("unrelated config fields were not preserved");
+    }
+    if ((statSync(configPath).mode & 0o777) !== 0o600) throw new Error("config mode is not 0600");
+    ok("Self-test passed (atomic config update, field preservation, mode 0600)");
+  } finally {
+    rmSync(testDir, { recursive: true });
+  }
+}
+
 // ---------------------------------------------------------------- args
 const args = process.argv.slice(2);
 function argValue(flag) {
@@ -52,7 +127,13 @@ function argValue(flag) {
   return i >= 0 && args[i + 1] ? args[i + 1] : "";
 }
 if (args.includes("--help") || args.includes("-h")) {
-  console.log("usage: node examples/setup-pixlet.mjs [--dir DIR] [--device http://dmx-xxxx.local]");
+  console.log(
+    "usage: node examples/setup-pixlet.mjs [--dir DIR] [--device http://dmx-xxxx.local] [--self-test]",
+  );
+  process.exit(0);
+}
+if (args.includes("--self-test")) {
+  runSelfTest();
   process.exit(0);
 }
 const dir = resolve((argValue("--dir") || join(homedir(), "tronbyt")).replace(/^~(?=\/)/, homedir()));
@@ -82,6 +163,21 @@ if (!platform || !arch) {
 const assetKey = `${platform}-${arch}`;
 mkdirSync(dir, { recursive: true });
 ok(`Working directory: ${dir}`);
+
+// Parse and secure an existing config before any download, checkout, or npm
+// operation. A malformed config fails after its permissions are tightened,
+// without changing the engine, catalog, or bridge dependency.
+const configPath = join(dir, "bridge.config.json");
+const configAlreadyExists = existsSync(configPath);
+let config;
+if (configAlreadyExists) {
+  try {
+    chmodSync(configPath, 0o600);
+    config = parseConfig(configPath);
+  } catch (error) {
+    fail(error.message);
+  }
+}
 
 // ---------------------------------------------------------------- engine
 const pixletPath = join(dir, "pixlet");
@@ -120,20 +216,82 @@ if (version) {
 
 // ---------------------------------------------------------------- catalog
 const appsDir = join(dir, "apps");
-if (existsSync(join(appsDir, ".git"))) {
-  info("updating community apps catalog …");
-  const pull = spawnSync("git", ["-C", appsDir, "pull", "--ff-only", "--depth", "1"], { stdio: "ignore" });
-  ok(pull.status === 0 ? "Catalog updated" : "Catalog present (update skipped — local state)");
-} else {
-  info("cloning community apps catalog (one-time, ~1 minute) …");
-  const clone = spawnSync(
+const catalogGitDir = join(appsDir, ".git");
+if (existsSync(appsDir) && !existsSync(catalogGitDir)) {
+  fail(`${appsDir} already exists but is not a Git checkout; refusing to replace it.`);
+}
+if (!existsSync(catalogGitDir)) {
+  info("creating community apps catalog checkout (one-time, ~1 minute) …");
+  const init = spawnSync("git", ["init", "--quiet", appsDir], { stdio: "inherit" });
+  if (init.status !== 0) fail("Catalog Git initialization failed.");
+}
+
+const catalogStatus = spawnSync(
+  "git",
+  ["-C", appsDir, "status", "--porcelain=v1", "--untracked-files=all"],
+  { encoding: "utf8" },
+);
+if (catalogStatus.status !== 0) fail(`Cannot inspect local changes in ${appsDir}.`);
+const catalogDirty = catalogStatus.stdout.trim().length > 0;
+const catalogHeadProbe = spawnSync("git", ["-C", appsDir, "rev-parse", "--verify", "HEAD"], {
+  encoding: "utf8",
+});
+let catalogHead = catalogHeadProbe.status === 0 ? catalogHeadProbe.stdout.trim() : "";
+
+if (catalogHead !== APPS_COMMIT) {
+  if (catalogDirty) {
+    fail(
+      `Catalog has local or ignored files and is based on ${catalogHead || "an incomplete checkout"}. ` +
+        `Preserved it unchanged instead of switching to approved commit ${APPS_COMMIT}. ` +
+        "Commit, stash, remove, or move those files, then rerun.",
+    );
+  }
+  const catalogBranch = spawnSync("git", ["-C", appsDir, "symbolic-ref", "--quiet", "--short", "HEAD"], {
+    encoding: "utf8",
+  });
+  if (catalogHead && catalogBranch.status !== 0) {
+    // A clean detached HEAD is this script's own resting state from an
+    // earlier approved pin, so a plain rerun after a pin bump must not
+    // fail. Prove the commit exists upstream before moving off it; only a
+    // commit the catalog repository does not recognize (local work) is
+    // preserved behind a failure.
+    info(`catalog is detached at ${catalogHead}; confirming it is an upstream commit …`);
+    const upstreamProbe = spawnSync(
+      "git",
+      ["-C", appsDir, "fetch", "--depth", "1", APPS_REPOSITORY, catalogHead],
+      { stdio: "ignore" },
+    );
+    if (upstreamProbe.status !== 0) {
+      fail(
+        `Catalog is detached at ${catalogHead}, which the catalog repository does not recognize — ` +
+          "it looks like local work. Preserved it unchanged; switch it to a branch or move the " +
+          "checkout, then rerun.",
+      );
+    }
+  }
+  info(`fetching approved catalog commit ${APPS_COMMIT} …`);
+  const fetchCommit = spawnSync(
     "git",
-    ["clone", "--depth", "1", "https://github.com/tronbyt/apps.git", appsDir],
+    ["-C", appsDir, "fetch", "--depth", "1", APPS_REPOSITORY, APPS_COMMIT],
     { stdio: "inherit" },
   );
-  if (clone.status !== 0) fail("Catalog clone failed.");
-  ok("Catalog cloned");
+  if (fetchCommit.status !== 0) fail(`Catalog fetch failed for approved commit ${APPS_COMMIT}.`);
+  const checkoutCommit = spawnSync("git", ["-C", appsDir, "checkout", "--detach", APPS_COMMIT], {
+    stdio: "inherit",
+  });
+  if (checkoutCommit.status !== 0) fail(`Catalog checkout failed for approved commit ${APPS_COMMIT}.`);
+  catalogHead = APPS_COMMIT;
+} else if (catalogDirty) {
+  info("Catalog local or ignored files detected; preserving them on the approved base commit.");
 }
+
+const resolvedCatalog = spawnSync("git", ["-C", appsDir, "rev-parse", "HEAD"], { encoding: "utf8" });
+if (resolvedCatalog.status !== 0) fail("Cannot resolve the installed catalog commit.");
+catalogHead = resolvedCatalog.stdout.trim();
+if (catalogHead !== APPS_COMMIT) {
+  fail(`Catalog resolved to ${catalogHead}, expected approved commit ${APPS_COMMIT}.`);
+}
+ok(`Catalog commit: ${catalogHead}${catalogDirty ? " (local files preserved)" : ""}`);
 
 // ---------------------------------------------------------------- bridge dep
 const exampleDir = dirname(fileURLToPath(import.meta.url));
@@ -151,25 +309,43 @@ if (existsSync(join(bridgeDir, "node_modules", "gifuct-js"))) {
 }
 
 // ---------------------------------------------------------------- config
-const configPath = join(dir, "bridge.config.json");
-if (existsSync(configPath)) {
-  ok(`Config already exists (left untouched): ${configPath}`);
+if (configAlreadyExists) {
+  if (device) {
+    config.device ??= {};
+    if (config.device.url !== device) {
+      config.device.url = device;
+      try {
+        writeConfigAtomic(configPath, config);
+      } catch (error) {
+        fail(`Cannot atomically update ${configPath}: ${error.message}`);
+      }
+      ok(`Config device updated; other settings preserved: ${configPath}`);
+    } else {
+      ok(`Config device already set; mode secured to 0600: ${configPath}`);
+    }
+  } else {
+    ok(`Config preserved; mode secured to 0600: ${configPath}`);
+  }
 } else {
-  const config = {
+  config = {
     device: { url: device || "http://dmx-xxxx.local", tokenEnv: "DMX_TOKEN" },
     pixlet: pixletPath,
     appsDir,
     rotation: [{ app: "dvdlogo", duration_s: 15, render_interval_s: 60, config: {} }],
   };
-  writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
-  ok(`Starter config written: ${configPath}`);
+  try {
+    writeConfigAtomic(configPath, config);
+  } catch (error) {
+    fail(`Cannot atomically create ${configPath}: ${error.message}`);
+  }
+  ok(`Starter config written with mode 0600: ${configPath}`);
   if (!device) info("(edit device.url to your panel's address, e.g. http://dmx-4e71.local)");
 }
 
 // ---------------------------------------------------------------- preflight
 const haveToken = Boolean(process.env.DMX_TOKEN);
-const configuredDevice = JSON.parse(readFileSync(configPath, "utf8")).device.url;
-if (haveToken && !configuredDevice.includes("dmx-xxxx")) {
+const configuredDevice = typeof config.device?.url === "string" ? config.device.url : "";
+if (haveToken && configuredDevice && !configuredDevice.includes("dmx-xxxx")) {
   info("running bridge preflight against your panel …");
   const check = spawnSync(process.execPath, [join(bridgeDir, "bridge.mjs"), "--check"], {
     stdio: "inherit",
@@ -177,7 +353,11 @@ if (haveToken && !configuredDevice.includes("dmx-xxxx")) {
   });
   if (check.status !== 0) fail("Preflight failed — see messages above (is the panel on and paired?).");
 } else {
-  info(haveToken ? "set device.url in the config, then rerun to preflight" : "DMX_TOKEN not set — preflight skipped");
+  info(
+    haveToken
+      ? "set device.url in the config, then rerun to preflight"
+      : "DMX_TOKEN not set — preflight skipped",
+  );
 }
 
 // ---------------------------------------------------------------- next steps

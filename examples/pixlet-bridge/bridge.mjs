@@ -546,7 +546,18 @@ function rgbaToRgb565(rgba, width = WIDTH, height = HEIGHT) {
   return bytes;
 }
 
-async function pushFrame(config, token, rgba) {
+// Every frame renews a device-side lease so firmware 0.12.3+ returns to its
+// own clock/rotation if this owner-hosted process is killed or the host
+// loses power, instead of freezing on the last Pixlet frame. The lease must
+// outlive the sleep that FOLLOWS the frame — slideshow apps legally use
+// multi-second frame delays, and slot handoffs re-render synchronously — or
+// the panel flaps to its clock mid-animation. Worst-case dead-host recovery
+// stays ≤ 30 s (the firmware's cap).
+function leaseFor(delayMs) {
+  return Math.min(30_000, Math.max(10_000, (Number(delayMs) || 0) + 5_000));
+}
+
+async function pushFrame(config, token, rgba, leaseMs) {
   const bytes = rgbaToRgb565(rgba);
   if (bytes.length !== FRAME_BYTES) throw new Error(`Frame encoded to ${bytes.length} bytes.`);
   const response = await fetch(`${config.device.url}/api/v1/display/frame`, {
@@ -555,7 +566,7 @@ async function pushFrame(config, token, rgba) {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ b64: bytes.toString("base64") }),
+    body: JSON.stringify({ b64: bytes.toString("base64"), lease_ms: leaseMs }),
     signal: AbortSignal.timeout(4_000),
   });
   const status = response.status;
@@ -566,7 +577,7 @@ async function pushFrame(config, token, rgba) {
 async function pushAnimationOnce(config, token, rendered) {
   for (let index = 0; index < rendered.frames.length; index += 1) {
     const frame = rendered.frames[index];
-    await pushFrame(config, token, frame.rgba);
+    await pushFrame(config, token, frame.rgba, leaseFor(frame.delayMs));
     if (index < rendered.frames.length - 1) await sleep(frame.delayMs);
   }
 }
@@ -576,7 +587,7 @@ async function showSlot(config, token, slot, rendered) {
   let index = 0;
   while (!shuttingDown && Date.now() < deadline) {
     const frame = rendered.frames[index % rendered.frames.length];
-    await pushFrame(config, token, frame.rgba);
+    await pushFrame(config, token, frame.rgba, leaseFor(frame.delayMs));
     index += 1;
     const remaining = deadline - Date.now();
     if (remaining > 0) await sleep(Math.min(frame.delayMs, remaining));

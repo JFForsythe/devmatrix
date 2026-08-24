@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="devmatrix-csrf" content="__DEVMATRIX_CSRF__">
+    <title>Pixlet Easy Mode · Devmatrix</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">DEVMATRIX · LOCAL OWNER TOOL</p>
+        <h1>Pixlet Easy Mode</h1>
+      </div>
+      <div class="device-status" id="device-status" aria-live="polite">Loading panel…</div>
+    </header>
+
+    <main>
+      <section class="setup-strip" aria-labelledby="pair-title">
+        <div>
+          <h2 id="pair-title">Connect this panel</h2>
+          <p id="pair-copy">The LAN token stays on this computer. It is never shown in this page.</p>
+        </div>
+        <div class="pair-controls">
+          <button type="button" class="secondary" id="pair-start">Show pair code</button>
+          <label class="code-field hidden" id="code-field">
+            <span>Code on panel</span>
+            <input id="pair-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000">
+          </label>
+          <button type="button" class="primary hidden" id="pair-finish">Pair securely</button>
+        </div>
+      </section>
+
+      <div class="workspace">
+        <section class="panel catalog-panel" aria-labelledby="catalog-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">COMMUNITY CATALOG</p>
+              <h2 id="catalog-title">Find an app</h2>
+            </div>
+            <span class="count" id="catalog-count">—</span>
+          </div>
+          <label class="search-field">
+            <span class="sr-only">Search apps</span>
+            <input id="app-search" type="search" autocomplete="off" placeholder="Search clocks, weather, stocks…">
+          </label>
+          <div id="catalog-results" class="catalog-results" aria-live="polite"></div>
+        </section>
+
+        <section class="panel editor-panel" aria-labelledby="editor-title">
+          <div id="empty-editor" class="empty-state">
+            <div class="matrix-mark" aria-hidden="true"></div>
+            <h2 id="editor-title">Choose any app</h2>
+            <p>Easy Mode reads the app’s own Pixlet schema and builds the settings form for you.</p>
+          </div>
+
+          <div id="app-editor" class="hidden">
+            <div class="editor-header">
+              <div>
+                <button type="button" class="text-button" id="clear-editor">← App catalog</button>
+                <h2 id="selected-name">App</h2>
+                <p id="selected-summary"></p>
+              </div>
+              <span class="compatibility" id="compatibility-badge">Checking…</span>
+            </div>
+            <div id="compatibility-note" class="notice hidden"></div>
+            <form id="settings-form">
+              <div id="settings-fields" class="settings-fields"></div>
+              <div class="timing-grid">
+                <label>
+                  <span>Show for</span>
+                  <div class="input-suffix"><input id="duration" type="number" min="1" max="3600" value="15" required><span>sec</span></div>
+                </label>
+                <label>
+                  <span>Refresh every</span>
+                  <div class="input-suffix"><input id="refresh" type="number" min="0" max="86400" value="300" required><span>sec</span></div>
+                </label>
+              </div>
+              <div class="action-row">
+                <button type="button" class="secondary" id="preview-app">Preview</button>
+                <button type="button" class="secondary" id="push-app">Show on panel once</button>
+                <button type="submit" class="primary" id="save-app">Add to rotation</button>
+              </div>
+            </form>
+
+            <div class="preview-card" id="preview-card">
+              <div class="preview-screen">
+                <img id="preview-image" class="hidden" alt="Rendered 64 by 32 Pixlet app preview">
+                <p id="preview-placeholder">64 × 32 preview</p>
+              </div>
+              <p class="preview-caption">Exact pixels · no scaling in the firmware path</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel rotation-panel" aria-labelledby="rotation-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">YOUR PANEL</p>
+              <h2 id="rotation-title">Rotation</h2>
+            </div>
+            <span class="count" id="rotation-count">—</span>
+          </div>
+          <div id="rotation-list" class="rotation-list"></div>
+          <div class="config-footnote">
+            <span>Config</span>
+            <code id="config-path">—</code>
+            <span id="config-mode">—</span>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  </body>
+</html>

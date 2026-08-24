@@ -44,7 +44,7 @@
 #include "apps_builtin.h"
 #include "mqtt_client.h"
 
-#define FW_VERSION "0.12.1"
+#define FW_VERSION "0.12.3"
 
 // A full-bright white frame can out-draw USB-C power and brown-out the
 // board (observed on the bench 2026-08-07: brownout reset at high slider
@@ -86,6 +86,7 @@ static const char* HOSTED_ORIGIN = "https://devmatrix.flighttrackerled.com";
 #define SCENE_CUSTOM 12
 int baseScene = SCENE_CLOCK;
 uint16_t frameBuf[64 * 32];        // raw RGB565 from /api/v1/display/frame
+uint32_t frameLeaseUntil = 0;      // optional host heartbeat; 0 stays until clear
 String overlayText;
 uint32_t overlayUntil = 0;         // text overlay deadline (0 = none)
 uint32_t identifyUntil = 0;        // identify-flash deadline (0 = none)
@@ -174,6 +175,30 @@ long jsonInt(const String& body, const char* key, long dflt) {
   int c = body.indexOf(':', k + pat.length());
   if (c < 0) return dflt;
   return body.substring(c + 1).toInt();
+}
+
+// Strict variant for fields where a malformed value must fail loudly:
+// toInt() maps a quoted "3000" to 0, and for lease_ms 0 means "persistent"
+// — a client with a serialization bug would silently lose the very
+// protection it asked for. Returns false unless the value is a plain
+// unquoted integer.
+bool jsonIntStrict(const String& body, const char* key, long& out) {
+  String pat = String("\"") + key + "\"";
+  int k = body.indexOf(pat);
+  if (k < 0) return false;
+  int c = body.indexOf(':', k + pat.length());
+  if (c < 0) return false;
+  int i = c + 1;
+  while (i < (int)body.length() && (body[i] == ' ' || body[i] == '\t')) i++;
+  int start = i;
+  if (i < (int)body.length() && body[i] == '-') i++;
+  int digits = 0;
+  while (i < (int)body.length() && body[i] >= '0' && body[i] <= '9') { i++; digits++; }
+  if (!digits) return false;
+  if (i < (int)body.length() &&
+      (body[i] == '.' || body[i] == 'e' || body[i] == 'E')) return false;
+  out = body.substring(start, i).toInt();
+  return true;
 }
 
 bool jsonHas(const String& body, const char* key) {
@@ -296,6 +321,11 @@ void panelLines(const char* a, const char* b = "", const char* c = "",
                 const char* d = "") {
   matrix.fillScreen(0);
   matrix.setTextWrap(false);
+  // Four-line status cards routinely contain names such as
+  // "DEVMATRIX-FFFF". The classic 6 px font needs 84 px for that string,
+  // so it silently clips on the 64 px panel. TomThumb is the existing 3x5
+  // status font and leaves room for all 16 supported characters per row.
+  matrix.setFont(&TomThumb);
   matrix.setTextSize(1);
   const char* rows[4] = {a, b, c, d};
   const uint16_t cols[4] = {rgb(230, 230, 230), rgb(0, 230, 230),
@@ -303,9 +333,10 @@ void panelLines(const char* a, const char* b = "", const char* c = "",
   for (int i = 0; i < 4; i++) {
     if (!rows[i][0]) continue;
     matrix.setTextColor(cols[i]);
-    matrix.setCursor(1, i * 8);
+    matrix.setCursor(0, 6 + i * 8);  // TomThumb uses a baseline cursor.
     matrix.print(rows[i]);
   }
+  matrix.setFont(NULL);
   matrix.show();
 }
 
@@ -424,7 +455,21 @@ int rotationScene(uint32_t nowMs) {
     return appHasData(app) ? manualAppScene : SCENE_CLOCK;
   }
   if (manualAppUntil) { manualAppUntil = 0; manualAppScene = -1; }
-  if (baseScene == SCENE_FRAME) return SCENE_FRAME;  // host radar stays live
+  if (baseScene == SCENE_FRAME) {
+    if (frameLeaseUntil && (int32_t)(nowMs - frameLeaseUntil) >= 0) {
+      // A host app that dies or loses power must not strand the product on
+      // its final frame forever. Legacy clients remain persistent; clients
+      // that request a lease renew it with each frame.
+      baseScene = SCENE_CLOCK;
+      frameLeaseUntil = 0;
+      scheduledSlot = 0;
+      scheduledScene = SCENE_CLOCK;
+      scheduledUntil = nowMs + 10000UL;
+      lastShown = -1;
+    } else {
+      return SCENE_FRAME;
+    }
+  }
   if (!scheduledUntil) {
     scheduledSlot = 0;
     scheduledScene = SCENE_CLOCK;
@@ -547,6 +592,7 @@ bool mqttSetBrightness(uint8_t value, char* error, size_t errorCap) {
 
 bool mqttClearDisplay(char*, size_t) {
   baseScene = SCENE_CLOCK;
+  frameLeaseUntil = 0;
   overlayUntil = 0;
   manualAppUntil = 0;
   manualAppScene = -1;
@@ -843,6 +889,14 @@ void handleFlightsPost() {
 
 void handleFrame() {
   if (!authed()) { deny(); return; }
+  long leaseMs = 0;
+  if (jsonHas(server.arg("plain"), "lease_ms")) {
+    if (!jsonIntStrict(server.arg("plain"), "lease_ms", leaseMs) ||
+        (leaseMs != 0 && (leaseMs < 250 || leaseMs > 30000))) {
+      sendJson(400, "{\"error\":\"lease_ms must be an integer, 0 or 250..30000\"}");
+      return;
+    }
+  }
   String b64;
   if (!jsonGet(server.arg("plain"), "b64", b64)) {
     sendJson(400, "{\"error\":\"missing b64 (4096 bytes RGB565 LE)\"}");
@@ -858,6 +912,10 @@ void handleFrame() {
   }
   memcpy(frameBuf, raw, sizeof frameBuf);
   baseScene = SCENE_FRAME;
+  // 0 is the "persistent" sentinel; if the sum lands exactly on 0 at the
+  // 49.7-day millis() rollover, nudge by one tick rather than never expire.
+  uint32_t leaseUntil = millis() + (uint32_t)leaseMs;
+  frameLeaseUntil = leaseMs ? (leaseUntil ? leaseUntil : 1) : 0;
   overlayUntil = 0;
   lastShown = -1;  // force redraw even if already showing a frame
   sendJson(200, "{\"ok\":true}");
@@ -866,6 +924,7 @@ void handleFrame() {
 void handleClear() {
   if (!authed()) { deny(); return; }
   baseScene = SCENE_CLOCK;
+  frameLeaseUntil = 0;
   overlayUntil = 0;
   manualAppUntil = 0;
   manualAppScene = -1;

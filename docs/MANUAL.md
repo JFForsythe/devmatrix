@@ -8,7 +8,7 @@ step-by-step instructions.
 Two status labels keep this manual honest (a P0 rule — no unsupported
 claim in this repo):
 
-- **Today** — current firmware v0.11.0 behavior. This slice is build-verified;
+- **Today** — current firmware v0.12.3 behavior. This slice is build-verified;
   final on-panel and live-receiver acceptance remains a hardware step.
 - **Ahead · gate X** — specified and coming; the gate names are
   [ROADMAP.md](../ROADMAP.md)'s. Nothing labeled Ahead is a promise the
@@ -190,7 +190,9 @@ tiny 3×5 font — up to 5 rows of 16 characters, perfect for tabular
 boards like the flights list.
 
 **Full frames:** `POST /api/v1/display/frame` takes one 64×32 frame as
-4096 bytes of RGB565 (little-endian), base64-encoded in `{"b64":…}`.
+4096 bytes of RGB565 (little-endian), base64-encoded in `{"b64":…}`. Host
+apps can add `"lease_ms":3000`; each new frame renews the lease, and the
+panel returns to its own rotation if the host disappears.
 Frames ride REST/WebSocket only, never MQTT (ADR-0029) — push them as
 fast as ~15 fps on your LAN.
 
@@ -330,6 +332,20 @@ this with your panel's address filled in):
 git clone https://github.com/JFForsythe/devmatrix
 node devmatrix/examples/setup-pixlet.mjs --device http://dmx-xxxx.local
 ```
+
+**Prefer a browser to a JSON file?** Pixlet **Easy Mode** wraps the whole
+loop in a local page — search the catalog, fill an app's settings in a
+form, preview the exact 64×32 result, pair with the panel by claim code,
+test-push one animation cycle, and build the rotation:
+
+```sh
+node devmatrix/examples/pixlet-manager/manager.mjs
+```
+
+It binds to `127.0.0.1` only, edits the same `~/tronbyt/bridge.config.json`
+the bridge reads, and keeps the LAN token in a mode-`0600` secret file next
+to the config — never in the JSON. Install the rotation as a background
+service with the installer below, exactly as before.
 
 Prefer assembling the pieces by hand? The step-by-step path is in
 `examples/pixlet-bridge/README.md`.
