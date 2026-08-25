@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { useState } from "preact/hooks";
 import { Status } from "./components";
+import { IdentityMismatchError } from "./transport";
 import type { ConsoleTransport } from "./transport";
 import type { StatusMessage } from "./types";
 
@@ -17,6 +18,7 @@ export function PairingFlow({
   const [manualToken, setManualToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<StatusMessage | null>(null);
+  const [mismatch, setMismatch] = useState<string | null>(null);
 
   async function start(): Promise<void> {
     setBusy(true);
@@ -44,10 +46,25 @@ export function PairingFlow({
       await transport.finishClaim(digits);
       onClose();
     } catch (error) {
-      setStatus({ kind: "error", text: error instanceof Error ? error.message : "That code was not accepted." });
+      if (error instanceof IdentityMismatchError) {
+        // This dialog is modal, so "go to Settings" is unreachable from
+        // here — offer the forget-and-repair recovery inline instead. The
+        // code that was just typed is consumed; recovery asks for a fresh one.
+        setMismatch(error.fingerprint);
+        setStarted(false);
+        setCode("");
+      } else {
+        setStatus({ kind: "error", text: error instanceof Error ? error.message : "That code was not accepted." });
+      }
     } finally {
       setBusy(false);
     }
+  }
+
+  async function forgetAndRepair(): Promise<void> {
+    transport.forgetPinnedIdentity();
+    setMismatch(null);
+    await start();
   }
 
   function cancel(): void {
@@ -66,7 +83,20 @@ export function PairingFlow({
           you are you. The interrupted action retries automatically.
         </p>
 
-        {!started ? (
+        {mismatch ? (
+          <div class="alert" role="alert">
+            <strong>This box's identity key changed.</strong>
+            <p>
+              Your browser pinned a different key for this panel earlier. A reflash or factory reset
+              explains this; a spoofed device on your network also would. Only continue if you
+              expected the change.
+            </p>
+            <p>New key fingerprint: <code>{mismatch}</code></p>
+            <button class="btn danger" type="button" disabled={busy} onClick={() => void forgetAndRepair()}>
+              {busy ? "STARTING…" : "FORGET OLD KEY & SHOW A NEW CODE"}
+            </button>
+          </div>
+        ) : !started ? (
           <button class="btn primary wide" type="button" disabled={busy} onClick={start}>
             {busy ? "STARTING…" : "SHOW A CODE ON THE PANEL"}
           </button>

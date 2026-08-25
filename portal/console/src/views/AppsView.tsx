@@ -450,17 +450,47 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
             <p>Transit, sports, stocks, games — community-built Pixlet apps render on a computer you own (a Pi, NAS, or Mac that stays on) and stream to the DK-01 over your LAN. Nothing routes through a Devmatrix server.</p>
           </div>
         </div>
-        <div class="command-block">
-          <div><span>ON THE COMPUTER THAT STAYS ON — ONE COMMAND</span><button class="btn small" type="button" onClick={() => void copyText(`git clone https://github.com/JFForsythe/devmatrix\nnode devmatrix/examples/setup-pixlet.mjs --device http://${transport.host}`)}>COPY SETUP COMMAND</button></div>
-          <pre>{`git clone https://github.com/JFForsythe/devmatrix\nnode devmatrix/examples/setup-pixlet.mjs --device http://${transport.host}`}</pre>
-        </div>
+        <ol class="steps">
+          <li>
+            <b>Install the toolkit — once.</b> On the computer that stays on (a Mac, Pi, or NAS on
+            this same network), paste this into a terminal. It fetches the free Pixlet renderer
+            (integrity-pinned), the community catalog, and a starter config, then checks it can
+            reach this panel:
+            <div class="command-block">
+              <div><span>STEP 1 · IN A TERMINAL ON THAT COMPUTER</span><button class="btn small" type="button" onClick={() => void copyText(`git clone https://github.com/JFForsythe/devmatrix\nnode devmatrix/examples/setup-pixlet.mjs --device http://${transport.host}`)}>COPY</button></div>
+              <pre>{`git clone https://github.com/JFForsythe/devmatrix\nnode devmatrix/examples/setup-pixlet.mjs --device http://${transport.host}`}</pre>
+            </div>
+          </li>
+          <li>
+            <b>Open Easy Mode.</b> This starts a private page in that computer's browser — your
+            point-and-click home for everything below:
+            <div class="command-block">
+              <div><span>STEP 2 · SAME TERMINAL</span><button class="btn small" type="button" onClick={() => void copyText("node devmatrix/examples/pixlet-manager/manager.mjs")}>COPY</button></div>
+              <pre>node devmatrix/examples/pixlet-manager/manager.mjs</pre>
+            </div>
+          </li>
+          <li>
+            <b>Pair it with this panel.</b> In Easy Mode, click <b>SHOW PAIR CODE</b>, then type the
+            six digits this panel displays. The LAN token lands in a private file on that computer —
+            it never appears in the page.
+          </li>
+          <li>
+            <b>Add apps.</b> Search the catalog, fill in the settings form Easy Mode builds from the
+            app itself, <b>PREVIEW</b> the exact 64×32 pixels, <b>SHOW ON PANEL ONCE</b> to test it
+            live, then <b>ADD TO ROTATION</b>.
+          </li>
+          <li>
+            <b>Make it permanent.</b> Install the rotation as a background service, so it keeps
+            running after reboots:
+            <div class="command-block">
+              <div><span>STEP 5 · SAME TERMINAL</span><button class="btn small" type="button" onClick={() => void copyText("node devmatrix/examples/install-pixlet-bridge.mjs")}>COPY</button></div>
+              <pre>node devmatrix/examples/install-pixlet-bridge.mjs</pre>
+            </div>
+          </li>
+        </ol>
         <p class="note">
-          That one command installs everything: the free Pixlet renderer (an integrity-pinned
-          download), the 1,000+ community-apps catalog, a starter rotation, and a reachability check
-          against this panel. Make it permanent afterwards with
-          <code> node devmatrix/examples/install-pixlet-bridge.mjs</code> — it asks for your LAN
-          token privately (Dev console → COPY WITH MY TOKEN). Manual steps and details:
-          <code> examples/pixlet-bridge/README.md</code>.
+          Prefer assembling the pieces by hand — your own config file, no browser page? Every manual
+          step is in <code>examples/pixlet-bridge/README.md</code>.
         </p>
       </Card>
 

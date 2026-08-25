@@ -44,6 +44,23 @@ export interface ConnectResult {
   firstPin: boolean;
 }
 
+/**
+ * Thrown by finishClaim when the device's identity key differs from the one
+ * this browser pinned earlier. A typed error lets the pairing dialog offer
+ * the forget-and-repair recovery inline — the dialog is modal, so telling
+ * the user to visit Settings dead-ends them (the claim popup re-opens
+ * before they can get there, especially on phones).
+ */
+export class IdentityMismatchError extends Error {
+  readonly fingerprint: string;
+
+  constructor(fingerprint: string, message: string) {
+    super(message);
+    this.name = "IdentityMismatchError";
+    this.fingerprint = fingerprint;
+  }
+}
+
 function storageGet(key: string): string {
   try {
     return localStorage.getItem(key) ?? "";
@@ -254,6 +271,19 @@ export class ConsoleTransport {
   }
 
   /**
+   * Drop only the pinned identity (key, fingerprint, serial) and the stale
+   * token, keeping the stored address. Used by the pairing dialog after the
+   * owner confirms a key change they expected (reflash or factory reset) —
+   * the next claim then pins the device's current key first-use.
+   */
+  forgetPinnedIdentity(): void {
+    storageRemove(TOKEN_KEY);
+    storageRemove(PUBKEY_KEY);
+    storageRemove(FINGERPRINT_KEY);
+    storageRemove(SERIAL_KEY);
+  }
+
+  /**
    * Re-run the signed-nonce proof against the connected device. Returns the
    * fresh identity plus whether the signature and the pin both held.
    */
@@ -322,10 +352,11 @@ export class ConsoleTransport {
     if (result.pubkey && result.fingerprint && !this.isMock) {
       const pinned = storageGet(PUBKEY_KEY);
       if (pinned && pinned !== result.pubkey) {
-        throw new Error(
+        throw new IdentityMismatchError(
+          result.fingerprint,
           `This box's identity key (${result.fingerprint}) does not match the one this browser ` +
-            "pinned earlier. If the device was reflashed or factory reset that is expected — " +
-            "forget the device under Settings and connect again. Otherwise, do not trust it.",
+            "pinned earlier. A reflash or factory reset explains this; a spoofed device also " +
+            "would. Only continue if you expected the change.",
         );
       }
       storageSet(PUBKEY_KEY, result.pubkey);

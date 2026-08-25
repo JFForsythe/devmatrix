@@ -3,7 +3,15 @@
 > **Status: living tree.** The DK-01 firmware lives at
 > [`firmware/dk01/`](../firmware/dk01/README.md) and develops
 > continuously from P1 onward (ADR-0024, superseding ADR-0009's
-> disposable-spike posture). v0.12.3 adds an optional host-frame
+> disposable-spike posture). v0.12.4 is a Console-only rebuild from
+> the first customer-shipment bench night: the Apps-page Pixlet card
+> becomes a numbered five-step walkthrough (install once, open Pixlet
+> Easy Mode, pair by panel code, add apps, install the service) instead
+> of a command dump, and the pairing dialog now recovers from an
+> identity-key mismatch inline — FORGET OLD KEY & SHOW A NEW CODE —
+> because the modal dialog made the old "forget under Settings" advice
+> unreachable, especially on phones; device logic is unchanged from
+> v0.12.3. v0.12.3 adds an optional host-frame
 > lease: `POST /api/v1/display/frame` takes `lease_ms` (0 or
 > 250–30,000; omitted or 0 keeps the persistent behavior), every frame
 > renews it, and on expiry the panel returns to its own clock/rotation
@@ -127,8 +135,9 @@ firmware/
 Dual app slots (2 MB each, `ota_0`/`ota_1`) + a 256 KB TinyUF2 factory
 partition for USB recovery + a 3.7 MB `ffat` data partition reserved for
 future assets and apps. Framebuffers in PSRAM; DMA descriptors in
-internal RAM. v0.12.3 measures 1,368,959 B flash (65 % of a slot) and
+internal RAM. v0.12.4 measures 1,369,359 B flash (65 % of a slot) and
 116,708 B static RAM (the app fetch buffer lives in PSRAM);
+v0.12.3 measured 1,368,959 B / 116,708 B;
 v0.12.2 measured 1,367,939 B / 116,708 B
 ([intake evidence](../hardware/evidence/2026-08-24-mp-qual-01-production-intake.md));
 v0.12.1 measured 1,367,919 B / 116,708 B;
