@@ -73,6 +73,11 @@ main { padding: 24px clamp(20px, 4vw, 56px) 48px; }
 }
 
 .setup-strip p { margin-top: 3px; color: var(--muted); font-size: 12px; }
+.pair-steps { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+.pair-steps b { color: var(--text); }
+.pair-steps code { color: var(--text); font-size: 11px; overflow-wrap: anywhere; }
+.pair-console-line { margin-top: 6px; }
+.pair-console-line a { color: var(--accent); }
 .pair-controls { display: flex; align-items: end; gap: 8px; }
 .code-field { display: grid; gap: 4px; color: var(--muted); font-size: 11px; }
 .code-field input { width: 112px; letter-spacing: 0.18em; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }

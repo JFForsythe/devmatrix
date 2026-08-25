@@ -13,13 +13,16 @@ const elements = Object.fromEntries(
     "compatibility-note",
     "config-mode",
     "config-path",
+    "console-link",
     "device-status",
     "duration",
     "empty-editor",
+    "pair-address",
     "pair-code",
     "pair-copy",
     "pair-finish",
     "pair-start",
+    "pair-steps",
     "preview-app",
     "preview-image",
     "preview-placeholder",
@@ -110,6 +113,9 @@ function updateState(next) {
     ? "Paired. The hidden LAN token is stored only on this computer."
     : "Pair with the six-digit panel code. The LAN token never enters this page.";
   elements.pairStart.textContent = state.tokenConfigured ? "Pair again" : "Show pair code";
+  elements.pairAddress.textContent = state.device.url;
+  elements.consoleLink.href = state.device.url;
+  elements.pairSteps.classList.toggle("hidden", state.tokenConfigured);
   elements.rotationCount.textContent = String(state.rotation.length);
   elements.configPath.textContent = state.configPath;
   elements.configMode.textContent = `private mode ${state.configMode}`;

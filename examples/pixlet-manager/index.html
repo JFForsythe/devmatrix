@@ -22,6 +22,12 @@
         <div>
           <h2 id="pair-title">Connect this panel</h2>
           <p id="pair-copy">The LAN token stays on this computer. It is never shown in this page.</p>
+          <ol class="pair-steps" id="pair-steps">
+            <li>This page talks to the panel at <code id="pair-address">—</code> — the address comes from your <code>bridge.config.json</code>. Wrong panel? Rerun <code>node devmatrix/examples/setup-pixlet.mjs --device http://dmx-xxxx.local</code> and reload this page.</li>
+            <li>Click <b>SHOW PAIR CODE</b> — the panel itself displays six digits for about five minutes.</li>
+            <li>Type the digits here. Reading the panel proves it's yours; the token lands in a private file next to the config.</li>
+          </ol>
+          <p class="pair-console-line">This page only manages Pixlet apps. Wi-Fi, security, and firmware updates live in the panel's own Console: <a id="console-link" href="#" target="_blank" rel="noreferrer">open it ↗</a></p>
         </div>
         <div class="pair-controls">
           <button type="button" class="secondary" id="pair-start">Show pair code</button>
