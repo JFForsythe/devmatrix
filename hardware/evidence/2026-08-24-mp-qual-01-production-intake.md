@@ -157,3 +157,25 @@ Still open for the operator before boxing: visual confirmation and
 photograph of the corrected compact-font setup card on the panel, the
 TinyUF2 double-reset USB-recovery check, and physical inspection/packaging.
 The loaded-telemetry 199 Hz gate result above is unchanged by this addendum.
+
+## Addendum 2 — owner-path OTA to v0.12.4; final ship version (2026-08-25 05:55 UTC)
+
+The stay-on-v0.12.2 decision in the previous addendum is **withdrawn by the
+owner**: the unit **ships at v0.12.4**.
+
+What changed: the owner walked the manual's chapter-9 update path exactly as
+a customer would — device-served Console → Deploy → OTA upload → UPLOAD &
+REBOOT — using `dk01.ino.bin` built from shipped commit `fdec145` (v0.12.4,
+1,369,504 bytes, SHA-256
+`4870728614bbd068f8a836da93ec5d5abe41cec2912ab86395295da713ccbd52`). The
+panel wrote the inactive slot, rebooted into it, and the open health route
+reports firmware `0.12.4` in run mode; pairing survived the update (NVS is
+untouched by OTA). The v0.12.2 intake build remains in the other slot as the
+fallback. This is the first on-MatrixPortal OTA evidence; the prior OTA
+proof (v0.11.0→v0.12.0) was on the DK-01 development board.
+
+Unchanged by this addendum: the 199 Hz loaded-refresh result, the pending
+operator visual/photo of the setup card, and the TinyUF2 double-reset
+check. The factory-fresh wipe before boxing is still required and still
+sufficient — it clears NVS only, so both app slots and the shipped v0.12.4
+survive it.
