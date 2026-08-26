@@ -9,9 +9,10 @@ must be fixed.
 - **Local Mode** — the complete product. Your browser talks to your box
   on your LAN. Free forever, works with the company unreachable, needs
   no account. The box serves the complete Local Console itself.
-- **Cloud Mode** — a paid subscription that adds *reach*: control from
-  anywhere, every site in one view, hosted encrypted backups, alerts.
-  It never adds a capability the box itself lacks — only distance.
+- **Cloud Mode** — a paid tier I would offer if demand requires it
+  (ADR-0033): control from anywhere, every site in one view, hosted
+  encrypted backups, alerts. It would add *reach*, never a capability
+  the box itself lacks — only distance.
 
 ## Feature matrix
 
@@ -41,15 +42,16 @@ is named inline using the same Today/Ahead discipline as
 ## Who runs what, who pays for what
 
 - **Local:** you run nothing but the box. It serves the full Local
-  Console. We host only **static public files** (an optional Console
+  Console. I host only **static public files** (an optional Console
   entry point, docs, Registry, manifest, and signed binaries) —
   cacheable, mirrorable, no accounts, no relay, no telemetry.
 - **Owner-hosted remote:** owners may put Local Mode behind their own
-  VPN, Tailscale network, NAS, Raspberry Pi, or VPS. We document this
+  VPN, Tailscale network, NAS, Raspberry Pi, or VPS. I document this
   path and do not charge for or operate it.
-- **Cloud:** we run the relay, account store, snapshot storage, and
-  alert delivery. The subscription exists to pay for exactly that, with
-  margin — the free tier never quietly subsidizes it.
+- **Cloud:** if demand brings it, I run the relay, account store,
+  snapshot storage, and alert delivery. The subscription exists to pay
+  for exactly that, with margin — the free tier never quietly
+  subsidizes it.
 - There is no permanent free managed relay. Cloud capacity is
   provisioned only when paying subscribers cover its fixed and variable
   costs; Local launches and keeps working independently.
@@ -57,6 +59,16 @@ is named inline using the same Today/Ahead discipline as
   repo served statically).
 - **Price:** set at the C0 billing gate (ADR-0007). Any figure that
   appears anywhere before then is a placeholder, not an offer.
+
+## Support — your device, my docs
+
+This is your own device (ADR-0033). The support is built in and
+written down: the owner's manual ([MANUAL.md](MANUAL.md)), the
+Console's **Guide** view served by the panel itself, the
+troubleshooting chapter, and diagnostics that explain themselves
+(`GET /api/v1/apps/diag`). I add real support capacity only if demand
+requires it. Returns and warranty stay as
+[ADR-0018](adr/ADR-0018-returns-and-warranty.md) defines them.
 
 ## The claim/account split (the seam, made explicit)
 
@@ -77,15 +89,16 @@ attestation; cancelling later keeps every Local capability.
 | Your subscription lapses | Everything Local; Cloud features pause — never the box |
 | The company disappears | Everything Local, forever; OTA continues from any mirror of the static manifest; Eject was always available |
 
-**Sunset covenant:** if we ever end Cloud Mode, subscribers get 12
+**Sunset covenant:** if I ever end Cloud Mode, subscribers get 12
 months' notice and an automatic, guided Eject. A dead cloud costs
 convenience, never function. This is a published promise, not a vibe.
 
 ## Rollout
 
 Both modes are specced together (this file) and built against the same
-contracts. **Local readiness gates launch; Cloud ships when the billing
-+ relay gates pass and subscribers fund it** — same day if ready,
-later if not, and Local never waits. The Console shows each selected
+contracts. **Local readiness gates launch; Cloud ships only if demand
+requires it — when the billing + relay gates pass and subscribers fund
+it** — same day if ready, later if not, never if nobody asks, and
+Local never waits. The Console shows each selected
 device's mode at all times (`LOCAL · FREE` / `CLOUD`) so the split
 is visible product truth, not fine print.

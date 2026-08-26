@@ -41,7 +41,8 @@ expected; delight comes from how far the same box can go.
 6. Full implementation guide; versioned `/api/v1` contract.
 7. Never bricks: dual slots and USB recovery today; automatic rollback
    is **Ahead · gate M0**.
-8. Cloud Mode is optional **and paid** — the subscription funds its own
+8. Cloud Mode is optional, **paid, and demand-driven** — I would offer
+   it if demand requires it (ADR-0033), the subscription funds its own
    operations, and the sunset covenant (12-month notice + automatic
    Eject) means the box can never be held hostage.
 

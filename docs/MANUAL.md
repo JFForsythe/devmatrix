@@ -600,9 +600,9 @@ browser MQTT workbench are in
   point the device and a remote host app at a broker they can both reach.
   Today's MQTT semantic commands cover text, brightness, clear, and app
   selection; raw frames never ride a broker (ADR-0029).
-- **Paid Cloud Mode (gates C0–C3):** relay, fleet view, alerts —
-  optional, subscription-funded, never required.
-  [docs/MODES.md](MODES.md) is the line.
+- **Cloud Mode — offered only if demand requires it:** a paid relay,
+  fleet view, alerts — optional, never required, and the box never
+  depends on it. [docs/MODES.md](MODES.md) is the line.
 
 ## 13 · Troubleshooting — Today
 

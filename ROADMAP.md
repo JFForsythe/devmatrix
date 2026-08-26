@@ -81,7 +81,10 @@ per docs/GLOSSARY.md, not §3's M1 line), the owner doc or ADR wins.
   release artifacts public; every marketing claim links to acceptance
   evidence; price approved from measured EVT/PVT cost.*
 
-## Cloud track — C0–C3, the paid tier (behind its own gates)
+## Cloud track — C0–C3 (offered only if demand requires it)
+
+The paid tier ships only if demand requires it (ADR-0033); these gates
+are the sequence it would ship through, and Local never waits on them.
 
 - **C0 — Accounts + billing**: passkey accounts, subscription billing,
   tenancy, sunset-covenant terms published. *Accept: subscribe,

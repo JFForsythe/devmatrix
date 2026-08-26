@@ -17,7 +17,7 @@ first; then use.
 | **Device workbench** | The Console's compact four-pane developer workspace. Each pane can be profiled as a REST CLI, MQTT CLI, device-log tail, or layout/binding inspector; panes are movable, resizable, removable, restorable, and saved locally. Specified, not yet built in `portal/console/` — **Ahead · gate M2**. |
 | **Command palette** | The Console's keyboard-first search-and-act surface: pages, settings, devices, apps, actions, documentation, and local log results. Specified, not yet built in `portal/console/` — **Ahead · gate M2**. |
 | **Local Mode** | Console ↔ device directly over LAN. No account, no cloud. Free forever — the complete product (docs/MODES.md). |
-| **Cloud Mode** | Paid subscription layer: remote access, multi-site fleet, hosted E2EE snapshots, alerts. Adds reach, never capability (docs/MODES.md). |
+| **Cloud Mode** | Paid layer offered only if demand requires it (ADR-0033): remote access, multi-site fleet, hosted E2EE snapshots, alerts. Adds reach, never capability (docs/MODES.md). |
 | **Sunset covenant** | If Cloud Mode ever ends: 12 months' notice + automatic Eject. A dead cloud costs convenience, never function. |
 | **Claiming** | Binding a device to its owner via proof of physical possession; mints the LAN token in the browser — no account involved (docs/MODES.md). A passkey account and explicit subscription confirmation are separate, optional Cloud Mode steps. |
 | **Claim code** | Short code shown on the panel when a browser asks to pair. Reading the panel proves physical presence. Format: six digits, e.g. `482913`, shown as two panel rows of three for browser pairing today; the device ignores any separator the owner types. The **Ahead · gate M1** first-boot claim code is `XXX-XXX`. |

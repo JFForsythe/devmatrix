@@ -156,11 +156,12 @@ gate) — if you catch a claim the firmware doesn't keep, that's a bug.
 Interface contracts in [contracts/](contracts/README.md) stay **DRAFT**
 until the P2 freeze.
 
-**Local Mode is the complete product, free forever.** The Cloud track —
-gates C0–C3 — is the paid tier behind its own gates: a relay for
-control from anywhere, every site in one view, hosted encrypted
-backups, and alerts. It adds reach, never capability, and the box never
-depends on it ([docs/MODES.md](docs/MODES.md)).
+**Local Mode is the complete product, free forever — and this is your
+own device.** The support is written down and built in: the manual, the
+Console's Guide view, and diagnostics that explain themselves. I add
+real support capacity, and a paid Cloud Mode (remote control, fleet
+view, alerts), only if demand requires it — the box never depends on
+either ([docs/MODES.md](docs/MODES.md)).
 
 ## The documentation
 
