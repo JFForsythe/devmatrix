@@ -157,11 +157,14 @@ Interface contracts in [contracts/](contracts/README.md) stay **DRAFT**
 until the P2 freeze.
 
 **Local Mode is the complete product, free forever — and this is your
-own device.** The support is written down and built in: the manual, the
-Console's Guide view, and diagnostics that explain themselves. I add
-real support capacity, and a paid Cloud Mode (remote control, fleet
-view, alerts), only if demand requires it — the box never depends on
-either ([docs/MODES.md](docs/MODES.md)).
+own device.** The harness for remote reach is included: point the box
+at any MQTT broker you can reach, or put the LAN behind your own VPN,
+and you're running your own cloud today. The support is written down
+and built in: the manual, the Console's Guide view, and diagnostics
+that explain themselves. I add real support capacity, and a paid
+managed Cloud Mode (remote control, fleet view, alerts), only if
+demand requires it — the box never depends on either
+([docs/MODES.md](docs/MODES.md)).
 
 ## The documentation
 
