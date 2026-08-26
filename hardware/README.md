@@ -9,7 +9,10 @@ Three content classes live here as they come into existence:
   prove. This is the only class with content today.
 - [procedures/](procedures/) — run lists and test procedures that
   produce evidence. Currently: [bench-week.md](procedures/bench-week.md),
-  the queued P1/M0 hardware-evidence runs.
+  the queued P1/M0 hardware-evidence runs, and
+  [flash-station.sh](procedures/flash-station.sh) — the per-unit
+  ship flow (flash, serial derivation, factory wipe, setup-mode
+  verification) with the S3 port-re-enumeration gotchas baked in.
 - Manufacturing files — BOM, panel profiles, enclosure, harness,
   fixtures, per-unit provisioning records. The first exists:
   [insert/](insert/) holds the printable in-box quick-start card.
@@ -22,6 +25,7 @@ Evidence index (newest first):
 
 | Date | File | What it proves |
 |---|---|---|
+| 2026-08-26 | [r0-first-ship-bench](evidence/2026-08-26-r0-first-ship-bench.md) | First-ship night: v0.12.6 flashed + hash-verified on production boards; **TinyUF2 double-reset USB recovery PASSED** (first time, closes MP-QUAL-01's open flag); per-unit factory wipe verified (no-traces); 200 Hz idle / 199 Hz Wi-Fi-loaded refresh; per-unit ship ledger |
 | 2026-08-24 | [mp-qual-01-production-intake](evidence/2026-08-24-mp-qual-01-production-intake.md) | MatrixPortal S3 intake sample: full supplier-image backup, v0.12.2 verified write, 64×32 panel mapping, Wi-Fi/API smoke; addenda: factory-fresh wipe verified, then owner-path OTA v0.12.2→v0.12.4 — the first on-MatrixPortal OTA proof — and the unit **ships at v0.12.4** (v0.12.2 in the fallback slot); **199 Hz loaded refresh and USB recovery remain open** |
 | 2026-08-17 | [pixlet-bridge-live-proof](evidence/2026-08-17-pixlet-bridge-live-proof.md) | ADR-0030 end-to-end on hardware: Tronbyt Pixlet v0.53.1 → 150 coalesced frames → authenticated frame API → panel; catalog measured at 1,045 apps |
 | 2026-08-16 | [v0120-ota-and-hardening-verification](evidence/2026-08-16-v0120-ota-and-hardening-verification.md) | On-hardware OTA v0.11.0→v0.12.0 (slot swap, config survival); all v0.12.0 hardening behaviors live; Ed25519 firmware↔noble interop closed; token-format rotation; **199 Hz refresh flag opened** |
