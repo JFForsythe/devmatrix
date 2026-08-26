@@ -118,7 +118,7 @@ export function WelcomeView({
               joins yours live. The phone that runs setup is signed in automatically.
             </li>
             <li>
-              <strong>Read its address off the panel</strong> — something like <code>dmx-4e71.local</code>.
+              <strong>Read its address off the panel</strong> — something like <code>dmx-0952.local</code>.
             </li>
             <li>
               <strong>Enter the address here</strong> and hit CONNECT. The Console reaches the panel over
@@ -141,7 +141,7 @@ export function WelcomeView({
             <span>PANEL ADDRESS (FROM THE PANEL OR ITS CLOCK FOOTER)</span>
             <input
               value={address}
-              placeholder="dmx-4e71.local"
+              placeholder="dmx-0952.local"
               autoComplete="off"
               spellcheck={false}
               disabled={phase === "busy"}

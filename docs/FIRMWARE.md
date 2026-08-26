@@ -3,7 +3,13 @@
 > **Status: living tree.** The DK-01 firmware lives at
 > [`firmware/dk01/`](../firmware/dk01/README.md) and develops
 > continuously from P1 onward (ADR-0024, superseding ADR-0009's
-> disposable-spike posture). v0.12.5 closes the last gap in the
+> disposable-spike posture). v0.12.6 is a pre-ship correctness pass:
+> the Console's Welcome screen taught the wrong example address
+> (`dmx-4e71.local` — built from the serial's *first* group, when the
+> mDNS name actually comes from the *last* group: `dmx-0952.local`
+> for `DMX-4E71-0952`), and the demo fleet's mock firmware version
+> catches up to the shipped release.
+> v0.12.5 closes the last gap in the
 > on-panel setup walkthrough: after joining Wi-Fi the panel no longer
 > drops straight to the clock — it shows a final setup card
 > (`WIFI CONNECTED / LAST STEP: OPEN / DMX-XXXX.LOCAL / IN YOUR
@@ -169,8 +175,11 @@ recipe also re-writes the TinyUF2 image at `0x410000` and the
 bootloader/partition table, so a full-chip erase followed by one
 `arduino-cli upload` restores everything, USB recovery included
 ([docs/MANUAL.md](MANUAL.md) ch. 10 → Back to default walks the owner
-path). v0.12.5 measures 1,370,139 B flash (65 % of a slot) and
-116,708 B static RAM (the app fetch buffer lives in PSRAM);
+path). v0.12.6 measures 1,370,139 B flash (65 % of a slot) and
+116,708 B static RAM (the app fetch buffer lives in PSRAM) — a
+byte-identical footprint to v0.12.5, the console bundle's 5 B growth
+vanishing into section alignment;
+v0.12.5 measured 1,370,139 B / 116,708 B;
 v0.12.4 measured 1,369,359 B / 116,708 B;
 v0.12.3 measured 1,368,959 B / 116,708 B;
 v0.12.2 measured 1,367,939 B / 116,708 B

@@ -19,7 +19,7 @@ schemas, ever. See the IP line in [docs/VISION.md](docs/VISION.md).
 
 ## What it does today
 
-Current firmware: **v0.12.5**. Every claim below is labeled **Today**
+Current firmware: **v0.12.6**. Every claim below is labeled **Today**
 in the docs (the current firmware does it) — never a promise about
 the future; bench evidence lives in [hardware/](hardware/README.md).
 
@@ -60,6 +60,10 @@ the future; bench evidence lives in [hardware/](hardware/README.md).
 
 The full walkthrough with every detail is
 [docs/MANUAL.md](docs/MANUAL.md) — this is the short version.
+
+**Bought a Dev Kit unit? It arrives already flashed** — skip straight
+to step 2: power it and follow the panel. Step 1 is for bare boards,
+forks, and rebuilding from source.
 
 **1 · Build and flash — one cable, one time** (updates go over the
 air after this). Install

@@ -11,8 +11,12 @@ Three content classes live here as they come into existence:
   produce evidence. Currently: [bench-week.md](procedures/bench-week.md),
   the queued P1/M0 hardware-evidence runs.
 - Manufacturing files — BOM, panel profiles, enclosure, harness,
-  fixtures, per-unit provisioning records. **None exist yet**; they
-  arrive with the M0/L0/R0 gates (docs/PRODUCTION-PLAN.md §3).
+  fixtures, per-unit provisioning records. The first exists:
+  [insert/](insert/) holds the printable in-box quick-start card.
+  Its guide URL is the canonical hosted-console address, which must
+  resolve — docs/OPERATIONS.md cutover or an interim redirect —
+  before any card is printed. The rest arrive with the M0/L0/R0
+  gates (docs/PRODUCTION-PLAN.md §3).
 
 Evidence index (newest first):
 

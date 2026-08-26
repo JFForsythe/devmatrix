@@ -1,0 +1,113 @@
+<!doctype html>
+<!--
+  Manufacturing file: the in-box quick-start card.
+  Print at 4×6 in (browser Print → paper size 4×6, or letter with
+  "fit to page"). Self-contained; system fonts only.
+
+  The guide URL below is the canonical card URL from
+  docs/USER-STORY.md. It must resolve BEFORE any card is printed:
+  either the hosted-console cutover (docs/OPERATIONS.md) or an
+  interim redirect on the zone the byline domain already lives on.
+  (The clean-room gate rightly bans any other domain here.)
+
+  The card promises only verified behavior: no recovery gestures or
+  features appear here unless hardware/evidence/ backs them.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Devmatrix quick-start card</title>
+<style>
+  @page { size: 4in 6in; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #fff; }
+  body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #111;
+    display: flex; justify-content: center;
+  }
+  .card {
+    width: 4in; height: 6in;
+    padding: 0.28in 0.3in;
+    display: flex; flex-direction: column;
+    background: #fff;
+  }
+  @media screen {
+    body { background: #555; padding: 2em 0; }
+    .card { box-shadow: 0 2px 14px rgba(0,0,0,.5); }
+  }
+  .brand {
+    font-size: 19px; font-weight: 800; letter-spacing: .12em;
+  }
+  .byline {
+    font-size: 8.5px; letter-spacing: .22em; color: #444;
+    margin-top: 2px; text-transform: uppercase;
+  }
+  .promise {
+    margin-top: 9px; font-size: 10.5px; font-weight: 700;
+    letter-spacing: .04em; text-transform: uppercase;
+  }
+  ol { list-style: none; margin-top: 12px; flex: 1; }
+  li { display: flex; gap: 9px; margin-bottom: 11px; }
+  .n {
+    flex: 0 0 auto; width: 20px; height: 20px; border-radius: 3px;
+    background: #111; color: #fff; font-weight: 800; font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .t { font-size: 10.5px; line-height: 1.45; }
+  .t strong { font-size: 11px; letter-spacing: .05em; }
+  code {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 10px; font-weight: 700; white-space: nowrap;
+  }
+  .foot {
+    border-top: 1.5px solid #111; padding-top: 8px;
+    font-size: 9.5px; line-height: 1.6;
+  }
+  .foot code { font-weight: 600; }
+  .serial {
+    margin-top: 7px; font-size: 9px; letter-spacing: .06em;
+    color: #444; text-transform: uppercase;
+  }
+  .serial .line {
+    display: inline-block; width: 1.55in; border-bottom: 1px solid #999;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">DEVMATRIX</div>
+  <div class="byline">Dev Kit by FlightTrackerLED</div>
+  <div class="promise">The panel walks you through setup itself.<br>No app. No account.</div>
+
+  <ol>
+    <li><span class="n">1</span><div class="t">
+      <strong>POWER.</strong> Any 5&thinsp;V USB-C supply rated 2&thinsp;A or more —
+      a phone fast-charge brick works.
+    </div></li>
+    <li><span class="n">2</span><div class="t">
+      <strong>JOIN.</strong> The panel says <code>JOIN ME → DEVMATRIX-XXXX</code>.
+      Join that Wi-Fi network from your phone; the setup page opens by
+      itself (if it doesn't: <code>http://192.168.4.1</code>).
+    </div></li>
+    <li><span class="n">3</span><div class="t">
+      <strong>WI-FI.</strong> Pick your network on the live-scanning page and
+      watch it join. 2.4&thinsp;GHz networks only — that's the radio.
+    </div></li>
+    <li><span class="n">4</span><div class="t">
+      <strong>OPEN.</strong> The panel shows its address —
+      <code>DMX-XXXX.LOCAL</code>. Open it in any browser: that's the
+      Console, served by the panel itself. It works even when the
+      internet doesn't.
+    </div></li>
+  </ol>
+
+  <div class="foot">
+    Full manual, apps &amp; recovery: <code>devmatrix.flighttrackerled.com/start</code><br>
+    All source, open: <code>github.com/JFForsythe/devmatrix</code>
+    <div class="serial">Serial: <span class="line">&nbsp;</span></div>
+  </div>
+</div>
+</body>
+</html>

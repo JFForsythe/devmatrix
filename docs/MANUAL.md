@@ -8,7 +8,7 @@ step-by-step instructions.
 Two status labels keep this manual honest (a P0 rule — no unsupported
 claim in this repo):
 
-- **Today** — current firmware v0.12.5 behavior. This slice is build-verified;
+- **Today** — current firmware v0.12.6 behavior. This slice is build-verified;
   final on-panel and live-receiver acceptance remains a hardware step.
 - **Ahead · gate X** — specified and coming; the gate names are
   [ROADMAP.md](../ROADMAP.md)'s. Nothing labeled Ahead is a promise the
@@ -19,15 +19,21 @@ claim in this repo):
 - The board and panel: Adafruit MatrixPortal S3 driving a 64×32 HUB75
   RGB matrix (the DK-01 hardware, [docs/VISION.md](VISION.md)).
   Verified bring-up evidence lives in [hardware/](../hardware/).
-- A 5 V supply with real headroom. A full-bright white frame can
-  out-draw weak USB-C power and brown-out the board — the firmware
-  caps brightness at 150/255 for exactly that reason, and the
-  Dashboard warns you when a reset was a brown-out.
+- A 5 V USB-C supply rated **2 A or more** — a modern 10–15 W phone
+  brick qualifies; a 1 A charger or an unpowered laptop port does not.
+  A full-bright white frame can out-draw weak USB-C power and
+  brown-out the board — the firmware caps brightness at 150/255 for
+  exactly that reason, and the Dashboard warns you when a reset was a
+  brown-out.
 - A phone or laptop with Wi-Fi, and a 2.4 GHz network to join.
 - No app, no account, no cloud — ever, for anything in this manual
   ([docs/MODES.md](MODES.md) owns that split).
 
 ## 2 · Get the firmware onto the board — Today
+
+**Sold units arrive already flashed** — if your kit came in a box,
+skip straight to chapter 3. This chapter is for bare boards, forks,
+and rebuilding from source.
 
 One cable flash, then never again (updates go over the air):
 
@@ -42,9 +48,6 @@ One cable flash, then never again (updates go over the air):
 Re-flashing a board that has been used before? Chapter 10 → **Back to
 default** returns it to out-of-box first — the settings wipe needs no
 token and no working Console.
-
-**Ahead · R0:** sold units arrive already flashed and provisioned; this
-chapter then applies only to forks and bare boards.
 
 ## 3 · First boot and Wi-Fi — Today
 
@@ -64,6 +67,10 @@ chapter then applies only to forks and bare boards.
    first time — opening the Console on any browser, or pairing
    (chapter 4) — then retires forever and the panel shows its clock.
    A factory reset re-arms it.
+
+**Android phones and `.local`:** some Android browsers cannot resolve
+mDNS `.local` names. If `dmx-xxxx.local` won't load, use the panel's
+IP address instead — chapter 13's first row shows where to find it.
 
 **Wrong password?** The portal tells you and lets you retry — the
 device doesn't reboot into limbo. **Changed routers later?** Console →
@@ -463,7 +470,10 @@ map): Wi-Fi credentials, LAN token, identity key, timezone, MQTT
 settings, app config. Blank NVS *is* the out-of-box state, and the
 firmware in both app slots stays untouched.
 
-1. Install the flasher once: `python3 -m pip install esptool`.
+1. Install the flasher once: `python3 -m pip install --upgrade esptool`.
+   The commands below use esptool **v5** spellings — an older v4
+   install writes them with underscores (`erase_region`) and rejects
+   these, so upgrade rather than reuse a stale install.
 2. Connect USB-C. The board appears as `/dev/cu.usbmodem*` on macOS,
    `/dev/ttyACM0` on Linux.
 3. Erase exactly the settings region (offsets from the flash map):
@@ -609,7 +619,9 @@ browser MQTT workbench are in
 | Symptom | Fix |
 |---|---|
 | Captive portal never opened | Browse to `http://192.168.4.1` while on the `DEVMATRIX-XXXX` network |
-| `dmx-xxxx.local` not found | Your network blocks mDNS — use the IP the panel showed at setup; both work |
+| `dmx-xxxx.local` not found | Your network (or an Android browser) blocks mDNS — use the panel's IP address instead; it works everywhere the name does. Your router's client-device list shows the panel as `dmx-xxxx`; any already-connected Console also shows the IP on the Dashboard's device info |
+| My Wi-Fi isn't listed in the setup portal | The board's radio is 2.4 GHz-only, so a 5 GHz-only network can't appear. Enable a 2.4 GHz band or guest SSID on your router, then rescan |
+| The setup page closed before I finished | Rejoin the `DEVMATRIX-XXXX` hotspot and it reopens (or browse to `http://192.168.4.1`). If the hotspot is gone, the panel already joined your Wi-Fi and is showing its address — chapter 3, step 5 |
 | Hosted Console can't reach the panel | (**Ahead · hosted cutover** — the hosted domain isn't live yet; chapter 4.) Same Wi-Fi? Allow the browser's local-network permission when asked (Chrome/Edge/Firefox). Safari can't do this — open the panel's own address instead. Firmware older than 0.9.0 also can't answer the hosted origin; update from the panel's own Deploy page first |
 | Identity warning (key mismatch) | A reflash or factory reset legitimately changes the device key — Settings → **FORGET / SWITCH DEVICE…**, then reconnect and re-pair. If you didn't reflash, stop and check what's answering on that address |
 | `401 unauthorized` | Stale token — re-pair (chapter 4) or re-copy from the Dev console view |
