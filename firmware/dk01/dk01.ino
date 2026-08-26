@@ -44,7 +44,7 @@
 #include "apps_builtin.h"
 #include "mqtt_client.h"
 
-#define FW_VERSION "0.12.4"
+#define FW_VERSION "0.12.5"
 
 // A full-bright white frame can out-draw USB-C power and brown-out the
 // board (observed on the bench 2026-08-07: brownout reset at high slider
@@ -118,6 +118,12 @@ String flView = "list";            // "list" (text board) or "radar" (pixels)
 String claimCode;                  // 6 digits while active
 uint32_t claimUntil = 0;           // code deadline (0 = none)
 uint8_t claimAttempts = 0;
+
+// The walkthrough's last on-panel step: after joining Wi-Fi the panel
+// points at the Local Console until the Console first reaches the device
+// (an authenticated request or a finished pairing). The NVS flag makes it
+// once-per-lifetime; factory reset re-arms it.
+bool consoleSeen = false;
 
 // Setup-portal join state machine.
 #define JOIN_IDLE 0
@@ -250,6 +256,15 @@ void setBrightnessValue(uint8_t v) {
   }
 }
 
+// First proof the owner reached the Console: retire the "open the
+// console" setup card for good and repaint whatever is really due.
+void markConsoleSeen() {
+  if (consoleSeen) return;
+  consoleSeen = true;
+  prefs.putBool("seen", true);
+  lastShown = -1;
+}
+
 // Constant-time compare: a byte-by-byte timing side-channel over Wi-Fi is
 // not practically exploitable against a 128-bit random token, but closing
 // it costs five lines (length is public; content never short-circuits).
@@ -260,6 +275,7 @@ bool authed() {
   uint8_t diff = 0;
   for (unsigned i = 0; i < expected.length(); i++)
     diff |= (uint8_t)(got[i] ^ expected[i]);
+  if (diff == 0) markConsoleSeen();
   return diff == 0;
 }
 
@@ -429,6 +445,14 @@ void drawClaim() {
   matrix.show();
 }
 
+// Last walkthrough step. The clock alone doesn't tell a new owner where
+// to go next; this card does, and disappears forever on first contact.
+void drawGuide() {
+  String addr = mdnsName + ".local";
+  panelLines("WIFI CONNECTED", "last step: open", addr.c_str(),
+             "in your browser");
+}
+
 int appScene(uint8_t app) {
   if (app == DMX_APP_MESSAGES) return SCENE_MESSAGES;
   if (app == DMX_APP_FLIGHTS_LIST) return SCENE_FLIGHTS_LIST;
@@ -504,6 +528,7 @@ void renderTick() {
   if (claimUntil && nowMs < claimUntil) scene = 102;
   else if (identifyUntil && nowMs < identifyUntil) scene = 100;
   else if (overlayUntil && nowMs < overlayUntil) scene = 101;
+  else if (!consoleSeen) scene = 103;  // setup's last step: open the Console
   else scene = rotationScene(nowMs);
   if (claimUntil && nowMs >= claimUntil) { claimUntil = 0; claimCode = ""; }
   if (identifyUntil && nowMs >= identifyUntil) identifyUntil = 0;
@@ -520,6 +545,8 @@ void renderTick() {
     }
   } else if (scene == 101) {
     if (changed) drawOverlay();
+  } else if (scene == 103) {
+    if (changed) drawGuide();
   } else if (scene == SCENE_FRAME) {
     if (changed) drawFrame();
   } else if (scene == SCENE_MESSAGES || scene == SCENE_FLIGHTS_LIST ||
@@ -557,6 +584,7 @@ const char* sceneName() {
   if (claimUntil && nowMs < claimUntil) return "pair";
   if (identifyUntil && nowMs < identifyUntil) return "identify";
   if (overlayUntil && nowMs < overlayUntil) return "text";
+  if (!consoleSeen) return "guide";
   if (baseScene == SCENE_FRAME) return "frame";
   if (lastShown == SCENE_MESSAGES) return "messages";
   if (lastShown == SCENE_FLIGHTS_LIST) return "flights_list";
@@ -1033,6 +1061,7 @@ void handleClaimFinish() {
   if (digits == claimCode) {
     claimUntil = 0;
     claimCode = "";
+    markConsoleSeen();  // pairing is arrival: the guide card is done
     overlayText = "paired!";
     overlayUntil = millis() + 3000;
     // Pairing is the possession-proof moment, so the identity key rides
@@ -1479,6 +1508,9 @@ void setup() {
 
   prefs.begin("dk01", false);
   dmxMqttLoad(prefs);
+  // MQTT can only ever be configured from the Console, so a device that
+  // has it set predates this flag: don't re-show the setup card to them.
+  consoleSeen = prefs.getBool("seen", false) || dmxMqttConfig.enabled;
   brightness = prefs.getUChar("bright", 110);
   if (brightness > MAX_BRIGHTNESS) brightness = MAX_BRIGHTNESS;
   tzPosix = prefs.getString("tz", tzPosix);

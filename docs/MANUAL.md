@@ -8,7 +8,7 @@ step-by-step instructions.
 Two status labels keep this manual honest (a P0 rule — no unsupported
 claim in this repo):
 
-- **Today** — current firmware v0.12.4 behavior. This slice is build-verified;
+- **Today** — current firmware v0.12.5 behavior. This slice is build-verified;
   final on-panel and live-receiver acceptance remains a hardware step.
 - **Ahead · gate X** — specified and coming; the gate names are
   [ROADMAP.md](../ROADMAP.md)'s. Nothing labeled Ahead is a promise the
@@ -50,11 +50,16 @@ chapter then applies only to forks and bare boards.
    portal opens by itself. If it doesn't, browse to `http://192.168.4.1`.
 3. The portal scans and lists your networks live. Pick yours, type the
    password, and watch it join in real time — no blind reboot-and-hope.
-4. When the join succeeds, the panel shows its address, e.g.
-   `dmx-xxxx.local`, and the phone that ran setup is signed in to the
-   Console automatically. (If nothing taps Finish, the device closes
-   its setup hotspot by itself 90 seconds after the join and boots
-   onto your Wi-Fi.)
+4. When the join succeeds, the phone that ran setup is signed in to
+   the Console automatically. (If nothing taps Finish, the device
+   closes its setup hotspot by itself 90 seconds after the join and
+   boots onto your Wi-Fi.)
+5. After the restart the panel itself walks you to the last step:
+   `WIFI CONNECTED · last step: open dmx-xxxx.local in your browser`.
+   That card stays up until the Console reaches the device for the
+   first time — opening the Console on any browser, or pairing
+   (chapter 4) — then retires forever and the panel shows its clock.
+   A factory reset re-arms it.
 
 **Wrong password?** The portal tells you and lets you retry — the
 device doesn't reboot into limbo. **Changed routers later?** Console →
