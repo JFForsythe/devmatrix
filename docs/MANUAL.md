@@ -55,7 +55,7 @@ chapter then applies only to forks and bare boards.
    closes its setup hotspot by itself 90 seconds after the join and
    boots onto your Wi-Fi.)
 5. After the restart the panel itself walks you to the last step:
-   `WIFI CONNECTED · last step: open dmx-xxxx.local in your browser`.
+   `WIFI CONNECTED · LAST STEP: OPEN DMX-XXXX.LOCAL IN YOUR BROWSER`.
    That card stays up until the Console reaches the device for the
    first time — opening the Console on any browser, or pairing
    (chapter 4) — then retires forever and the panel shows its clock.

@@ -6,13 +6,18 @@
 > disposable-spike posture). v0.12.5 closes the last gap in the
 > on-panel setup walkthrough: after joining Wi-Fi the panel no longer
 > drops straight to the clock — it shows a final setup card
-> (`WIFI CONNECTED / last step: open / dmx-xxxx.local / in your
-> browser`) until the Console first reaches the device (an
+> (`WIFI CONNECTED / LAST STEP: OPEN / DMX-XXXX.LOCAL / IN YOUR
+> BROWSER`) until the Console first reaches the device (an
 > authenticated request or a finished claim pairing), then retires it
 > for good via an NVS flag. Factory reset re-arms the card; devices
 > that already have MQTT configured (only possible from the Console)
 > skip it on upgrade. `/api/v1/info` reports `"scene":"guide"` while
-> the card shows. v0.12.4 is a Console-only rebuild from
+> the card shows. The same pass makes every status card ALL CAPS
+> (TomThumb's 3×5 lowercase was barely legible on the panel) and
+> replaces the Messages app's default slogans with practical tips —
+> the device's own Console address, how to pair another browser, where
+> to edit the tips, and the MQTT/Home Assistant pointer.
+> v0.12.4 is a Console-only rebuild from
 > the first customer-shipment bench night: the Apps-page Pixlet card
 > becomes a numbered five-step walkthrough (install once, open Pixlet
 > Easy Mode, pair by panel code, add apps, install the service) instead
@@ -144,7 +149,7 @@ firmware/
 Dual app slots (2 MB each, `ota_0`/`ota_1`) + a 256 KB TinyUF2 factory
 partition for USB recovery + a 3.7 MB `ffat` data partition reserved for
 future assets and apps. Framebuffers in PSRAM; DMA descriptors in
-internal RAM. v0.12.5 measures 1,369,851 B flash (65 % of a slot) and
+internal RAM. v0.12.5 measures 1,370,139 B flash (65 % of a slot) and
 116,708 B static RAM (the app fetch buffer lives in PSRAM);
 v0.12.4 measured 1,369,359 B / 116,708 B;
 v0.12.3 measured 1,368,959 B / 116,708 B;

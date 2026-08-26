@@ -447,10 +447,12 @@ void drawClaim() {
 
 // Last walkthrough step. The clock alone doesn't tell a new owner where
 // to go next; this card does, and disappears forever on first contact.
+// All caps: TomThumb's 3x5 lowercase is barely legible on the panel.
 void drawGuide() {
   String addr = mdnsName + ".local";
-  panelLines("WIFI CONNECTED", "last step: open", addr.c_str(),
-             "in your browser");
+  addr.toUpperCase();  // mDNS is case-insensitive; caps read better
+  panelLines("WIFI CONNECTED", "LAST STEP: OPEN", addr.c_str(),
+             "IN YOUR BROWSER");
 }
 
 int appScene(uint8_t app) {
@@ -1198,7 +1200,7 @@ void handleOtaUpload() {
     otaError = "";
     otaShownKb = 0;
     if (!otaAuthed) return;
-    panelLines("UPDATING", "0 KB", "keep power on");
+    panelLines("UPDATING", "0 KB", "KEEP POWER ON");
     if (!Update.begin(UPDATE_SIZE_UNKNOWN)) otaError = Update.errorString();
   } else if (up.status == UPLOAD_FILE_WRITE) {
     if (!otaAuthed || otaError.length()) return;
@@ -1210,7 +1212,7 @@ void handleOtaUpload() {
       otaShownKb = up.totalSize / 1024;
       char kb[16];
       snprintf(kb, sizeof kb, "%lu KB", (unsigned long)otaShownKb);
-      panelLines("UPDATING", kb, "keep power on");
+      panelLines("UPDATING", kb, "KEEP POWER ON");
     }
   } else if (up.status == UPLOAD_FILE_END) {
     if (!otaAuthed || otaError.length()) return;
@@ -1229,7 +1231,7 @@ void handleOtaFinal() {
     return;
   }
   sendJson(200, "{\"ok\":true,\"rebooting\":true}");
-  panelLines("UPDATE OK", "rebooting...");
+  panelLines("UPDATE OK", "REBOOTING...");
   delay(400);
   ESP.restart();
 }
@@ -1292,7 +1294,7 @@ void stepJoinMachine() {
     Serial.println("wifi: joined; credentials saved to NVS (never logged)");
     if (joinIsBackground) { delay(200); ESP.restart(); }
     joinOkAt = millis();  // starts the bounded token-reveal window
-    panelLines("wifi ok!", "finish setup", "on your phone");
+    panelLines("WIFI OK!", "FINISH SETUP", "ON YOUR PHONE");
   } else if (millis() - joinStart > 25000) {
     joinState = JOIN_FAIL;
     WiFi.disconnect();
@@ -1362,7 +1364,7 @@ void startSetupMode() {
   server.begin();
   Serial.printf("setup: join \"%s\" then any page opens http://192.168.4.1\n",
                 apName.c_str());
-  panelLines("SETUP: join", apName.c_str(), "portal opens", "by itself");
+  panelLines("SETUP: JOIN", apName.c_str(), "PORTAL OPENS", "BY ITSELF");
   // If we fell back here with stored creds (router was down?), keep retrying
   // in the background so a power blip never strands the device in setup.
   if (prefs.getString("ssid", "").length()) nextBgRetry = millis() + 45000;
@@ -1452,7 +1454,7 @@ void startStation(const String& ssid, const String& pass) {
   WiFi.mode(WIFI_STA);
   WiFi.setHostname(mdnsName.c_str());
   WiFi.begin(ssid.c_str(), pass.c_str());
-  panelLines("joining", ssid.c_str());
+  panelLines("JOINING", ssid.c_str());  // SSID stays verbatim: it's an identifier
   Serial.println("wifi: joining stored network (ssid in NVS, not logged)");
   uint32_t t0 = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - t0 < 25000) delay(250);
@@ -1519,7 +1521,9 @@ void setup() {
   flRows = prefs.getUChar("fl_n", flRows);
   flFormat = prefs.getString("fl_fmt", flFormat);
   flView = prefs.getString("fl_view", flView);
-  dmxAppsBegin(prefs, flInterval);
+  String consoleHost = mdnsName + ".local";
+  consoleHost.toUpperCase();  // panel tips are all caps (TomThumb legibility)
+  dmxAppsBegin(prefs, flInterval, consoleHost.c_str());
   Serial.printf("apps: fetch buffer %u bytes (%s)\n",
                 (unsigned)dmxAppFetchCap,
                 dmxAppFetchPsram ? "PSRAM" : "internal fallback");

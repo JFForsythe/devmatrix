@@ -31,7 +31,7 @@ const ROUTES: RouteDefinition[] = [
   { label: "Read app settings", method: "GET", path: "/api/v1/apps" },
   { label: "Save app settings", method: "POST", path: "/api/v1/apps", body: '{"id":"messages","enabled":true,"interval_s":10,"refresh_s":30}' },
   { label: "Read Messages config", method: "GET", path: "/api/v1/apps/messages" },
-  { label: "Save Messages config", method: "POST", path: "/api/v1/apps/messages", body: '{"phrases":["MAKE SOMETHING","LOCAL FIRST"],"rotation_s":30}' },
+  { label: "Save Messages config", method: "POST", path: "/api/v1/apps/messages", body: '{"phrases":["HELLO FROM THE\\nDEV CONSOLE"],"rotation_s":30}' },
   { label: "Show Messages", method: "POST", path: "/api/v1/apps/messages/show" },
   { label: "Read Custom layout", method: "GET", path: "/api/v1/apps/custom" },
   { label: "Save Custom layout", method: "POST", path: "/api/v1/apps/custom", body: '{"v":1,"source":null,"rows":[{"y":11,"color":[255,178,36],"text":"CUSTOM READY"}]}' },

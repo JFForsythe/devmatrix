@@ -93,7 +93,11 @@ export function createMockState(): MockState {
       ],
     },
     messages: {
-      phrases: ["MAKE SOMETHING", "SHIP SMALL\nLEARN FAST", "LOCAL FIRST"],
+      phrases: [
+        "YOUR CONSOLE:\nDMX-0952.LOCAL",
+        "PAIR A BROWSER:\nTAP PAIR, TYPE\nTHE PANEL CODE",
+        "EDIT THESE TIPS:\nCONSOLE > APPS >\nMESSAGES",
+      ],
       rotation_s: 30,
     },
     custom: {

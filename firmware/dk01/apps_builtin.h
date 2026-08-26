@@ -127,7 +127,7 @@ static void dmxSelectMessage(uint32_t nowMs) {
   dmxBuildMessageFrame(nowMs);
 }
 
-static void dmxLoadMessages(Preferences& prefs) {
+static void dmxLoadMessages(Preferences& prefs, const char* consoleHost) {
   memset(&dmxMessages, 0, sizeof dmxMessages);
   dmxMessages.current = -1;
   dmxMessages.rotationS = prefs.getUShort("msg_rot", 30);
@@ -141,9 +141,16 @@ static void dmxLoadMessages(Preferences& prefs) {
     dmxMessages.count = count;
     for (uint8_t i = 0; i < count; ++i) dmxMessages.phrases[i][64] = 0;
   } else {
+    // Out-of-box pack: practical tips, not slogans. The owner replaces
+    // these from Console > Apps > Messages; lines cap at 16 chars.
+    char consoleTip[65];
+    snprintf(consoleTip, sizeof consoleTip, "YOUR CONSOLE:\n%.16s",
+             consoleHost ? consoleHost : "");
     const char* defaults[] = {
-      "MAKE SOMETHING", "SHIP SMALL\nLEARN FAST", "LOCAL FIRST",
-      "PIXELS WANT\nA PURPOSE"
+      consoleTip,
+      "PAIR A BROWSER:\nTAP PAIR, TYPE\nTHE PANEL CODE",
+      "EDIT THESE TIPS:\nCONSOLE > APPS >\nMESSAGES",
+      "HOME ASSISTANT?\nCONSOLE > MQTT\nAUTO-DISCOVERY"
     };
     dmxMessages.count = 4;
     for (uint8_t i = 0; i < dmxMessages.count; ++i)
@@ -558,7 +565,8 @@ static bool dmxSetAppDuration(Preferences& prefs, uint8_t app,
          sizeof(uint16_t);
 }
 
-static void dmxAppsBegin(Preferences& prefs, uint8_t flightsInterval) {
+static void dmxAppsBegin(Preferences& prefs, uint8_t flightsInterval,
+                         const char* consoleHost) {
   dmxFetchBufferInit();
   memset(dmxAppDiag, 0, sizeof dmxAppDiag);
   dmxDiagResult(&dmxAppDiag[DMX_APP_MESSAGES], "offline-app");
@@ -574,7 +582,7 @@ static void dmxAppsBegin(Preferences& prefs, uint8_t flightsInterval) {
     dmxAppSlots[i].nextRunMs = 0;
   }
   dmxClearFrame(dmxFlights.frame);
-  dmxLoadMessages(prefs);
+  dmxLoadMessages(prefs, consoleHost);
   dmxLoadCustom(prefs);
   dmxAppSlots[DMX_APP_FLIGHTS_LIST].refreshIntervalMs =
       (uint32_t)flightsInterval * 1000UL;
