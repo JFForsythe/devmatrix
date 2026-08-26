@@ -39,6 +39,10 @@ One cable flash, then never again (updates go over the air):
    (and last) cable flash").
 3. The panel boots into the setup flow below.
 
+Re-flashing a board that has been used before? Chapter 10 → **Back to
+default** returns it to out-of-box first — the settings wipe needs no
+token and no working Console.
+
 **Ahead · R0:** sold units arrive already flashed and provisioned; this
 chapter then applies only to forks and bare boards.
 
@@ -437,6 +441,7 @@ The never-brick ladder, mildest first:
 | Change Wi-Fi | Security → **CHANGE WI-FI…** (`wifi/reset`) | Wi-Fi credentials only — token and config survive |
 | Rotate the token | Security → **ROTATE LAN TOKEN** | every paired browser/script credential |
 | Factory reset | Security → **FACTORY RESET** (`factory/reset`) | everything in NVS: Wi-Fi, token, timezone, MQTT credentials, flights config |
+| Factory reset over USB | `esptool` NVS erase — first section below; needs no token and no Console | same as factory reset |
 | USB recovery | Double-press the board's reset button — it mounts as a USB drive; drag a UF2 firmware file on | nothing by itself — reflashes firmware |
 
 The TinyUF2 factory partition survives every OTA, so USB recovery is
@@ -444,7 +449,97 @@ always there even if both app slots are bad. Physical access is the
 recovery tool — by design ([docs/SECURITY.md](SECURITY.md)). To turn a
 compiled `.bin` into the UF2 file the drive wants, follow
 [firmware/dk01/README.md](../firmware/dk01/README.md) → "USB recovery
-(make a UF2)".
+(make a UF2)". The one thing that removes TinyUF2 is a deliberate
+full-chip erase — **Back to default** below covers when that is worth
+it and how everything comes back.
+
+### Factory reset over USB — no Console, no token
+
+Lost the LAN token, wrong Wi-Fi saved, picked up a used board, or the
+Console is simply unreachable? You never need the token to start over.
+Every setting the device holds lives in one small flash region — NVS
+([docs/FIRMWARE.md](FIRMWARE.md) → Hardware budget owns the flash
+map): Wi-Fi credentials, LAN token, identity key, timezone, MQTT
+settings, app config. Blank NVS *is* the out-of-box state, and the
+firmware in both app slots stays untouched.
+
+1. Install the flasher once: `python3 -m pip install esptool`.
+2. Connect USB-C. The board appears as `/dev/cu.usbmodem*` on macOS,
+   `/dev/ttyACM0` on Linux.
+3. Erase exactly the settings region (offsets from the flash map):
+
+   ```sh
+   python3 -m esptool --port /dev/cu.usbmodem* erase-region 0x9000 0x5000
+   ```
+
+4. Tap the reset button. The panel comes back factory-fresh —
+   `JOIN ME → DEVMATRIX-XXXX` — and chapter 3 takes it from there.
+
+The identity key is minted fresh on the next boot, so browsers that
+paired before will show the identity warning — that is chapter 13's
+"key mismatch" row behaving exactly as designed: **FORGET / SWITCH
+DEVICE…**, then pair again.
+
+### Back to default — the complete re-flash
+
+"Make it exactly like a fresh one" is two independent resets — pick
+the ones you actually need:
+
+- **Settings to default:** the USB factory reset above (or Security →
+  **FACTORY RESET** while the Console still works).
+- **Firmware to a known version:** chapter 2's cable flash, or the UF2
+  drag-and-drop from the ladder above — either writes the build you
+  chose over whatever was running.
+
+Doing both, in either order, is a complete return to stock. There is
+usually no reason to erase the whole chip — but for the true
+zero-mile state, or a flash you no longer trust:
+
+```sh
+python3 -m esptool --port /dev/cu.usbmodem* erase-flash
+```
+
+then run chapter 2's cable flash. One upload restores everything the
+erase removed — bootloader, partition table, app, **and the TinyUF2
+factory partition** ([docs/FIRMWARE.md](FIRMWARE.md) → Hardware
+budget). Know what you are choosing: between the erase and a completed
+upload the board has no firmware and no UF2 drive, and only the cable
+path brings it back. Never-brick still holds — the serial flasher the
+cable talks to lives in the chip's ROM, not in flash — but don't
+full-erase unless chapter 2's toolchain is already set up.
+
+### Tips from the bench
+
+Hard-won on real boards; each of these looked like a dead unit until
+it wasn't.
+
+- **Dark panel, no hotspot, but the USB port shows up** — the board is
+  probably stranded in the ROM download mode, not broken. An
+  interrupted flash, or any serial tool that toggles the port's
+  DTR/RTS lines while opening it, can park the board there: dark on
+  the LAN, alive on USB. Any esptool command that ends with a hard
+  reset frees it:
+
+  ```sh
+  python3 -m esptool --port /dev/cu.usbmodem* --after hard-reset chip-id
+  ```
+
+- **Serial monitors lie on this board.** The S3's USB serial port
+  re-enumerates on every reset, so a monitor you hold open goes
+  silently dead instead of erroring — and you miss the boot lines you
+  were waiting for. Reopen the monitor *after* each reset, and close
+  it completely before flashing (the port is exclusive-open).
+- **A "dead" board is often your own Wi-Fi.** Laptops and phones roam
+  between networks, and guest networks isolate clients from each
+  other. Before touching the hardware, check which network *your
+  computer* is on — `dmx-xxxx.local` only resolves from the network
+  the panel joined.
+- **Never hardcode the port.** macOS re-enumerates `/dev/cu.usbmodem*`
+  constantly — glob it every time.
+- **Experiments are cheap.** After every OTA the previous firmware is
+  still in the other app slot (the Dashboard shows which slot is
+  live), and USB recovery is the floor under everything — update
+  boldly.
 
 ## 11 · Home Assistant and MQTT — Today
 
@@ -465,6 +560,32 @@ and leaving the host empty keeps the device's MQTT client completely off.
 5. With Home Assistant's MQTT integration and discovery enabled, the device
    publishes retained light-brightness, text, and notify configs with its
    availability topic. Home Assistant can control them with **zero YAML**.
+6. **Prove it from any terminal** — optional, but satisfying. With the
+   `mosquitto-clients` tools and the broker user from step 2, watch the
+   device's own topic tree; the retained availability, display, and
+   health state appear immediately. The examples use the canonical
+   serial `DMX-4E71-0952` — yours is on the Console's Devices page:
+
+   ```sh
+   mosquitto_sub -h <broker> -u <user> -P '<password>' -v \
+     -t 'devmatrix/DMX-4E71-0952/#'
+   ```
+
+   Then push text through the broker. Every request is enveloped JSON —
+   a UUID, a `Z`-suffixed UTC timestamp, and a short expiry so a stale
+   queued command can never replay
+   ([contracts/mqtt.md](../contracts/mqtt.md) owns the envelope):
+
+   ```sh
+   mosquitto_pub -h <broker> -u <user> -P '<password>' \
+     -t 'devmatrix/DMX-4E71-0952/request/display.text' \
+     -m "{\"v\":1,\"id\":\"$(uuidgen)\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"expiry\":30,\"payload\":{\"text\":\"VIA MQTT\"}}"
+   ```
+
+   The panel shows the text, and the device answers on
+   `devmatrix/DMX-4E71-0952/response/<that id>`. The other implemented
+   request verbs today are `display.brightness`, `display.clear`, and
+   `app.show`.
 
 TLS is encrypted but not yet CA-verified in this pre-P2 firmware; use a
 trusted LAN or VPN path. The exact topics, envelope, QoS/retain rules,
@@ -500,6 +621,9 @@ browser MQTT workbench are in
 | MQTT shows error | Check the broker address, port, per-device username/password and ACL from chapter 11; pre-P2 TLS also requires a trusted network path |
 | Home Assistant did not discover the device | Confirm MQTT says connected and Home Assistant publishes `online` to `homeassistant/status`; then check the discovery-write ACL in the contract |
 | Upload port busy while flashing | Close any serial monitor — the port is exclusive-open |
+| Panel dark, no hotspot, but the USB port shows up | Probably stranded in ROM download mode, not dead — chapter 10 → Tips from the bench frees it with one esptool command |
+| Serial monitor went silent after a reset | The S3's USB serial re-enumerates on every reset — reopen the monitor afterward; close it before flashing |
+| Lost the token *and* the panel or its Wi-Fi is unreachable | Chapter 10 → Factory reset over USB — no token needed, then set up again |
 | Nothing works at all | USB recovery (chapter 10), then set up again — setup data is five minutes to recreate |
 
 ## 14 · Rules this manual follows

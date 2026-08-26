@@ -149,7 +149,27 @@ firmware/
 Dual app slots (2 MB each, `ota_0`/`ota_1`) + a 256 KB TinyUF2 factory
 partition for USB recovery + a 3.7 MB `ffat` data partition reserved for
 future assets and apps. Framebuffers in PSRAM; DMA descriptors in
-internal RAM. v0.12.5 measures 1,370,139 B flash (65 % of a slot) and
+internal RAM.
+
+The exact flash map is the pinned board package's **TinyUF2 8MB**
+partition scheme — the committed build's `partitions.csv` matches the
+core's `tinyuf2-partitions-8MB.csv` byte for byte:
+
+| Offset | Size | Partition |
+|---|---|---|
+| `0x9000` | 20 KB | `nvs` — every runtime setting and secret: Wi-Fi credentials, LAN token, device identity key, timezone, MQTT settings, app config, setup-guide flag. Blank NVS **is** the out-of-box state — the token-free USB factory reset in [docs/MANUAL.md](MANUAL.md) ch. 10 erases exactly this region |
+| `0xe000` | 8 KB | `otadata` — which app slot boots |
+| `0x10000` | 2 MB | `ota_0` — app slot |
+| `0x210000` | 2 MB | `ota_1` — app slot |
+| `0x410000` | 256 KB | `uf2` — TinyUF2 factory partition (double-press-reset USB recovery) |
+| `0x450000` | 3,776 KB | `ffat` — reserved data partition |
+
+A cable upload writes more than the app: the board package's upload
+recipe also re-writes the TinyUF2 image at `0x410000` and the
+bootloader/partition table, so a full-chip erase followed by one
+`arduino-cli upload` restores everything, USB recovery included
+([docs/MANUAL.md](MANUAL.md) ch. 10 → Back to default walks the owner
+path). v0.12.5 measures 1,370,139 B flash (65 % of a slot) and
 116,708 B static RAM (the app fetch buffer lives in PSRAM);
 v0.12.4 measured 1,369,359 B / 116,708 B;
 v0.12.3 measured 1,368,959 B / 116,708 B;

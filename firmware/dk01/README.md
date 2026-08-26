@@ -89,6 +89,15 @@ app slot and reboots. Bench-drill evidence for this path is queued in
 [hardware/procedures/bench-week.md](../../hardware/procedures/bench-week.md) —
 run it once and file the evidence before any sold unit.
 
+## Wipe a board back to stock
+
+The owner-facing walkthroughs — the token-free USB factory reset (an
+`esptool` NVS erase), the complete back-to-default re-flash, and the
+bench tips that separate a stranded board from a dead one — are in
+[docs/MANUAL.md](../../docs/MANUAL.md) ch. 10. The flash map they rely
+on is owned by [docs/FIRMWARE.md](../../docs/FIRMWARE.md) → Hardware
+budget.
+
 ## The API in 30 seconds
 
 ```sh
