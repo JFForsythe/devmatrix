@@ -5,7 +5,7 @@
 A hackable 64×32 LED matrix appliance for people who want a beautiful
 object they fully control: open firmware, documented APIs, and a
 control portal (the **Console**) served by the device itself. No app,
-no account, no cloud — everything works on your LAN with the company
+no account, no cloud — everything works on your LAN with my servers
 unreachable, by invariant ([docs/MODES.md](docs/MODES.md)).
 
 Point a browser at the box and it hands you the rest: live status, a
@@ -34,14 +34,14 @@ the future; bench evidence lives in [hardware/](hardware/README.md).
   Console's **Dev console** view writes the `curl` commands for you.
 - **MQTT + Home Assistant.** Point the device at *your* broker and
   Home Assistant discovers light, text, and notify entities with zero
-  YAML. The company never runs a broker.
+  YAML. I never run the broker — it's yours.
 - **1,000+ community apps.** The owner-hosted Pixlet bridge renders
   the open Tidbyt-ecosystem catalog on your always-on machine and
   pushes the frames — with **Easy Mode**, a local browser page for
   searching, previewing, and building the rotation.
 - **Planes from your own antenna.** A live flights list, or an
   animated radar with altitude-colored aircraft and comet trails —
-  fed only by an ADS-B receiver on your LAN, never a company feed.
+  fed only by an ADS-B receiver on your LAN, never a feed of mine.
 - **Updates you can't be afraid of.** OTA writes to the inactive app
   slot while the old version stays in the other; the TinyUF2 factory
   partition survives every update for drag-and-drop USB recovery; and
@@ -145,16 +145,22 @@ The production Console source and committed artifacts live under
 `portal/console/` (ADR-0027); deployment handoff is documented in
 [portal/console/README.md](portal/console/README.md#vercel-handoff).
 
-## Where the project is
+## How I ship it
 
-Pre-production, honestly labeled. Delivery follows a single gate
-ladder — governance, hardware bring-up, contract freeze, then the
-launch gates — and [ROADMAP.md](ROADMAP.md) owns where each gate
-stands. Interface contracts in [contracts/](contracts/README.md) stay
-**DRAFT** until the P2 freeze. Docs mark every capability **Today**
-(current firmware does it, evidence filed) or **Ahead · gate X**
-(specified, not yet a promise) — if you catch a claim the firmware
-doesn't keep, that's a bug.
+Devmatrix is a one-person product, built in the open and shipped along
+a single gate ladder — governance, hardware bring-up, contract freeze,
+then the launch gates. [ROADMAP.md](ROADMAP.md) owns where each gate
+stands, and the docs mark every capability **Today** (current firmware
+does it, evidence filed) or **Ahead · gate X** (specified, lands at its
+gate) — if you catch a claim the firmware doesn't keep, that's a bug.
+Interface contracts in [contracts/](contracts/README.md) stay **DRAFT**
+until the P2 freeze.
+
+**Local Mode is the complete product, free forever.** The Cloud track —
+gates C0–C3 — is the paid tier behind its own gates: a relay for
+control from anywhere, every site in one view, hosted encrypted
+backups, and alerts. It adds reach, never capability, and the box never
+depends on it ([docs/MODES.md](docs/MODES.md)).
 
 ## The documentation
 
@@ -168,10 +174,10 @@ doesn't keep, that's a bug.
 | Threat model, keys, security ceremonies | [docs/SECURITY.md](docs/SECURITY.md) |
 | Firmware architecture and flash map | [docs/FIRMWARE.md](docs/FIRMWARE.md) |
 | Full DK-01 production execution blueprint | [docs/PRODUCTION-PLAN.md](docs/PRODUCTION-PLAN.md) |
-| Company-side ops — hosting, deploys, secrets | [docs/OPERATIONS.md](docs/OPERATIONS.md) |
+| Ops — hosting, deploys, secrets | [docs/OPERATIONS.md](docs/OPERATIONS.md) |
 | Draft API contracts (MQTT first) | [contracts/README.md](contracts/README.md) |
 | Hardware gate evidence, procedures, manufacturing files | [hardware/README.md](hardware/README.md) |
-| Why we decided X | [docs/adr/](docs/adr/) |
+| Why I decided X | [docs/adr/](docs/adr/) |
 | What happens next, and in what order | [ROADMAP.md](ROADMAP.md) |
 | Canonical names, IDs, formats | [docs/GLOSSARY.md](docs/GLOSSARY.md) |
 
