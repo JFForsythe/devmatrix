@@ -1,24 +1,25 @@
 # Security model
 
-The buyers are high-profile and actively targeted. Security here is a
-visible feature: everything below must be inspectable by the owner in
-the Console (audit log, key fingerprints, session list) — not asserted
-in marketing copy.
+Some of the people who buy hardware like this get phished and scammed
+for it, so I design as if every owner does. Nothing below
+is a claim to take on faith: each piece is something the owner can
+check in the Console — the audit log, the key fingerprints, the
+session list.
 
 ## Principles
 
 1. **Physical presence beats cloud.** Claiming, factory reset, and
    root-of-trust changes require touching the device.
 2. **User owns the device, really.** Own signing key enrollment, Local
-   Mode, Eject. We never hold a capability the owner can't revoke.
+   Mode, Eject. I never hold a capability the owner can't revoke.
 3. **No inbound WAN ports, ever.** The LAN API listens only on the local
    network; remote access uses a device-initiated outbound relay.
-   mTLS is the device→relay link. We never expose the LAN listener to
+   mTLS is the device→relay link. I never expose the LAN listener to
    the public internet.
 4. **Assume account compromise attempts.** Passkeys only; no passwords,
    no SMS, no security questions. (ADR-0004)
 5. **Minimal data.** Telemetry opt-in and off by default; Snapshots are
-   end-to-end encrypted — we cannot read device backups.
+   end-to-end encrypted — I cannot read device backups.
 
 ## Identity & key hierarchy
 
@@ -45,7 +46,7 @@ Burning `DIS_DOWNLOAD_MODE` is forbidden; USB recovery must survive.
 
 How a browser finds and talks to the box — specified here because this
 is where LAN products usually hand-wave (browsers cannot scan a LAN,
-and we would not want them to):
+and I would not want them to):
 
 - **Provisioning first.** Out of the box the device has no network.
   Join it via the `DEVMATRIX-XXXX` SoftAP captive portal today, or —
@@ -146,7 +147,7 @@ gate M1 target; today's firmware pairs by panel code,
 sha256 + signature against the software trust set → write to inactive
 slot → boot health check (N failures → auto-rollback) → settings
 migration hook. Security-fix releases may bump an anti-rollback floor;
-owner-signed builds are exempt from our floor (their box, their rules).
+owner-signed builds are exempt from my floor (their box, their rules).
 The exemption is enforced by the software updater with bootloader
 anti-rollback off — eFuse anti-rollback has no per-signer exemption
 (ADR-0021).
@@ -171,9 +172,9 @@ every guest action is audit-logged and attributed.
   metrics, logs, and audit streams are never queryable across tenants.
 - Relay auth: device presents its cert (mTLS); sessions bind device ↔
   claiming account only. Fleet views are just "my devices", plural.
-- MQTT stays the **user's broker** on their LAN. If we ever offer a
+- MQTT stays the **user's broker** on their LAN. If I ever offer a
   hosted broker it will be opt-in with per-device ACLs scoped to
-  `devmatrix/<serial>/#` — but the default posture is: we don't run one.
+  `devmatrix/<serial>/#` — but the default posture is: I don't run one.
 
 ## App sandbox
 
@@ -191,10 +192,10 @@ owner's own risk, stated plainly.
 
 ## Data & privacy
 
-- Telemetry: **off by default**, opt-in, and visible ("what we'd send"
+- Telemetry: **off by default**, opt-in, and visible ("what I'd send"
   preview). Crash reports likewise.
 - Export-all and delete-all (device data, account) are self-serve.
-- Snapshots E2EE; loss of user key = loss of backups, and we say so.
+- Snapshots E2EE; loss of user key = loss of backups, and I say so.
 - No location collection. mDNS/LAN discovery never leaves the LAN.
 
 ## Ops & supply chain
@@ -225,7 +226,7 @@ owner's own risk, stated plainly.
 | Supply-chain dep attack | Pinned deps, SBOM, public reproducible CI |
 | Buyer dumps a shipped unit's flash/NVS | Full dev access is the product; units ship factory-fresh with no manufacturer credentials, addresses, or endpoints to find (ADR-0023) |
 
-## What we never do
+## What I never do
 
 Run required cloud. Hold unencrypted backups. Ship silent updates
 (every change lands in the audit log and the changelog feed). Reuse

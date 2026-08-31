@@ -1,0 +1,197 @@
+<!doctype html>
+<!--
+  Receipt-style 4×6 welcome card for the box — designed for a thermal
+  label printer: pure black on white, no gray fills, no hairlines
+  thinner than 1px, generous type.
+
+  Render to PDF:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless --disable-gpu --no-pdf-header-footer \
+      --print-to-pdf=hardware/insert/welcome-receipt.pdf \
+      file://$PWD/hardware/insert/welcome-receipt.html
+
+  The guide URL is the canonical hosted-console address
+  (docs/USER-STORY.md). It must resolve before any card is printed —
+  see hardware/README.md.
+
+  Sibling: quick-start-card.html — same content, laser/inkjet styling.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Devmatrix welcome receipt</title>
+<style>
+  @page { size: 4in 6in; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #fff; }
+  body {
+    font-family: "SF Mono", Menlo, Consolas, "Courier New", monospace;
+    color: #000;
+    display: flex; justify-content: center;
+    -webkit-font-smoothing: none;
+  }
+  @media screen {
+    body { background: #6b6b6b; padding: 24px 0; }
+    .receipt { box-shadow: 0 3px 18px rgba(0,0,0,.55); }
+  }
+
+  .receipt {
+    width: 4in; height: 6in;
+    padding: 0.26in 0.28in 0.22in;
+    background: #fff;
+    display: flex; flex-direction: column;
+  }
+
+  /* ---- header ---- */
+  .top { text-align: center; }
+  .wordmark {
+    font-size: 25px; font-weight: 700; letter-spacing: .16em;
+    line-height: 1;
+  }
+  .byline {
+    font-size: 7.5px; letter-spacing: .2em; margin-top: 5px;
+  }
+  .meta {
+    font-size: 8px; letter-spacing: .08em; margin-top: 9px;
+  }
+
+  /* ---- rules ---- */
+  .rule {
+    border-top: 1px dashed #000; margin: 9px 0;
+  }
+  .rule.solid { border-top: 1.5px solid #000; border-bottom: 0; }
+
+  .banner {
+    text-align: center; font-size: 10.5px; font-weight: 700;
+    letter-spacing: .12em; line-height: 1.5;
+  }
+  .banner small {
+    display: block; font-size: 8px; font-weight: 400;
+    letter-spacing: .1em; margin-top: 4px;
+  }
+
+  /* ---- steps as line items ---- */
+  .items { flex: 1; margin-top: 3px; }
+  .item { display: flex; gap: 8px; margin-bottom: 10px; }
+  .idx {
+    font-size: 10px; font-weight: 700; letter-spacing: .04em;
+    flex: 0 0 auto; padding-top: 1px;
+  }
+  .body { flex: 1; }
+  .head {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .1em;
+  }
+  .sub {
+    font-size: 8.7px; line-height: 1.5; margin-top: 3px;
+  }
+  .sub b { font-weight: 700; }
+
+  /* ---- footer ---- */
+  .foot { font-size: 8.3px; line-height: 1.6; }
+  .row { display: flex; justify-content: space-between; gap: 8px; }
+  .row .k { letter-spacing: .1em; }
+  .row .v { font-weight: 700; text-align: right; }
+  .serial {
+    margin-top: 7px; font-size: 8px; letter-spacing: .1em;
+    display: flex; align-items: flex-end; gap: 6px;
+  }
+  .serial .line { flex: 1; border-bottom: 1px solid #000; height: 11px; }
+
+  .thanks {
+    text-align: center; font-size: 9px; font-weight: 700;
+    letter-spacing: .18em; margin-top: 9px;
+  }
+
+  /* decorative bar block — pure ink, scans as nothing */
+  .bars {
+    margin-top: 8px; height: 26px;
+    display: flex; align-items: stretch; gap: 1.5px;
+    justify-content: center;
+  }
+  .bars i { display: block; background: #000; }
+</style>
+</head>
+<body>
+<div class="receipt">
+
+  <div class="top">
+    <div class="wordmark">DEVMATRIX</div>
+    <div class="byline">DEV KIT BY FLIGHTTRACKERLED</div>
+    <div class="meta">64 &times; 32 RGB &middot; OPEN FIRMWARE &middot; YOURS</div>
+  </div>
+
+  <div class="rule solid"></div>
+
+  <div class="banner">
+    WELCOME — YOUR PANEL IS READY
+    <small>FOUR STEPS. NO APP, NO ACCOUNT, NO CLOUD.</small>
+  </div>
+
+  <div class="rule"></div>
+
+  <div class="items">
+    <div class="item">
+      <div class="idx">01</div>
+      <div class="body">
+        <div class="head">POWER IT</div>
+        <div class="sub">Any 5&thinsp;V USB-C supply rated <b>2&thinsp;A or more</b> —
+        a phone fast-charger works. The panel lights up and tells you what's next.</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="idx">02</div>
+      <div class="body">
+        <div class="head">JOIN ITS HOTSPOT</div>
+        <div class="sub">The panel shows <b>SETUP: JOIN DEVMATRIX-XXXX</b>.
+        Join that Wi-Fi from your phone; the setup page opens itself.
+        If it doesn't: <b>http://192.168.4.1</b></div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="idx">03</div>
+      <div class="body">
+        <div class="head">GIVE IT YOUR WI-FI</div>
+        <div class="sub">Pick your network on the live-scanning page and watch it
+        join. <b>2.4&thinsp;GHz networks only</b> — that's the radio.</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="idx">04</div>
+      <div class="body">
+        <div class="head">OPEN THE CONSOLE</div>
+        <div class="sub">The panel shows its address — <b>DMX-XXXX.LOCAL</b>.
+        Open it in any browser. The panel serves the Console itself, so it
+        works even when the internet doesn't.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <div class="foot">
+    <div class="row"><span class="k">MANUAL &amp; APPS</span>
+      <span class="v">devmatrix.flighttrackerled.com/start</span></div>
+    <div class="row"><span class="k">SOURCE</span>
+      <span class="v">github.com/JFForsythe/devmatrix</span></div>
+    <div class="serial"><span>SERIAL</span><span class="line"></span></div>
+  </div>
+
+  <div class="bars">
+    <i style="width:2px"></i><i style="width:1px"></i><i style="width:4px"></i>
+    <i style="width:1px"></i><i style="width:2px"></i><i style="width:3px"></i>
+    <i style="width:1px"></i><i style="width:5px"></i><i style="width:2px"></i>
+    <i style="width:1px"></i><i style="width:3px"></i><i style="width:1px"></i>
+    <i style="width:4px"></i><i style="width:2px"></i><i style="width:1px"></i>
+    <i style="width:3px"></i><i style="width:5px"></i><i style="width:1px"></i>
+    <i style="width:2px"></i><i style="width:1px"></i><i style="width:4px"></i>
+    <i style="width:3px"></i><i style="width:1px"></i><i style="width:2px"></i>
+  </div>
+
+  <div class="thanks">THANK YOU — NOW GO BREAK IT</div>
+
+</div>
+</body>
+</html>

@@ -15,7 +15,8 @@ Three content classes live here as they come into existence:
   verification) with the S3 port-re-enumeration gotchas baked in.
 - Manufacturing files — BOM, panel profiles, enclosure, harness,
   fixtures, per-unit provisioning records. The first exists:
-  [insert/](insert/) holds the printable in-box quick-start card.
+  [insert/](insert/) holds the in-box print pieces: the quick-start
+  card and the per-unit card generator (`make-card.sh`).
   Its guide URL is the canonical hosted-console address, which must
   resolve — docs/OPERATIONS.md cutover or an interim redirect —
   before any card is printed. The rest arrive with the M0/L0/R0

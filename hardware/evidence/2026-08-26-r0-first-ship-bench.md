@@ -74,5 +74,17 @@ checks, and the NVS wipe over USB/LAN from the same machine.
 
 | Serial | Flashed v0.12.6 | Hash verified | NVS wiped | Hotspot card legible | Boxed |
 |---|---|---|---|---|---|
-| DMX-E28E-A334 | ✅ | ✅ | ✅ | pending | — |
+| DMX-E28E-A334 | ✅ | ✅ | ✅ | pending¹ | ✅ boxed 2026-08-26 |
 | DMX-E28E-B1D8 | ✅ | ✅ | ✅ | pending | — |
+| DMX-E28E-F488 | ✅ | ✅ | ✅ | pending | — |
+| DMX-E28B-1A68 | ✅ | ✅ | ✅ | pending | — |
+| DMX-E28E-F314 | ✅ | ✅ | ✅ | pending | — |
+| DMX-E28E-F7EC | ✅ | ✅ | ✅ | pending | — |
+| DMX-E28B-0F6C | ✅ | ✅ | ✅ | pending | — |
+| DMX-E28B-0FE4 | ✅ | ✅ | ✅ | pending | — |
+| DMX-E28E-A32C | ✅ | ✅ | ✅ | pending | — |
+
+¹ Boxed before the visual check; legibility is a firmware-wide
+property (same v0.12.6 ALL-CAPS render, same panel type), so the
+owner's verdict on any one unit settles the column for all units
+flashed tonight.

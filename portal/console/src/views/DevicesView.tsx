@@ -27,7 +27,7 @@ export function DevicesView({ transport }: { transport: ConsoleTransport }) {
     <div class="view">
       <ViewHeader eyebrow={transport.isMock ? "DEMO FLEET · MOCK DATA" : "THIS LAN DEVICE"} title="Devices">
         {transport.isMock
-          ? "The hosted demo mirrors Maya’s three-device story. These cards never scan your LAN."
+          ? "The hosted demo shows a sample three-device fleet. These cards never scan your LAN."
           : "The device-local Console shows the box that served this page; pairing another browser never changes the device."}
       </ViewHeader>
 

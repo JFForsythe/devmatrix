@@ -61,10 +61,10 @@ export function WelcomeView({
       setStatus({
         kind: "info",
         text:
-          `Found ${result.health.device} on firmware v${result.health.fw}, which predates identity ` +
-          "verification (v0.9.0). Without it nothing proves this is your panel rather than a " +
-          "device impersonating it — connect only on a network you trust, and update from the " +
-          "Deploy page immediately. No key will be pinned until the update.",
+          `Found ${result.health.device}, but its firmware predates identity verification. ` +
+          "Without it nothing proves this is your panel rather than a device impersonating it — " +
+          "connect only on a network you trust, and update from the Deploy page immediately. " +
+          "No key will be pinned until the update.",
       });
     }
   }
@@ -93,10 +93,10 @@ export function WelcomeView({
           <span class="brand-mark" aria-hidden="true" />
           <span><strong>DEVMATRIX</strong><small>CONSOLE</small></span>
         </div>
-        <h1>Your panel. Your network. Your rules.</h1>
+        <h1>Your panel, on your network</h1>
         <p>
           The Dev Kit is controlled from this Console — over your own Wi-Fi, with no account and no
-          cloud in the loop. This page is a static file; your panel never talks to our servers.
+          cloud in the loop. This page is a static file; your panel never talks to a server of mine.
         </p>
         <p class="welcome-chips">
           <span class="chip ok">LOCAL · FREE FOREVER</span>
@@ -113,7 +113,7 @@ export function WelcomeView({
               shows what to do next.
             </li>
             <li>
-              <strong>Give it your Wi-Fi.</strong> The panel announces <code>JOIN ME → DEVMATRIX-XXXX</code>.
+              <strong>Give it your Wi-Fi.</strong> The panel announces <code>SETUP: JOIN DEVMATRIX-XXXX</code>.
               Join that hotspot from your phone — a setup page opens by itself, scans your networks, and
               joins yours live. The phone that runs setup is signed in automatically.
             </li>
@@ -191,9 +191,9 @@ export function WelcomeView({
           <Status message={status} />
 
           <p class="note">
-            Works in Chrome, Edge, and Firefox on the same network as the panel (firmware v0.9.0 or
-            newer). If the panel cannot be reached from here, open its address directly — every feature
-            works from the panel itself, always.
+            Works in Chrome, Edge, and Firefox on the same network as the panel. If the panel cannot
+            be reached from here, open its address directly — every feature works from the panel
+            itself, always.
           </p>
         </Card>
       </div>

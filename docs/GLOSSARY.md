@@ -53,7 +53,7 @@ first; then use.
 | **Guest access** | Scoped, expiring control grant to a non-owner. |
 | **Relay** | Outbound-only encrypted tunnel device→cloud for Cloud Mode. No inbound ports. |
 | **Root-of-trust enrollment** | Physical-presence ceremony adding the owner's firmware signing key. |
-| **Eject** | Guided path to self-host everything and leave our cloud entirely. |
+| **Eject** | Guided path to self-host everything and leave Cloud Mode entirely. |
 | **Quiet hours** | Scheduled dimming/off window. |
 | **Gate ladder** | The single delivery sequence P0 · P1 · P2 · M0 · M1 · M2 · M3 · M4 · L0 · R0 · GA. ROADMAP.md owns the definitions; Cloud gates C0–C3 are a separate paid track (ADR-0007). |
 | **EVT / DVT / PVT** | Engineering / design / production validation hardware builds, paired with gates M0, L0, and R0 (ROADMAP.md). |

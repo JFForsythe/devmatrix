@@ -339,7 +339,7 @@ if (configAlreadyExists) {
     fail(`Cannot atomically create ${configPath}: ${error.message}`);
   }
   ok(`Starter config written with mode 0600: ${configPath}`);
-  if (!device) info("(edit device.url to your panel's address, e.g. http://dmx-4e71.local)");
+  if (!device) info("(edit device.url to your panel's address, e.g. http://dmx-0952.local)");
 }
 
 // ---------------------------------------------------------------- preflight

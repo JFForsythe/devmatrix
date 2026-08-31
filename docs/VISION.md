@@ -23,10 +23,11 @@ own apps to your own hardware.
 
 Developers, tinkerers, and technical executives who buy hardware the way
 they buy instruments: they expect precision, no lock-in, and security
-they can inspect. Many are high-profile; assume they are actively
-targeted (phishing, account takeover, resale scams). Security is a
-feature they can see, not a checkbox. "Basic code/config comfort"
-expected; delight comes from how far the same box can go.
+they can inspect. I design as if every owner gets targeted — phishing,
+account takeover, resale scams — because some will be, and the rest
+lose nothing by it. Security is a feature they can check, not a
+checkbox. "Basic code/config comfort" expected; delight comes from how
+far the same box can go.
 
 ## Promises (every claim must map to a shipped feature at launch)
 

@@ -52,7 +52,7 @@ token and no working Console.
 ## 3 · First boot and Wi-Fi — Today
 
 1. Power the board. The panel announces its setup hotspot:
-   `JOIN ME → DEVMATRIX-XXXX` (the Xs are from your board's serial).
+   `SETUP: JOIN DEVMATRIX-XXXX` (the Xs are from your board's serial).
 2. On your phone, join that `DEVMATRIX-XXXX` Wi-Fi network. A captive
    portal opens by itself. If it doesn't, browse to `http://192.168.4.1`.
 3. The portal scans and lists your networks live. Pick yours, type the
@@ -112,7 +112,7 @@ screen, and enter the panel's address — Chrome, Edge, and Firefox ask
 once for local-network permission and then talk straight to the panel
 over your LAN. Safari doesn't allow that yet; use the panel's own
 address there. Either way the panel stays 100 % local — the hosted
-page is a static file, and nothing routes through a server of ours.
+page is a static file, and nothing routes through any server of mine.
 
 **Ahead · M1:** the full claim ceremony — session code on the panel
 plus a 2-second physical button hold, per
@@ -483,7 +483,7 @@ firmware in both app slots stays untouched.
    ```
 
 4. Tap the reset button. The panel comes back factory-fresh —
-   `JOIN ME → DEVMATRIX-XXXX` — and chapter 3 takes it from there.
+   `SETUP: JOIN DEVMATRIX-XXXX` — and chapter 3 takes it from there.
 
 The identity key is minted fresh on the next boot, so browsers that
 paired before will show the identity warning — that is chapter 13's
@@ -620,14 +620,15 @@ browser MQTT workbench are in
 |---|---|
 | Captive portal never opened | Browse to `http://192.168.4.1` while on the `DEVMATRIX-XXXX` network |
 | `dmx-xxxx.local` not found | Your network (or an Android browser) blocks mDNS — use the panel's IP address instead; it works everywhere the name does. Your router's client-device list shows the panel as `dmx-xxxx`; any already-connected Console also shows the IP on the Dashboard's device info |
+| Panel shows the clock but nothing answers after an outage | Power-cycle the panel once — it rejoins your Wi-Fi by itself, and if the router is still down it keeps retrying in the background until it's back |
 | My Wi-Fi isn't listed in the setup portal | The board's radio is 2.4 GHz-only, so a 5 GHz-only network can't appear. Enable a 2.4 GHz band or guest SSID on your router, then rescan |
 | The setup page closed before I finished | Rejoin the `DEVMATRIX-XXXX` hotspot and it reopens (or browse to `http://192.168.4.1`). If the hotspot is gone, the panel already joined your Wi-Fi and is showing its address — chapter 3, step 5 |
-| Hosted Console can't reach the panel | (**Ahead · hosted cutover** — the hosted domain isn't live yet; chapter 4.) Same Wi-Fi? Allow the browser's local-network permission when asked (Chrome/Edge/Firefox). Safari can't do this — open the panel's own address instead. Firmware older than 0.9.0 also can't answer the hosted origin; update from the panel's own Deploy page first |
-| Identity warning (key mismatch) | A reflash or factory reset legitimately changes the device key — Settings → **FORGET / SWITCH DEVICE…**, then reconnect and re-pair. If you didn't reflash, stop and check what's answering on that address |
+| Hosted Console can't reach the panel | (**Ahead · hosted cutover** — the hosted domain isn't live yet; chapter 4.) Same Wi-Fi? Allow the browser's local-network permission when asked (Chrome/Edge/Firefox). Safari can't do this — open the panel's own address instead |
+| Identity warning (key mismatch) | A factory reset (Console or USB settings wipe) legitimately changes the device key — an ordinary firmware update does not — Settings → **FORGET / SWITCH DEVICE…**, then reconnect and re-pair. If you didn't reflash, stop and check what's answering on that address |
 | `401 unauthorized` | Stale token — re-pair (chapter 4) or re-copy from the Dev console view |
 | Panel resets at high brightness | Under-powered supply. The 150 cap exists for this; the Dashboard's reset-reason tile confirms a brown-out |
 | Clock is wrong | Settings → timezone; the clock needs one internet moment for SNTP after boot |
-| Weather / Flights list / any fetching app shows only the clock | The app has no usable data and is telling you why: check **`GET /api/v1/apps/diag`** (or run `node examples/dmx-top.mjs`) — `too-big` means firmware older than 0.10.0 (its 4 KB fetch cap was smaller than real feeds; update from Deploy), `no-url` means set the receiver URL, `http-…`/`connect-failed` means the source is unreachable, `no-aircraft`/`bind-miss` means the feed answered but held nothing to render |
+| Weather / Flights list / any fetching app shows only the clock | The app has no usable data and is telling you why: check **`GET /api/v1/apps/diag`** (or run `node examples/dmx-top.mjs`) — `too-big` means the feed outgrew the fetch buffer (point the URL at the raw `aircraft.json`, not a dashboard page that wraps it), `no-url` means set the receiver URL, `connect-failed` means the source is unreachable, `http-…` means it answered with an error (check the path), `no-aircraft`/`bind-miss` means the feed answered but held nothing to render |
 | Apps → Flights list saves but the radar shows nothing | The host script isn't running — chapter 8; check `systemctl status dmx-flights` |
 | MQTT stays disabled | Turn on **ENABLE MQTT** and enter a host; an empty host deliberately keeps MQTT off |
 | MQTT shows error | Check the broker address, port, per-device username/password and ACL from chapter 11; pre-P2 TLS also requires a trusted network path |
@@ -644,4 +645,4 @@ Facts belong to their owner docs — this manual only walks you through
 them. If this file ever contradicts [docs/PORTAL.md](PORTAL.md),
 [docs/MODES.md](MODES.md), [docs/SECURITY.md](SECURITY.md),
 [docs/FIRMWARE.md](FIRMWARE.md), or an ADR, the owner doc wins and
-this manual gets fixed in the same change (CLAUDE.md).
+this manual gets fixed in the same change.

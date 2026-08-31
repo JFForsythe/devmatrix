@@ -16,15 +16,17 @@ export function Card({
   title,
   aside,
   className = "",
+  id,
   children,
 }: {
   title?: string;
   aside?: ComponentChildren;
   className?: string;
+  id?: string;
   children: ComponentChildren;
 }) {
   return (
-    <section class={`card ${className}`.trim()}>
+    <section id={id} class={`card ${className}`.trim()}>
       {(title || aside) && (
         <div class="card-head">
           {title && <h2>{title}</h2>}

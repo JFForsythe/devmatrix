@@ -200,7 +200,7 @@ export class ConsoleTransport {
    */
   async connectDevice(address: string, allowLegacy = false): Promise<ConnectResult> {
     const base = normalizeAddress(address);
-    if (!base) throw new Error("Enter the address shown on the panel, like dmx-4e71.local.");
+    if (!base) throw new Error("Enter the address shown on the panel, like dmx-0952.local.");
 
     const health = await fetchJson<Health>(`${base}/api/v1/health`, {}, 8000);
     let identity: DeviceIdentity | null = null;

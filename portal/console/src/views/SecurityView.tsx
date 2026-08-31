@@ -40,7 +40,7 @@ export function SecurityView({ transport }: { transport: ConsoleTransport }) {
       setIdentityStatus({
         kind: "error",
         text: text.includes("404")
-          ? "This firmware predates identity verification (v0.9.0) — update it from the Deploy page."
+          ? "This firmware predates identity verification — update it from the Deploy page."
           : text,
       });
     } finally {

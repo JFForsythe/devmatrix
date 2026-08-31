@@ -664,7 +664,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
           <div class="chead"><h2>INTEGRATIONS</h2></div>
           <div class="rows">
             <div class="row"><div class="grow"><div class="t">Home Assistant</div><div class="s">MQTT discovery · 4 entities</div></div><span class="chip ok">✓ linked</span></div>
-            <div class="row"><div class="grow"><div class="t">MQTT broker</div><div class="s">10.0.4.2:1883 · yours, not ours</div></div><span class="chip ok">✓ connected</span></div>
+            <div class="row"><div class="grow"><div class="t">MQTT broker</div><div class="s">10.0.4.2:1883 · yours, not mine</div></div><span class="chip ok">✓ connected</span></div>
             <div class="row"><div class="grow"><div class="t">Webhooks</div><div class="s">0 configured</div></div><button class="btn sm" data-goto="devconsole">ADD</button></div>
           </div>
         </div>
@@ -784,7 +784,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
           <div class="rows" id="keylist"></div>
           <div class="chead" style="margin:16px 0 6px"><h2>MQTT · YOUR BROKER</h2></div>
           <div class="keyrow mono" style="font-size:11.5px;color:var(--ink2);line-height:1.9">
-            broker&nbsp;&nbsp;10.0.4.2:1883 <span style="color:var(--ink3)">(HA Mosquitto — yours, not ours)</span><br>
+            broker&nbsp;&nbsp;10.0.4.2:1883 <span style="color:var(--ink3)">(HA Mosquitto — yours, not mine)</span><br>
             root&nbsp;&nbsp;&nbsp;&nbsp;<span id="mqtt-root">devmatrix/DMX-4E71-0952/</span><br>
             &nbsp;&nbsp;├ display/text · set<br>
             &nbsp;&nbsp;├ scene · set/state<br>
@@ -831,7 +831,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
           <button class="btn sm" style="margin-top:10px" id="btnEnroll">ENROLL ANOTHER KEY</button>
           <div class="chead" style="margin:16px 0 6px"><h2>LOCAL MODE</h2></div>
           <button class="toggle" id="tgLocal" role="switch" aria-checked="false"><span class="tk"></span><span id="local-mode-copy">LAN only — disconnect this device's cloud relay</span></button>
-          <p class="mono" style="font-size:10.5px;color:var(--ink3);margin-top:6px">Cloud features pause; the box never does. Everything keeps working with the company unreachable — check us.</p>
+          <p class="mono" style="font-size:10.5px;color:var(--ink3);margin-top:6px">Cloud features pause; the box never does. Everything keeps working with my servers unreachable — try it.</p>
         </div>
         <div class="card c6" id="snapshots-card">
           <div class="chead"><h2>SNAPSHOTS</h2><span class="sub" id="snapshot-mode-copy">local file · hosted sync is Cloud</span></div>
@@ -839,7 +839,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
             <div class="row"><div class="grow"><div class="t" id="snapshot-device-title">Study · latest</div><div class="s">3 h ago · 18 KB · config + apps + layouts</div></div>
               <button class="btn sm mockbtn">RESTORE</button><button class="btn sm ghost mockbtn">CLONE →</button></div>
           </div>
-          <p style="font-size:12px;color:var(--ink2);margin-top:8px">Encrypted with keys only you hold. We cannot read your snapshots — and if you lose your keys, neither can you. That's the deal.</p>
+          <p style="font-size:12px;color:var(--ink2);margin-top:8px">Encrypted with keys only you hold. I cannot read your snapshots — and if you lose your keys, neither can you. That's the deal.</p>
           <button class="btn sm" style="margin-top:10px" id="btnSnap">SNAPSHOT NOW</button>
           <div class="chead" style="margin:16px 0 6px"><h2>PRIVACY & DATA</h2></div>
           <button class="toggle" id="tgTel" role="switch" aria-checked="false"><span class="tk"></span>Telemetry (off by default · preview what would be sent)</button>
@@ -862,7 +862,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
         <div class="card" id="eject-card" style="border-color:var(--acc)">
           <div class="chead"><h2 style="color:var(--acc)">EJECT</h2></div>
           <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
-            <p style="font-size:12.5px;color:var(--ink2);flex:1;min-width:240px">Take everything and go: point your boxes at your own OTA manifest, export your snapshots, get the self-host guide. No retention tricks — the exit door is load-bearing, so we keep it oiled.</p>
+            <p style="font-size:12.5px;color:var(--ink2);flex:1;min-width:240px">Take everything and go: point your boxes at your own OTA manifest, export your snapshots, get the self-host guide. No retention tricks — the exit door is load-bearing, so I keep it oiled.</p>
             <button class="btn" id="btnEject" style="border-color:var(--acc);color:var(--acc)">START EJECT WIZARD</button>
           </div>
         </div>
@@ -1199,6 +1199,9 @@ function loop(t){
 }
 
 /* ---------- mock state ---------- */
+/* Retired design reference: this fleet's firmware versions predate the
+   0.12.x canon on purpose — the living demo data is portal/console
+   (src/mock.ts), which tracks docs/USER-STORY.md. */
 const state = {
   devices: [
     { id: "study", name: "Study", serial: "DMX-4E71-0952", ip: "10.0.4.22", fw: "0.8.0", chan: "stable", autoUpdate: true, lastCheck: "checked 2 min ago", online: true, onLan: true, relay: true, group: "home", mdns: "dmx-0952.local",
@@ -2316,8 +2319,8 @@ $("#btnClaim").onclick = () => {
     toast("Check the device address", "enter the .local address shown on the panel", "warn");
     $("#claimaddress").focus(); return;
   }
-  if (!/^[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(code)){
-    toast("Check the claim code", "enter the 7-character code shown on the panel", "warn");
+  if (!/^[0-9]{6}$/.test(code)){
+    toast("Check the claim code", "enter the 6-digit code shown on the panel", "warn");
     $("#claimcode").focus(); return;
   }
   if (address !== "dmx-0952.local" || code !== "482913"){

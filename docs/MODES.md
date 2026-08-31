@@ -24,7 +24,7 @@ must be fixed.
 | Install / upload apps | ✓ | ✓ remote |
 | Firmware OTA | ✓ manual upload to the inactive slot today · signed manifest + channels (stable/beta/dev) **Ahead · gates M0/M1** | ✓ plus staged multi-site rollout |
 | USB recovery flash | ✓ TinyUF2 USB today · browser WebSerial **Ahead · gate M2** | — (inherently local) |
-| Home Assistant / MQTT / SDKs | ✓ your broker, your LAN | — (unchanged; never hosted by us) |
+| Home Assistant / MQTT / SDKs | ✓ your broker, your LAN | — (unchanged; never hosted by me) |
 | Fleet view | ✓ one device per browser today · same-LAN fleet **Ahead · gate M1** | ✓ across homes/offices/sites |
 | Remote access | via your own VPN/Tailscale (documented) | ✓ built in, zero config |
 | Snapshots (E2EE) | export/restore as files **Ahead · gate M2** | ✓ hosted sync + retention |
@@ -85,7 +85,7 @@ attestation; cancelling later keeps every Local capability.
 | Situation | What still works |
 |---|---|
 | Your internet is down | Everything on the LAN (control, apps, scenes) |
-| Our cloud is down | Everything Local; Cloud features queue/pause |
+| My cloud is down | Everything Local; Cloud features queue/pause |
 | Your subscription lapses | Everything Local; Cloud features pause — never the box |
 | The company disappears | Everything Local, forever; OTA continues from any mirror of the static manifest; Eject was always available |
 

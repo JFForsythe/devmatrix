@@ -1,0 +1,188 @@
+<!doctype html>
+<!--
+  Ticket-style 4×6 welcome card — alternative to welcome-receipt.html.
+  Boarding-pass look: solid black bands with knockout type, heavy sans,
+  perforation rule with a bottom stub. Pure black/white for thermal.
+
+  Render to PDF:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless --disable-gpu --no-pdf-header-footer \
+      --print-to-pdf=hardware/insert/welcome-ticket.pdf \
+      file://$PWD/hardware/insert/welcome-ticket.html
+
+  Guide URL: canonical hosted-console address (docs/USER-STORY.md);
+  must resolve before printing — see hardware/README.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Devmatrix welcome ticket</title>
+<style>
+  @page { size: 4in 6in; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { background: #fff; }
+  body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #000;
+    display: flex; justify-content: center;
+  }
+  @media screen {
+    body { background: #6b6b6b; padding: 24px 0; }
+    .ticket { box-shadow: 0 3px 18px rgba(0,0,0,.55); }
+  }
+
+  .ticket {
+    width: 4in; height: 6in; background: #fff;
+    display: flex; flex-direction: column;
+  }
+
+  /* ---- black header band ---- */
+  .band {
+    background: #000; color: #fff;
+    padding: 0.17in 0.24in 0.15in;
+  }
+  .band .wordmark {
+    font-size: 27px; font-weight: 900; letter-spacing: .1em;
+    line-height: 1;
+  }
+  .band .sub {
+    display: flex; justify-content: space-between;
+    font-size: 7.5px; font-weight: 700; letter-spacing: .18em;
+    margin-top: 6px;
+  }
+
+  .gate {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 0.1in 0.24in;
+    border-bottom: 2px solid #000;
+  }
+  .gate .big { font-size: 12px; font-weight: 900; letter-spacing: .12em; }
+  .gate .tag { font-size: 8px; font-weight: 700; letter-spacing: .14em; }
+
+  /* ---- steps ---- */
+  .steps { flex: 1; padding: 0.12in 0.24in 0; }
+  .step {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 7px 0;
+  }
+  .step + .step { border-top: 1px solid #000; }
+  .big-n {
+    font-size: 24px; font-weight: 900; line-height: .95;
+    flex: 0 0 22px;
+  }
+  .s-head {
+    font-size: 11px; font-weight: 900; letter-spacing: .1em;
+  }
+  .s-sub { font-size: 8.6px; line-height: 1.45; margin-top: 2px; }
+  .s-sub b { font-weight: 800; }
+  .s-sub code {
+    font-family: Menlo, Consolas, monospace; font-weight: 700;
+    font-size: 8.2px; white-space: nowrap;
+  }
+
+  /* ---- perforation + stub ---- */
+  .perf {
+    border-top: 2px dashed #000;
+    margin: 0.06in 0 0;
+    position: relative;
+  }
+  .perf::before, .perf::after {
+    content: ""; position: absolute; top: -7px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #fff; border: 2px solid #000;
+  }
+  .perf::before { left: -7px; }
+  .perf::after { right: -7px; }
+
+  .stub {
+    padding: 0.1in 0.24in 0.12in;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .stub .row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 8.4px;
+  }
+  .stub .k { font-weight: 700; letter-spacing: .14em; }
+  .stub .v { font-family: Menlo, Consolas, monospace; font-weight: 700; }
+  .serialbox {
+    margin-top: 4px; border: 2px solid #000; padding: 6px 8px;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .serialbox .k { font-size: 8px; font-weight: 900; letter-spacing: .16em; }
+  .serialbox .line { flex: 1; border-bottom: 1.5px solid #000; height: 12px; }
+
+  .foot-band {
+    background: #000; color: #fff; text-align: center;
+    font-size: 8.5px; font-weight: 900; letter-spacing: .22em;
+    padding: 6px 0 7px;
+  }
+</style>
+</head>
+<body>
+<div class="ticket">
+
+  <div class="band">
+    <div class="wordmark">DEVMATRIX</div>
+    <div class="sub">
+      <span>DEV KIT BY FLIGHTTRACKERLED</span>
+      <span>64&times;32 RGB</span>
+    </div>
+  </div>
+
+  <div class="gate">
+    <span class="big">WELCOME ABOARD</span>
+    <span class="tag">NO APP &middot; NO ACCOUNT &middot; NO CLOUD</span>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="big-n">1</div>
+      <div>
+        <div class="s-head">POWER IT</div>
+        <div class="s-sub">Any 5&thinsp;V USB-C supply, <b>2&thinsp;A or more</b> —
+        a phone fast-charger works. The panel wakes up and talks you through the rest.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="big-n">2</div>
+      <div>
+        <div class="s-head">JOIN ITS HOTSPOT</div>
+        <div class="s-sub">Panel reads <code>SETUP: JOIN DEVMATRIX-XXXX</code>.
+        Join that Wi-Fi on your phone — setup opens itself
+        (fallback: <code>http://192.168.4.1</code>).</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="big-n">3</div>
+      <div>
+        <div class="s-head">GIVE IT YOUR WI-FI</div>
+        <div class="s-sub">Pick your network on the live-scan page.
+        <b>2.4&thinsp;GHz only</b> — that's the radio.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="big-n">4</div>
+      <div>
+        <div class="s-head">OPEN THE CONSOLE</div>
+        <div class="s-sub">Panel shows its address — <code>DMX-XXXX.LOCAL</code>.
+        Open it in any browser. Served by the panel itself; works with the internet down.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="perf"></div>
+
+  <div class="stub">
+    <div class="row"><span class="k">MANUAL &amp; APPS</span>
+      <span class="v">devmatrix.flighttrackerled.com/start</span></div>
+    <div class="row"><span class="k">SOURCE</span>
+      <span class="v">github.com/JFForsythe/devmatrix</span></div>
+    <div class="serialbox"><span class="k">SERIAL</span><span class="line"></span></div>
+  </div>
+
+  <div class="foot-band">OPEN FIRMWARE &middot; YOURS TO HACK</div>
+
+</div>
+</body>
+</html>

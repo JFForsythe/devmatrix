@@ -410,6 +410,83 @@ nav a[aria-current="page"] .nav-pixel { background: var(--acc); }
 .guide-list { display: grid; gap: 9px; margin: 0; padding-left: 22px; color: var(--ink2); }
 .guide-list strong { color: var(--ink); }
 
+/* Guide page: content column + an index that stays put while you scroll.
+   Wide: a right-hand rail (API-docs style). Narrow: a pill bar pinned to
+   the top. Section cards get scroll-margin so anchors land clear of the
+   sticky topbar. */
+.guide-layout { display: grid; grid-template-columns: minmax(0, 1fr) 198px; gap: 26px; align-items: start; }
+.guide-layout > .guide-content { grid-column: 1; grid-row: 1; min-width: 0; }
+.guide-layout > .guide-index { grid-column: 2; grid-row: 1; }
+.guide-view .card { scroll-margin-top: 64px; }
+.guide-index {
+  position: sticky;
+  top: 66px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  padding: 4px 0 4px 14px;
+  border-left: 1px solid var(--line);
+}
+.guide-index-title, .guide-index-sub {
+  margin: 0 0 5px;
+  color: var(--ink3);
+  font: 600 9.5px var(--mono);
+  letter-spacing: 0.14em;
+}
+.guide-index-sub { margin: 12px 0 5px; }
+.guide-index a {
+  margin-left: -15px;
+  padding: 3px 8px 3px 13px;
+  border-left: 2px solid transparent;
+  color: var(--ink2);
+  font-size: 12.5px;
+  text-decoration: none;
+}
+.guide-index a:hover { color: var(--ink); }
+.guide-index a[aria-current="location"] { border-left-color: var(--acc); color: var(--acc); font-weight: 600; }
+
+@media (max-width: 1000px) {
+  .guide-layout { display: block; }
+  .guide-index {
+    position: sticky;
+    top: 49px;
+    z-index: 6;
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin: 0 0 14px;
+    padding: 8px 2px;
+    border-left: 0;
+    border-bottom: 1px solid var(--line);
+    background: rgba(243, 241, 234, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .guide-index::-webkit-scrollbar { display: none; }
+  .guide-index-title { display: none; }
+  .guide-index-sub { margin: 0 2px; white-space: nowrap; }
+  .guide-index a {
+    margin: 0;
+    padding: 4px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    white-space: nowrap;
+    font-size: 11.5px;
+  }
+  .guide-index a[aria-current="location"] { border-color: var(--acc); }
+}
+
+@media (max-width: 760px) {
+  .guide-index { top: 0; }
+  .guide-view .card { scroll-margin-top: 48px; }
+}
+
 .led.crit-led { background: var(--crit); box-shadow: 0 0 0 3px rgba(195, 50, 50, 0.12); }
 .topbar .chip { margin-right: 4px; }
 

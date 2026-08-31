@@ -35,12 +35,35 @@ NVS_SIZE="0x5000"
 
 die() { echo "FAIL: $*" >&2; exit 1; }
 
+# Optional first argument: an explicit port node. With it, several boards
+# may stay cabled — every step targets that node and nothing globs, and
+# the MAC is re-checked after the flash so a mid-run re-enumeration can
+# never wipe the neighbouring board.
+FIXED_PORT="${1:-}"
+if [ -n "$FIXED_PORT" ]; then
+  [ -e "$FIXED_PORT" ] || die "no such port: $FIXED_PORT"
+fi
+
 [ -f "$BUILD_DIR/dk01.ino.bin" ] || die "no build in $BUILD_DIR — compile first (see header)"
 
 stable_port() {
   # Echo a port node only after it reports the same name twice, 2 s apart.
-  local tries=0 p p2
+  # Without an explicit port: exactly ONE board at a time, because the
+  # re-glob between steps can otherwise flash one board and wipe the
+  # other (near-miss on the first ship night — a done board on a second
+  # socket answered the glob).
+  local tries=0 p p2 n
+  if [ -n "$FIXED_PORT" ]; then
+    tries=0
+    while [ $tries -lt 30 ]; do
+      [ -e "$FIXED_PORT" ] && { echo "$FIXED_PORT"; return 0; }
+      sleep 1; tries=$((tries + 1))
+    done
+    return 1
+  fi
   while [ $tries -lt 30 ]; do
+    n=$(ls /dev/cu.usbmodem* 2>/dev/null | wc -l | tr -d ' ')
+    [ "$n" -gt 1 ] && die "multiple usbmodem ports — pass one explicitly: $0 /dev/cu.usbmodemXXXX"
     p=$(ls /dev/cu.usbmodem* 2>/dev/null | head -1)
     if [ -n "${p:-}" ]; then
       sleep 2
@@ -69,6 +92,35 @@ esptool_retry() {
 echo "== 1/5 waiting for a stable port =="
 PORT=$(stable_port) || die "no stable USB port (is the board plugged in?)"
 echo "   $PORT"
+MAC_BEFORE=$(esptool_retry read-mac | grep -oE '([0-9a-f]{2}:){5}[0-9a-f]{2}' | head -1)
+[ -n "$MAC_BEFORE" ] || die "could not identify the board on $PORT"
+echo "   board $MAC_BEFORE"
+
+# Foreign-device gate. A board is safe to process when its NVS region
+# is factory-blank OR carries dk01's own namespace (a dev kit boots and
+# re-populates NVS immediately, so wiped boards read as dk01-occupied).
+# NVS with data but WITHOUT the dk01 marker belongs to a DIFFERENT
+# product — on the first ship night a provisioned closed-product device
+# on a second cable was flashed and wiped by mistake; this gate is why
+# that can't recur. Deliberate override:
+#   FLASH_ANYWAY=1 hardware/procedures/flash-station.sh <port>
+NVSDUMP=$(mktemp -t nvs-sniff) || die "mktemp failed"
+sleep 2
+SNIFF=$(esptool_retry read-flash "$NVS_OFFSET" "$NVS_SIZE" "$NVSDUMP")
+if ! echo "$SNIFF" | grep -qi "read"; then
+  echo "$SNIFF" | tail -2; rm -f "$NVSDUMP"; die "could not sniff NVS before flashing"
+fi
+NVS_STATE=$(python3 -c "
+d = open('$NVSDUMP','rb').read()
+if all(b == 0xFF for b in d): print('blank')
+elif b'dk01' in d: print('dk01')
+else: print('foreign')
+")
+rm -f "$NVSDUMP"
+if [ "$NVS_STATE" = "foreign" ] && [ "${FLASH_ANYWAY:-}" != "1" ]; then
+  die "board $MAC_BEFORE has NVS data with no dk01 namespace — this is a DIFFERENT product's provisioned device, not a kit board. Unplug it, or if truly intended re-run with FLASH_ANYWAY=1"
+fi
+echo "   NVS: $NVS_STATE${FLASH_ANYWAY:+ (override active)}"
 
 echo "== 2/5 flashing $(strings "$BUILD_DIR/dk01.ino.bin" | grep -oE '^0\.[0-9]+\.[0-9]+$' | head -1 || echo '?') =="
 UP=$(arduino-cli upload --fqbn "$FQBN" -p "$PORT" --input-dir "$BUILD_DIR" "$SKETCH" 2>&1)
@@ -86,9 +138,21 @@ sleep 2
 MACOUT=$(esptool_retry read-mac)
 MAC=$(echo "$MACOUT" | grep -oE '([0-9a-f]{2}:){5}[0-9a-f]{2}' | head -1)
 [ -n "$MAC" ] || die "could not read MAC: $(echo "$MACOUT" | tail -2)"
+# Identity guard: the wipe below is destructive, so refuse to run it
+# against a different board than the one just flashed.
+[ "$MAC" = "$MAC_BEFORE" ] || die "board changed mid-run ($MAC_BEFORE → $MAC) — nothing wiped; re-run per board"
 SERIAL=$(echo "$MAC" | awk -F: '{printf "DMX-%s%s-%s%s", toupper($3), toupper($4), toupper($5), toupper($6)}')
 HOTSPOT=$(echo "$MAC" | awk -F: '{printf "DEVMATRIX-%s%s", toupper($5), toupper($6)}')
 echo "   MAC $MAC → serial $SERIAL, hotspot $HOTSPOT"
+# The MAC is eFuse-burned, so the serial catches re-runs the eye can't:
+# an already-processed board plugged back in (proven necessary on the
+# first ship night — a done board came back on a different USB port).
+if ls hardware/evidence/*.md >/dev/null 2>&1 && grep -rq "$SERIAL" hardware/evidence/; then
+  echo
+  echo "   *** ALREADY PROCESSED: $SERIAL appears in hardware/evidence/ ***"
+  echo "   *** Re-running is harmless, but check the to-box pile.       ***"
+  echo
+fi
 
 echo "== 4/5 factory wipe (NVS $NVS_OFFSET+$NVS_SIZE — the no-traces rule) =="
 sleep 2
@@ -97,12 +161,15 @@ echo "$WIPE" | grep -q "erased successfully" || die "NVS wipe failed: $(echo "$W
 echo "   wiped; board resetting factory-fresh"
 
 echo "== 5/5 verifying setup mode (30 s of stat lines) =="
-python3 - <<'PYEOF'
-import serial, time, glob, sys
+DMX_PORT="$PORT" python3 - <<'PYEOF'
+import serial, time, glob, sys, os
 deadline = time.time() + 45
 lines, ok = [], False
+fixed = os.environ.get('DMX_PORT') or None
 while time.time() < deadline:
-    ports = glob.glob('/dev/cu.usbmodem*')
+    # Honor the explicit port: globbing here would read a NEIGHBOURING
+    # board's serial and fail a board that is actually fine.
+    ports = [fixed] if fixed and os.path.exists(fixed) else glob.glob('/dev/cu.usbmodem*')
     if not ports:
         time.sleep(1); continue
     try:
@@ -129,7 +196,7 @@ PYEOF
 
 echo
 echo "BOARD READY — owner steps: look at the panel for the ALL-CAPS"
-echo "  JOIN ME → $HOTSPOT   card; if readable, box it and write the"
+echo "  SETUP: JOIN $HOTSPOT   card; if readable, box it and write the"
 echo "  serial on the card line. Ledger row for the evidence file:"
 echo
 echo "| $SERIAL | ✅ | ✅ ($VERIFIED regions) | ✅ | pending | — |"

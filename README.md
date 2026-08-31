@@ -85,7 +85,7 @@ Exact pins and flashing tips: [firmware/dk01/README.md](firmware/dk01/README.md)
 Re-flashing a used board? [docs/MANUAL.md](docs/MANUAL.md) ch. 10
 returns it to out-of-box first.
 
-**2 · First boot.** The panel announces `JOIN ME → DEVMATRIX-XXXX`.
+**2 · First boot.** The panel announces `SETUP: JOIN DEVMATRIX-XXXX`.
 Join that Wi-Fi network from your phone; a captive portal opens, scans
 your networks live, and joins the one you pick — no blind
 reboot-and-hope ([docs/MANUAL.md](docs/MANUAL.md) ch. 3).
@@ -200,8 +200,8 @@ samples inside docs carry their stated software license. Full scheme:
 
 ## Rules of this repo
 
-See [CLAUDE.md](CLAUDE.md) for product boundaries and [AGENTS.md](AGENTS.md)
-for the tool-neutral definition of done. The short version: one owner file
+See [docs/VISION.md](docs/VISION.md) for product boundaries and
+[AGENTS.md](AGENTS.md) for the working agreements and definition of done. The short version: one owner file
 per topic, every decision lands as an ADR, `make check` is the shared gate,
 the clean-room boundary is absolute, and the Console is one codebase built
 to two targets (ADR-0027) — the prototype stays a single-file design

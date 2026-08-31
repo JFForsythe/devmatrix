@@ -1,12 +1,13 @@
 # User story — the canonical example
 
 This is the journey every design decision serves. Mock data in the
-Console prototype uses these exact identifiers (see CLAUDE.md).
+Console prototype uses these exact identifiers (the repo's working
+agreements pin this rule).
 
 **Maya Chen**, 41. Sold her infrastructure company three years ago.
 Runs a homelab she's mildly embarrassed about how much she loves. Buys
-hardware the way she buys watches. Actively phished weekly; her threat
-model is real. She ordered a DK-01 after a friend's demo.
+hardware the way she buys watches. Treats her accounts and her network
+as targets, because they are. She ordered a DK-01 after a friend's demo.
 
 ## Day one
 
@@ -15,7 +16,7 @@ model is real. She ordered a DK-01 after a friend's demo.
   `DMX-4E71-0952`. No app to
   install.
 - **T+0:01 — Power.** The panel types its boot line (VISION.md owns
-  the copy), then: `JOIN ME → DEVMATRIX-0952` — the setup hotspot.
+  the copy), then: `SETUP: JOIN DEVMATRIX-0952` — the setup hotspot.
   (USB Improv works too; either way, no app.)
 - **T+0:02 — WiFi.** She picks her network in the captive portal. The
   panel now shows its address and claim code:
@@ -71,7 +72,7 @@ Local and free; docs/MODES.md is the line.)*
   and quiet hours only, expires in 90 days ☁.
 - A beta firmware misbehaves on Workshop; the device **rolls back by
   itself** within a minute. The Console shows exactly what happened and
-  when. Trust deepens rather than breaks.
+  when.
 
 ## Month three — full ownership
 
@@ -91,4 +92,4 @@ Local and free; docs/MODES.md is the line.)*
 ## What she never had to do
 
 Install an app. Create a password. Open a port. Solder anything. Trust
-us blindly. Ask permission to run her own code on her own hardware.
+me blindly. Ask permission to run her own code on her own hardware.

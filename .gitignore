@@ -7,3 +7,5 @@ dist/
 *.local
 firmware/**/build/
 firmware/**/out/
+hardware/insert/*.pdf
+hardware/insert/cards/

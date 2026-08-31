@@ -1,7 +1,7 @@
 # The Console — portal spec
 
-The Console is the product's face: one web app where an owner claims,
-controls, extends, and — if they want — leaves. Every screen answers
+The Console is one web app where an owner claims, controls, extends,
+and — if they want — leaves. Every screen answers
 three questions: *what is my box doing, can I change it, can I trust it?*
 
 ## Principles
