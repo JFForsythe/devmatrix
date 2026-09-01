@@ -39,16 +39,14 @@ What actually runs now — the complete inventory:
   dashboard setting always move in the same change — never apart, or
   every release fails closed (the atomicity rule ADR-0016 wrote and
   ADR-0034 keeps).
-- **Outstanding owner dashboard action — the domain.** ADR-0025 names
-  `devmatrix.flighttrackerled.com`; ADR-0034 attaches it to this
-  project. Two dashboard steps: add the domain under **Vercel →
-  devmatrix-console → Settings → Domains**, then create the record
-  Vercel shows as a **DNS-only CNAME** (no proxy) in the parent
-  domain's Cloudflare zone (ADR-0025). Shipped firmware ≥ 0.9.0
-  already pins this origin in its CORS allowlist, so hosted-connect
-  for the fleet lights up as soon as DNS resolves — and the in-box
-  card's printed `/start` URL starts resolving at the same moment
-  (hardware/README's print gate closes then).
+- **The domain is live.** `devmatrix.flighttrackerled.com` (ADR-0025,
+  ADR-0034) attached to the project on 2026-09-01 — Production
+  environment, verified "Valid Configuration" — via a **DNS-only
+  CNAME** (no proxy) in the parent domain's Cloudflare zone pointing
+  at the project's `vercel-dns-017.com` target. Shipped firmware
+  ≥ 0.9.0 pins this origin in its CORS allowlist, so hosted-connect
+  works for the fleet as shipped, and the in-box card's printed
+  `/start` URL resolves (hardware/README's print gate is closed).
 - **The hosting decision** is
   [ADR-0034](adr/ADR-0034-vercel-pro-hosting.md), superseding
   ADR-0016's Cloudflare migration: the Console stays on the Vercel Pro

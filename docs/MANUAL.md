@@ -103,11 +103,11 @@ mDNS spoofer squatting `dmx-xxxx.local` cannot impersonate your panel
 transport). Check or re-run the proof any time: Security → **Device
 identity** → **VERIFY NOW**.
 
-**Prefer starting from the hosted Console?** **Ahead · hosted
-cutover** ([docs/OPERATIONS.md](OPERATIONS.md) owns the recipe; the
-domain is not live yet — until then the panel's own address above *is*
-the Console, and nothing is missing from it). Once
-`devmatrix.flighttrackerled.com` is live: open it, follow the welcome
+**Prefer starting from the hosted Console?** Open
+`https://devmatrix.flighttrackerled.com` (live since the 2026-09-01
+cutover — [docs/OPERATIONS.md](OPERATIONS.md) owns the hosting state;
+the panel's own address above serves the identical Console, so nothing
+ever depends on the hosted copy), follow the welcome
 screen, and enter the panel's address — Chrome, Edge, and Firefox ask
 once for local-network permission and then talk straight to the panel
 over your LAN. Safari doesn't allow that yet; use the panel's own
@@ -126,7 +126,7 @@ needed. Today's Console has eight views, converged with
 [ADR-0027](adr/ADR-0027-one-console-codebase.md). The hosted copy adds
 a welcome screen that walks a new owner from unboxing to a connected,
 identity-verified panel (or into a clearly-labeled interactive demo) —
-**Ahead · hosted cutover**, chapter 4:
+chapter 4:
 
 - **Dashboard** — live status tiles: firmware version and slot, display
   refresh (Hz), free heap, uptime, Wi-Fi signal, IP address, current
@@ -623,7 +623,7 @@ browser MQTT workbench are in
 | Panel shows the clock but nothing answers after an outage | Power-cycle the panel once — it rejoins your Wi-Fi by itself, and if the router is still down it keeps retrying in the background until it's back |
 | My Wi-Fi isn't listed in the setup portal | The board's radio is 2.4 GHz-only, so a 5 GHz-only network can't appear. Enable a 2.4 GHz band or guest SSID on your router, then rescan |
 | The setup page closed before I finished | Rejoin the `DEVMATRIX-XXXX` hotspot and it reopens (or browse to `http://192.168.4.1`). If the hotspot is gone, the panel already joined your Wi-Fi and is showing its address — chapter 3, step 5 |
-| Hosted Console can't reach the panel | (**Ahead · hosted cutover** — the hosted domain isn't live yet; chapter 4.) Same Wi-Fi? Allow the browser's local-network permission when asked (Chrome/Edge/Firefox). Safari can't do this — open the panel's own address instead |
+| Hosted Console can't reach the panel | Same Wi-Fi? Allow the browser's local-network permission when asked (Chrome/Edge/Firefox). Safari can't do this — open the panel's own address instead |
 | Identity warning (key mismatch) | A factory reset (Console or USB settings wipe) legitimately changes the device key — an ordinary firmware update does not — Settings → **FORGET / SWITCH DEVICE…**, then reconnect and re-pair. If you didn't reflash, stop and check what's answering on that address |
 | `401 unauthorized` | Stale token — re-pair (chapter 4) or re-copy from the Dev console view |
 | Panel resets at high brightness | Under-powered supply. The 150 cap exists for this; the Dashboard's reset-reason tile confirms a brown-out |
