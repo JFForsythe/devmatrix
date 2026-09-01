@@ -2,9 +2,9 @@
 
 [![Repository checks](https://github.com/JFForsythe/devmatrix/actions/workflows/ci.yml/badge.svg)](https://github.com/JFForsythe/devmatrix/actions/workflows/ci.yml)
 
-A hackable 64×32 LED matrix appliance for people who want a beautiful
-object they fully control: open firmware, documented APIs, and a
-control portal (the **Console**) served by the device itself. No app,
+A hackable 64×32 LED matrix appliance you fully control: open
+firmware, documented APIs, and a control portal (the **Console**)
+served by the device itself. No app,
 no account, no cloud — everything works on your LAN with my servers
 unreachable, by invariant ([docs/MODES.md](docs/MODES.md)).
 
@@ -42,7 +42,7 @@ the future; bench evidence lives in [hardware/](hardware/README.md).
 - **Planes from your own antenna.** A live flights list, or an
   animated radar with altitude-colored aircraft and comet trails —
   fed only by an ADS-B receiver on your LAN, never a feed of mine.
-- **Updates you can't be afraid of.** OTA writes to the inactive app
+- **Updates that can't brick the box.** OTA writes to the inactive app
   slot while the old version stays in the other; the TinyUF2 factory
   partition survives every update for drag-and-drop USB recovery; and
   a token-free USB factory reset returns any board to out-of-box.
@@ -128,10 +128,9 @@ Every one of these is a step-by-step chapter in
 | Connect MQTT and Home Assistant, and prove it from a terminal | ch. 11 |
 | Fix something weird (plus hard-won bench tips) | ch. 10 & 13 |
 
-The never-brick ladder is real engineering, not marketing: dual OTA
-slots, a TinyUF2 factory partition that survives every update, a
-token-free USB factory reset, and a serial flasher that lives in the
-chip's ROM. Physical access is the recovery tool, by design
+The never-brick ladder is dual OTA slots, a TinyUF2 factory partition
+that survives every update, a token-free USB factory reset, and a
+serial flasher that lives in the chip's ROM. Physical access is the recovery tool, by design
 ([docs/SECURITY.md](docs/SECURITY.md)).
 
 ## Try the Console without hardware
@@ -160,12 +159,12 @@ gate) — if you catch a claim the firmware doesn't keep, that's a bug.
 Interface contracts in [contracts/](contracts/README.md) stay **DRAFT**
 until the P2 freeze.
 
-**Local Mode is the complete product, free forever — and this is your
-own device.** The harness for remote reach is included: point the box
-at any MQTT broker you can reach, or put the LAN behind your own VPN,
+**Local Mode is the complete product, free forever.** The harness for
+remote reach is included: point the box at any MQTT broker you can
+reach, or put the LAN behind your own VPN,
 and you're running your own cloud today. The support is written down
-and built in: the manual, the Console's Guide view, and diagnostics
-that explain themselves. I add real support capacity, and a paid
+and built in: the manual, the Console's Guide view, and the diag
+endpoint (`GET /api/v1/apps/diag`). I add real support capacity, and a paid
 managed Cloud Mode (remote control, fleet view, alerts), only if
 demand requires it — the box never depends on either
 ([docs/MODES.md](docs/MODES.md)).

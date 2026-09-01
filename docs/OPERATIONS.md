@@ -23,7 +23,7 @@ What actually runs now — the complete inventory:
 - **The release chain is owned by [AGENTS.md](../AGENTS.md).** Commit,
   push, deploy, and verification rules live there; this file does not
   duplicate them.
-- **Production is proven, not assumed.** `scripts/verify-live.mjs`
+- **Production is verified live.** `scripts/verify-live.mjs`
   (`make verify-live`) compares the live response byte-for-byte with the
   committed artifact production actually serves — today
   `portal/prototype/index.html` — and the CI `verify-production` job runs
@@ -41,8 +41,13 @@ What actually runs now — the complete inventory:
   repository root, and save. Do not separately redeploy the pre-switch commit.
   The switch commit and this setting are one coordinated cutover: that commit
   adds the root `vercel.json` and flips the verifier default together, and the
-  verifier fails closed if the setting still points at the prototype. Until the
-  setting changes, the prototype continues to serve at the public URL.
+  verifier fails closed if the setting still points at the prototype. That
+  `vercel.json` must also carry the in-box card's guide URL —
+  `{"redirects": [{"source": "/start", "destination": "/#/guide"}]}` — so the
+  printed `devmatrix.flighttrackerled.com/start` lands on the Console's guide
+  page (the Console renders `#/guide` with no panel connected for exactly
+  this reason). Until the Root Directory setting changes, the
+  prototype continues to serve at the public URL.
 - **The hosting decision and its trigger** are
   [ADR-0016](adr/ADR-0016-static-hosting-cloudflare.md): before the
   first sale, the public portal/docs move to static Cloudflare Pages —
@@ -77,7 +82,7 @@ What actually runs now — the complete inventory:
 
 ## Secrets and credentials
 
-The protection story, in order of proximity:
+The layers, closest to the secret first:
 
 - **Nothing secret is ever committed.** The `scripts/check-repo.mjs`
   sensitive-data gate scans every tracked file for credential

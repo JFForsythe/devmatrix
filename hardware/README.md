@@ -1,6 +1,6 @@
 # hardware/ — manufacturing files, fixtures, gate evidence
 
-Truth-map owner (CLAUDE.md) for the physical product's artifacts.
+Truth-map owner (AGENTS.md) for the physical product's artifacts.
 Three content classes live here as they come into existence:
 
 - [evidence/](evidence/) — dated, immutable records of on-hardware

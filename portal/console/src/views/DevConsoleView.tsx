@@ -207,7 +207,7 @@ export function DevConsoleView({ transport }: { transport: ConsoleTransport }) {
   return (
     <div class="view">
       <ViewHeader eyebrow="DOCUMENTED LAN API" title="Dev console">
-        Talk to the box from here — a command line that runs for real, plus ready-to-run curl for your own scripts.
+        Talk to the box from here — a command line, plus curl commands to copy into your own scripts.
       </ViewHeader>
 
       <Card title="Command line" aside={<span class={`chip ${transport.isMock ? "demo" : "ok"}`}>{transport.isMock ? "SIMULATED" : "RUNS ON THIS DEVICE"}</span>}>

@@ -86,7 +86,7 @@ export function SecurityView({ transport }: { transport: ConsoleTransport }) {
         <p class="lead">
           The panel proves it is your panel: it signs a fresh challenge with a key minted on its first
           boot, and this browser checks the signature against the key it pinned when you paired. mDNS
-          names can be squatted and plain HTTP proves nothing — this does.
+          names can be squatted, and plain HTTP proves nothing about who's answering.
         </p>
         <p>
           Pinned key fingerprint:{" "}

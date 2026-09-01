@@ -26,7 +26,7 @@ claim in this repo):
   exactly that reason, and the Dashboard warns you when a reset was a
   brown-out.
 - A phone or laptop with Wi-Fi, and a 2.4 GHz network to join.
-- No app, no account, no cloud — ever, for anything in this manual
+- No app, no account, no cloud needed for anything in this manual
   ([docs/MODES.md](MODES.md) owns that split).
 
 ## 2 · Get the firmware onto the board — Today
@@ -56,7 +56,7 @@ token and no working Console.
 2. On your phone, join that `DEVMATRIX-XXXX` Wi-Fi network. A captive
    portal opens by itself. If it doesn't, browse to `http://192.168.4.1`.
 3. The portal scans and lists your networks live. Pick yours, type the
-   password, and watch it join in real time — no blind reboot-and-hope.
+   password, and watch it join — no blind reboot-and-hope.
 4. When the join succeeds, the phone that ran setup is signed in to
    the Console automatically. (If nothing taps Finish, the device
    closes its setup hotspot by itself 90 seconds after the join and
@@ -247,8 +247,8 @@ any always-on machine with Node 18+.
 1. Console → **Apps** → **Flights list** → type your receiver's
    `aircraft.json` URL. The panel never scans your network (ADR-0032) —
    it only talks to addresses you give it. Don't know the URL?
-   **COPY FINDER PROMPT** on that card puts a step-by-step request on
-   your clipboard for Claude, ChatGPT, or any assistant: it walks
+   **COPY FINDER PROMPT** on that card puts a step-by-step request
+   on your clipboard for any AI assistant: it walks
    through your router's connected-devices list (names like `piaware`
    or `raspberrypi`) and browser checks of the standard paths
    (`http://IP:8080/data/aircraft.json`,
@@ -328,7 +328,7 @@ It then runs `systemctl daemon-reload` and
 
 </details>
 
-### A thousand community apps — the Pixlet bridge
+### The Pixlet bridge
 
 The owner-hosted Pixlet bridge runs the open-source, Tronbyt-maintained
 Pixlet engine and community catalog on **your** always-on machine, then pushes
@@ -570,7 +570,7 @@ and leaving the host empty keeps the device's MQTT client completely off.
 5. With Home Assistant's MQTT integration and discovery enabled, the device
    publishes retained light-brightness, text, and notify configs with its
    availability topic. Home Assistant can control them with **zero YAML**.
-6. **Prove it from any terminal** — optional, but satisfying. With the
+6. **Prove it from any terminal** — optional. With the
    `mosquitto-clients` tools and the broker user from step 2, watch the
    device's own topic tree; the retained availability, display, and
    health state appear immediately. The examples use the canonical
@@ -611,7 +611,7 @@ browser MQTT workbench are in
   Today's MQTT semantic commands cover text, brightness, clear, and app
   selection; raw frames never ride a broker (ADR-0029).
 - **Cloud Mode — offered only if demand requires it:** a paid relay,
-  fleet view, alerts — optional, never required, and the box never
+  fleet view, alerts — optional, and the box never
   depends on it. [docs/MODES.md](MODES.md) is the line.
 
 ## 13 · Troubleshooting — Today

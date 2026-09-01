@@ -673,7 +673,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
 
     <!-- ================= DEVICES ================= -->
     <section class="view" id="view-devices" aria-label="Devices">
-      <div class="vhead"><h1>devices</h1><p>Your same-LAN devices are free in Local Mode. Optional Cloud brings devices from other sites into this view; tenancy remains absolute.</p></div>
+      <div class="vhead"><h1>devices</h1><p>Your same-LAN devices are free in Local Mode. Optional Cloud brings devices from other sites into this view.</p></div>
       <div style="display:flex;gap:8px;margin-bottom:14px">
         <span class="chip hi" id="device-all-count">all · 3</span><span class="chip" id="device-home-count">home · 2</span><span class="chip" id="device-chalet-count">chalet · 1</span>
       </div>
@@ -758,7 +758,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
         <div class="card workbench-card" id="workbench-card">
           <div class="chead"><h2>DEVICE WORKBENCH</h2><span class="sub" id="workbench-count">4 panes · mock only</span>
             <div class="right"><button class="btn sm" id="btnAddPane">+ PANE</button></div></div>
-          <p class="workbench-intro">Four minimal CLIs for the surfaces you actually ship against. Change a pane’s profile, drag or use the arrow controls to reorder it, and remove anything you do not need.</p>
+          <p class="workbench-intro">Four CLIs: REST, MQTT, logs, and the layout inspector. Change a pane’s profile, drag or use the arrow controls to reorder it, and remove anything you do not need.</p>
           <div class="workbench" id="workbench" aria-label="Movable CLI workbench"></div>
         </div>
         <div class="card c6" id="api-playground">
@@ -806,7 +806,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
 
     <!-- ================= SECURITY ================= -->
     <section class="view" id="view-security" aria-label="Security">
-      <div class="vhead"><h1>security</h1><p>Nothing here is marketing. Keys have fingerprints, actions have logs, and every exit — Local Mode, Eject — actually works.</p></div>
+      <div class="vhead"><h1>security</h1><p>Key fingerprints, the audit log, and the exits: Local Mode and Eject.</p></div>
       <div class="grid">
         <div class="card c6" id="cloud-account-card">
           <div class="chead"><h2>PASSKEYS</h2><div class="right"><button class="btn sm" id="btnAddPk">ADD PASSKEY</button></div></div>
@@ -814,7 +814,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
             <div class="row"><div class="appicon">⌘</div><div class="grow"><div class="t">MacBook Pro · Touch ID</div><div class="s">added Aug 2 · last used just now</div></div><span class="chip">primary</span></div>
             <div class="row"><div class="appicon">🔑</div><div class="grow"><div class="t">YubiKey 5C</div><div class="s">added Aug 3 · hardware</div></div><button class="btn sm ghost mockbtn">REMOVE</button></div>
           </div>
-          <p class="mono" style="font-size:10.5px;color:var(--ink3);margin-top:8px">No passwords exist on this account. There is nothing to phish.</p>
+          <p class="mono" style="font-size:10.5px;color:var(--ink3);margin-top:8px">No passwords exist on this account.</p>
           <div class="chead" style="margin:16px 0 6px"><h2>SESSIONS</h2></div>
           <div class="rows">
             <div class="row"><div class="grow"><div class="t">This Mac · Safari</div><div class="s">10.0.4.31 · now</div></div><span class="chip hi">current</span></div>
@@ -831,7 +831,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
           <button class="btn sm" style="margin-top:10px" id="btnEnroll">ENROLL ANOTHER KEY</button>
           <div class="chead" style="margin:16px 0 6px"><h2>LOCAL MODE</h2></div>
           <button class="toggle" id="tgLocal" role="switch" aria-checked="false"><span class="tk"></span><span id="local-mode-copy">LAN only — disconnect this device's cloud relay</span></button>
-          <p class="mono" style="font-size:10.5px;color:var(--ink3);margin-top:6px">Cloud features pause; the box never does. Everything keeps working with my servers unreachable — try it.</p>
+          <p class="mono" style="font-size:10.5px;color:var(--ink3);margin-top:6px">Everything keeps working with my servers unreachable — try it.</p>
         </div>
         <div class="card c6" id="snapshots-card">
           <div class="chead"><h2>SNAPSHOTS</h2><span class="sub" id="snapshot-mode-copy">local file · hosted sync is Cloud</span></div>
@@ -839,7 +839,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
             <div class="row"><div class="grow"><div class="t" id="snapshot-device-title">Study · latest</div><div class="s">3 h ago · 18 KB · config + apps + layouts</div></div>
               <button class="btn sm mockbtn">RESTORE</button><button class="btn sm ghost mockbtn">CLONE →</button></div>
           </div>
-          <p style="font-size:12px;color:var(--ink2);margin-top:8px">Encrypted with keys only you hold. I cannot read your snapshots — and if you lose your keys, neither can you. That's the deal.</p>
+          <p style="font-size:12px;color:var(--ink2);margin-top:8px">Encrypted with keys only you hold. I cannot read your snapshots — and if you lose your keys, neither can you.</p>
           <button class="btn sm" style="margin-top:10px" id="btnSnap">SNAPSHOT NOW</button>
           <div class="chead" style="margin:16px 0 6px"><h2>PRIVACY & DATA</h2></div>
           <button class="toggle" id="tgTel" role="switch" aria-checked="false"><span class="tk"></span>Telemetry (off by default · preview what would be sent)</button>
@@ -862,7 +862,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
         <div class="card" id="eject-card" style="border-color:var(--acc)">
           <div class="chead"><h2 style="color:var(--acc)">EJECT</h2></div>
           <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
-            <p style="font-size:12.5px;color:var(--ink2);flex:1;min-width:240px">Take everything and go: point your boxes at your own OTA manifest, export your snapshots, get the self-host guide. No retention tricks — the exit door is load-bearing, so I keep it oiled.</p>
+            <p style="font-size:12.5px;color:var(--ink2);flex:1;min-width:240px">Take everything and go: point your boxes at your own OTA manifest, export your snapshots, get the self-host guide. No retention tricks.</p>
             <button class="btn" id="btnEject" style="border-color:var(--acc);color:var(--acc)">START EJECT WIZARD</button>
           </div>
         </div>
@@ -871,7 +871,7 @@ pre.resp{background:var(--well);border:1px solid #2a2f36;border-radius:6px;
 
     <!-- ================= SETTINGS ================= -->
     <section class="view" id="view-settings" aria-label="Settings">
-      <div class="vhead"><h1>settings</h1><p>Make it yours.</p></div>
+      <div class="vhead"><h1>settings</h1><p>Name, timezone, network, panel, and plan.</p></div>
       <div class="grid">
         <div class="card c6" id="device-settings-card">
           <div class="chead"><h2>DEVICE</h2></div>
@@ -2246,7 +2246,7 @@ $("#logfilter").oninput = renderDeviceLog;
 /* ---------- security ---------- */
 $("#btnAudit").onclick = () => {
   download("devmatrix-audit.json", JSON.stringify(visibleAudit(), null, 2));
-  toast("Audit log exported", "devmatrix-audit.json — it's your data", "ok");
+  toast("Audit log exported", "devmatrix-audit.json", "ok");
 };
 $("#btnAddPk").onclick = () => toast("Add a passkey", "would invoke WebAuthn — mock build");
 $("#btnEnroll").onclick = () => toast("Enrollment ceremony", state.cloudPreview

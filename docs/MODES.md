@@ -1,4 +1,4 @@
-# Local Mode & Cloud Mode — the definitive guide
+# Local Mode & Cloud Mode
 
 This file owns the mode split (ADR-0007). If any other doc, UI copy, or
 product page disagrees with this file, this file wins and the other
@@ -12,7 +12,7 @@ must be fixed.
 - **Cloud Mode** — a paid tier I would offer if demand requires it
   (ADR-0033): control from anywhere, every site in one view, hosted
   encrypted backups, alerts. It would add *reach*, never a capability
-  the box itself lacks — only distance.
+  the box itself lacks.
 
 ## Feature matrix
 
@@ -70,7 +70,7 @@ troubleshooting chapter, and diagnostics that explain themselves
 requires it. Returns and warranty stay as
 [ADR-0018](adr/ADR-0018-returns-and-warranty.md) defines them.
 
-## The claim/account split (the seam, made explicit)
+## The claim/account split
 
 Claiming is **device-local**: possession proof mints the LAN token in
 your browser — no account exists yet. Creating a **passkey account** is
@@ -80,7 +80,7 @@ separate, explicit plan and price confirmation. Local-only owners skip
 both and lose nothing local. Subscribing later re-uses the same claim
 attestation; cancelling later keeps every Local capability.
 
-## Failure & lapse behavior (the honest table)
+## Failure & lapse behavior
 
 | Situation | What still works |
 |---|---|
@@ -91,14 +91,12 @@ attestation; cancelling later keeps every Local capability.
 
 **Sunset covenant:** if I ever end Cloud Mode, subscribers get 12
 months' notice and an automatic, guided Eject. A dead cloud costs
-convenience, never function. This is a published promise, not a vibe.
+convenience, never function.
 
 ## Rollout
 
 Both modes are specced together (this file) and built against the same
 contracts. **Local readiness gates launch; Cloud ships only if demand
 requires it — when the billing + relay gates pass and subscribers fund
-it** — same day if ready, later if not, never if nobody asks, and
-Local never waits. The Console shows each selected
-device's mode at all times (`LOCAL · FREE` / `CLOUD`) so the split
-is visible product truth, not fine print.
+it**. Local never waits. The Console shows each selected
+device's mode at all times (`LOCAL · FREE` / `CLOUD`).

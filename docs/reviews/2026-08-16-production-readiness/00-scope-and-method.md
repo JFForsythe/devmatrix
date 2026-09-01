@@ -1,7 +1,7 @@
 # Production-readiness review — scope and method
 
 **Date:** 2026-08-16 · **Baseline commit:** `444691f` (main, clean tree, in sync with origin)
-**Reviewer:** Claude (Fable 5), full-depth pass requested by John.
+**Review:** full-depth pass, requested by John.
 
 ## Question under review
 

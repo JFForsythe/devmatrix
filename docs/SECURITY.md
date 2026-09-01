@@ -1,9 +1,8 @@
 # Security model
 
 Some of the people who buy hardware like this get phished and scammed
-for it, so I design as if every owner does. Nothing below
-is a claim to take on faith: each piece is something the owner can
-check in the Console — the audit log, the key fingerprints, the
+for it, so I design as if every owner does. Everything below is
+checkable in the Console — the audit log, the key fingerprints, the
 session list.
 
 ## Principles
@@ -188,7 +187,7 @@ source cannot hang the panel or reach beyond its declared hosts. The
 scripted tier's VM protections (per-tick instruction budgets, watchdog
 kill) are deferred with that tier and return only if it ships. Registry
 apps get static checks + community review; sideloaded apps are the
-owner's own risk, stated plainly.
+owner's own risk.
 
 ## Data & privacy
 

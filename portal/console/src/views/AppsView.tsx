@@ -201,7 +201,7 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
       setScene("custom");
       setStatus({
         kind: "ok",
-        text: `Live ${id} weather is on the panel and refreshes every 10 minutes from the National Weather Service — free, no key, no account.`,
+        text: `Live ${id} weather is on the panel — it refreshes every 10 minutes from the National Weather Service.`,
       });
     } catch (error) {
       setStatus({ kind: "error", text: error instanceof Error ? error.message : "Could not install the weather layout." });
@@ -250,7 +250,7 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
         "paste it into my Devmatrix panel's Flights app. Do not use or suggest any " +
         "network-scanning tools; only my router's device list and my browser.",
     );
-    setStatus({ kind: "ok", text: "Finder prompt copied — paste it into Claude, ChatGPT, or any assistant on your computer, then paste the URL it finds here." });
+    setStatus({ kind: "ok", text: "Finder prompt copied — paste it into any AI assistant on your computer, then paste the URL it finds here." });
   }
 
   async function saveCustom(): Promise<void> {
@@ -320,7 +320,7 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
       {!loaded || !messageApp || !flightsApp || !customApp ? <LoadingCard /> : (
         <>
           <Card title="Messages — your first app" aside={<><span class="chip ok">START HERE</span> <span class="chip ok">ON DEVICE · OFFLINE</span></>}>
-            <p class="lead">Type something. Press the button. Look at the panel. That's the whole product loop — everything else on this page is a variation of it.</p>
+            <p class="lead">Type something and press the button — it shows up on the panel. Everything else on this page builds on that.</p>
             <label class="field">
               <span>YOUR WORDS · {firstText.length}/64</span>
               <div class="field-action">
@@ -342,7 +342,7 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
             <hr class="card-divider" />
             <div class="app-title-row">
               <div class="app-icon" aria-hidden="true">Aa</div>
-              <div><strong>A hardware-random phrase board.</strong><p>Up to eight 64-character phrases live only in device NVS; line breaks are preserved. Fine-tune the pack and its pace:</p></div>
+              <div><strong>A hardware-random phrase board.</strong><p>Up to eight 64-character phrases live only in device NVS; line breaks are preserved. Adjust the phrases and timing:</p></div>
             </div>
             <div class="inline-fields app-controls">
               <label class="check-chip"><input type="checkbox" checked={messageApp.enabled} onChange={(event) => patchApp("messages", { enabled: event.currentTarget.checked })} /> ENABLE IN ROTATION</label>
@@ -386,7 +386,7 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
             <p class="note">
               The panel never scans your network (ADR-0032) — it only ever talks to addresses you give
               it. Don't know your receiver's URL? COPY FINDER PROMPT puts a step-by-step request on
-              your clipboard for Claude, ChatGPT, or any assistant — it finds the URL using your
+              your clipboard for any AI assistant — it finds the URL using your
               router's device list and browser, never a scanner. The URL stays in device NVS and is
               never sent to a Devmatrix service.
             </p>
@@ -462,8 +462,8 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
             </div>
           </li>
           <li>
-            <b>Open Easy Mode.</b> This starts a private page in that computer's browser — your
-            point-and-click home for everything below:
+            <b>Open Easy Mode.</b> This starts a private page in that computer's browser; each
+            step below says whether it runs there or in the terminal:
             <div class="command-block">
               <div><span>STEP 2 · SAME TERMINAL</span><button class="btn small" type="button" onClick={() => void copyText("node devmatrix/examples/pixlet-manager/manager.mjs")}>COPY</button></div>
               <pre>node devmatrix/examples/pixlet-manager/manager.mjs</pre>

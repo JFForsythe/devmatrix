@@ -1,6 +1,6 @@
 # Vision
 
-**One line:** a beautiful networked pixel display that its owner fully
+**One line:** a networked pixel display that its owner fully
 controls — open firmware, stable APIs, and a Console for shipping your
 own apps to your own hardware.
 
@@ -21,13 +21,11 @@ own apps to your own hardware.
 
 ## Audience
 
-Developers, tinkerers, and technical executives who buy hardware the way
-they buy instruments: they expect precision, no lock-in, and security
-they can inspect. I design as if every owner gets targeted — phishing,
-account takeover, resale scams — because some will be, and the rest
-lose nothing by it. Security is a feature they can check, not a
-checkbox. "Basic code/config comfort" expected; delight comes from how
-far the same box can go.
+Developers, tinkerers, and technical executives. They expect no
+lock-in, and security they can inspect. I design as if every owner gets
+targeted — phishing, account takeover, resale scams — because some
+will be, and the rest lose nothing by it. "Basic code/config comfort"
+expected.
 
 ## Promises (every claim must map to a shipped feature at launch)
 
@@ -49,7 +47,7 @@ far the same box can go.
 
 ## The four tiers of hackability
 
-Each tier is a complete, satisfying stopping point. The Console is the
+Each tier is a complete stopping point. The Console is the
 surface for all four.
 
 | Tier | Who | What they do | Console surface |
@@ -74,5 +72,5 @@ The radar view pushes raw frames, so it is frame-layer and same-LAN in
 Local Mode; Cloud Mode's paid relay (**Ahead · gate C1**) is the only
 remote path (ADR-0029).
 Local-only forever — no company aircraft feed, no third-party
-flight-data services. The closed products stay the turnkey content
+flight-data services. The closed products stay the turnkey
 appliances; Devmatrix stays the canvas.

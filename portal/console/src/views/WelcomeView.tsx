@@ -126,7 +126,7 @@ export function WelcomeView({
             </li>
             <li>
               <strong>Type the 6-digit code the panel shows.</strong> That proves you can see the panel —
-              this browser is now paired. Push text, paint pixels, run apps.
+              this browser is now paired.
             </li>
           </ol>
           <p class="note">

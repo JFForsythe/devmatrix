@@ -31,6 +31,9 @@ const SECTIONS = [
 
 type SectionId = (typeof SECTIONS)[number]["id"];
 
+// The index is styled after the in-box receipt card (dashed tear-rules,
+// mono caps) and the active entry lights a pixel — same square the rail
+// nav uses, because on this product "where you are" is a lit LED.
 function GuideIndex({ active }: { active: SectionId }) {
   let trbHeaderDone = false;
   return (
@@ -54,6 +57,7 @@ function GuideIndex({ active }: { active: SectionId }) {
                 document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
             >
+              <span class="gi-px" aria-hidden="true" />
               {section.label}
             </a>
           </>
@@ -131,7 +135,7 @@ export function GuideView({ transport }: { transport: ConsoleTransport }) {
               </li>
               <li>
                 <strong>Push something.</strong> Dashboard → quick text, or paint the 64×32 canvas and
-                push the frame. That's your first pixel — no app, no account, no cloud.
+                push the frame. That's your first pixel.
               </li>
             </ol>
           </Card>
@@ -381,7 +385,7 @@ export function GuideView({ transport }: { transport: ConsoleTransport }) {
               {" "}<a href={`${REPO}/blob/main/docs/MANUAL.md`} target="_blank" rel="noreferrer">docs/MANUAL.md</a>.
               The firmware, this Console, and the hardware files are all in the same repository
               {" "}(<a href={REPO} target="_blank" rel="noreferrer">{REPO.replace("https://", "")}</a>) —
-              fork it, build it, flash your own. That's the point of a dev kit.
+              fork it and flash your own build. That's the point of a dev kit.
             </p>
             {transport.isMock && (
               <p class="note">You're in the demo right now — connect a real panel from the welcome screen to try all of this live.</p>

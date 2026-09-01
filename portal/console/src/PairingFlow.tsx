@@ -79,8 +79,8 @@ export function PairingFlow({
         <h2 id="pair-title">Pair this browser</h2>
         <p>
           This browser is not paired with the panel yet (or its token was rotated). Ask the device to
-          show a code, then type the six digits from the panel — reading the panel is the proof that
-          you are you. The interrupted action retries automatically.
+          show a code, then type the six digits from the panel — reading the panel proves you can
+          see it. The interrupted action retries automatically.
         </p>
 
         {mismatch ? (

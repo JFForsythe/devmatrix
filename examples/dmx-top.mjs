@@ -236,7 +236,7 @@ async function run(input) {
       // No device-side scan, on purpose (ADR-0032): the box never opens a
       // connection to an address the owner didn't type.
       if (arg === "prompt") {
-        console.log(`\nPaste this into Claude, ChatGPT, or any assistant on your computer:\n
+        console.log(`\nPaste this into any AI assistant on your computer:\n
 Help me find my ADS-B receiver's data URL on my home network. I run one of:
 PiAware, dump1090-fa, readsb, tar1090, or Ultrafeeder. I need the URL of its
 aircraft.json feed. Walk me through it: (1) open my router's connected-devices

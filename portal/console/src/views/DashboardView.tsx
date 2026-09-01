@@ -208,7 +208,7 @@ export function DashboardView({ transport }: { transport: ConsoleTransport }) {
   return (
     <div class="view">
       <ViewHeader eyebrow="LOCAL CONTROL" title="Dashboard">
-        Live device health, first-pixel controls, and a full-frame canvas in one place.
+        Live stats, quick text, brightness, and the paint canvas.
       </ViewHeader>
 
       {loadError && <p class="alert error">{loadError}</p>}

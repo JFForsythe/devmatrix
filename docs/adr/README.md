@@ -44,4 +44,4 @@ not listed below is current as written.
 
 Owner documents carry the current state; this directory carries the
 reasoning. Where a document and a newer ADR disagree, the ADR wins and
-the document is fixed in the same change (CLAUDE.md).
+the document is fixed in the same change (AGENTS.md).

@@ -55,6 +55,6 @@ light/dark, nord, dracula, gruvbox — persisted per browser.
 
 Everything. No backend, no real device, no WebSerial. Buttons that
 would need hardware or cloud say so in a toast. Mock identifiers match
-docs/USER-STORY.md exactly (drift rule in CLAUDE.md). Sparkline/status
+docs/USER-STORY.md exactly (drift rule in AGENTS.md). Sparkline/status
 colors were validated with the dataviz palette checker against this
 surface (`#0e141b`).

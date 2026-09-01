@@ -20,8 +20,7 @@ three questions: *what is my box doing, can I change it, can I trust it?*
 3. **Tenancy is absolute.** An account sees exactly its own devices.
    No global views, no shared anything, no "community presence" leaks.
 4. **Every capability has an API.** Anything a button does, a documented
-   `/api/v1` call or MQTT topic does too. The Console is a client, not
-   a priesthood.
+   `/api/v1` call or MQTT topic does too.
 
 ## Information architecture
 

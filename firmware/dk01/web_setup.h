@@ -78,8 +78,8 @@ static const char SETUP_HTML[] PROGMEM = R"HTML(<!doctype html>
     </svg>
     <h1>Devmatrix <span id="dev">setup</span></h1>
   </div>
-  <p class="sub">Hi! Let's get your display on Wi-Fi. Pick your network below
-     — I'll join it and hand you the keys.</p>
+  <p class="sub">Let's get your display on Wi-Fi. Pick your network below
+     and I'll join it.</p>
 
   <div id="stepPick">
     <h2>Your networks</h2>
@@ -97,7 +97,7 @@ static const char SETUP_HTML[] PROGMEM = R"HTML(<!doctype html>
   <div id="stepJoining" class="center hide">
     <div class="spin"></div>
     <div>Joining <b id="joiningName"></b>…</div>
-    <div class="note">Watch the panel — it says hi when it's in.</div>
+    <div class="note">Watch the panel — it shows WIFI OK! when it's in.</div>
   </div>
 
   <div id="stepDone" class="hide">

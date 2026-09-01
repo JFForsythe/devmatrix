@@ -15,4 +15,4 @@ authoritative until its decisions are implemented.
 Git history was squashed to a clean public baseline on 2026-08-07
 (the ADR-0022 publication precondition); Plan v1's substance survives
 in docs/PRODUCTION-PLAN.md and the ADRs.
-This file stays a pointer — see CLAUDE.md.
+This file stays a pointer — see AGENTS.md.

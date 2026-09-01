@@ -73,7 +73,9 @@ function App() {
     return () => window.removeEventListener("hashchange", updateRoute);
   }, []);
 
-  if (transport.needsWelcome && !welcomeDismissed) {
+  // The guide renders before any panel is connected: the in-box card's
+  // GUIDE URL (/start) lands on #/guide, and the page needs no device.
+  if (transport.needsWelcome && !welcomeDismissed && activeRoute !== "guide") {
     return <WelcomeView transport={transport} onDemo={() => setWelcomeDismissed(true)} />;
   }
 
@@ -102,7 +104,16 @@ function App() {
           <ModeChip online={online} />
           <small title={transport.address}>{transport.host}</small>
           {transport.needsWelcome && (
-            <button class="text-button" type="button" onClick={() => setWelcomeDismissed(false)}>
+            <button
+              class="text-button"
+              type="button"
+              onClick={() => {
+                // From the pre-connect guide, the welcome only shows on a
+                // non-exempt route — leave the guide as well as un-dismissing.
+                setWelcomeDismissed(false);
+                window.location.hash = "#/dashboard";
+              }}
+            >
               Connect your device →
             </button>
           )}

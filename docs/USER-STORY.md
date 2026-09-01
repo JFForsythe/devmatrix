@@ -35,8 +35,8 @@ Local and free; docs/MODES.md is the line.)*
   hands her a copy-paste command with her LAN token already embedded:
   `curl -X POST http://dmx-0952.local/api/v1/display/text -H
   "Authorization: Bearer dmx_lan_…" -d '{"text":"SHIP IT"}'`
-  — and SHIP IT scrolls across the physical panel. She grins. Under
-  five minutes, as promised.
+  — and SHIP IT scrolls across the physical panel. Under five minutes,
+  as promised.
 - **After success — optional reach.** Only now does she add a passkey
   account and explicitly confirm the paid Cloud plan (Touch ID ☁),
   because she wants the chalet in one view later. No password exists to
@@ -85,9 +85,7 @@ Local and free; docs/MODES.md is the line.)*
   builds to her own boxes through the Console ☁ (on the LAN, she could
   push the same builds herself — the cloud adds the convenience).
 - Flips **Local Mode** on the chalet box. Everything still works with
-  the company unreachable. She checked, because she would.
-- She posts a photo of the Mars weather panel. Three of her group chat
-  order one that night.
+  Devmatrix's servers unreachable. She checked, because she would.
 
 ## What she never had to do
 

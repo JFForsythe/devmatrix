@@ -229,7 +229,7 @@ link here.
   (HTTPS JSON or MQTT topic, refresh interval, stale indicator), and
   per-app config in NVS. Needs no second machine and no broker. The
   device already fetches and validates external JSON today, so this
-  extends a proven path rather than opening a new one.
+  tier extends a proven path.
 - **Host apps** run on the owner's own always-on machine and push
   content in over LAN REST or MQTT. The device's job is to accept them
   on an authenticated, documented contract — nothing more. This tier
@@ -257,5 +257,5 @@ what a broker-hosted app targets (ADR-0029).
 - Support load: docs first; the simulator deflects "is it my code?".
 - Cannibalization: deliberate and bounded (ADR-0023) — a canvas
   platform with a tiny local-only flight display; the closed products
-  keep the turnkey content experience, and no closed-product code,
+  stay turnkey, and no closed-product code,
   logic, or schemas ever cross the boundary.

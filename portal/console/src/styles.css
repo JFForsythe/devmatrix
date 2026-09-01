@@ -411,10 +411,12 @@ nav a[aria-current="page"] .nav-pixel { background: var(--acc); }
 .guide-list strong { color: var(--ink); }
 
 /* Guide page: content column + an index that stays put while you scroll.
-   Wide: a right-hand rail (API-docs style). Narrow: a pill bar pinned to
-   the top. Section cards get scroll-margin so anchors land clear of the
-   sticky topbar. */
-.guide-layout { display: grid; grid-template-columns: minmax(0, 1fr) 198px; gap: 26px; align-items: start; }
+   The index is a receipt stub — dashed tear-rules and mono caps, matching
+   the in-box card — and the active entry lights a pixel, the same square
+   the rail nav uses. Wide: a right-hand stub. Narrow: a pill bar pinned
+   to the top. Section cards get scroll-margin so anchors land clear of
+   the sticky topbar. */
+.guide-layout { display: grid; grid-template-columns: minmax(0, 1fr) 196px; gap: 28px; align-items: start; }
 .guide-layout > .guide-content { grid-column: 1; grid-row: 1; min-width: 0; }
 .guide-layout > .guide-index { grid-column: 2; grid-row: 1; }
 .guide-view .card { scroll-margin-top: 64px; }
@@ -423,29 +425,57 @@ nav a[aria-current="page"] .nav-pixel { background: var(--acc); }
   top: 66px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0;
   max-height: calc(100vh - 90px);
   overflow-y: auto;
-  padding: 4px 0 4px 14px;
-  border-left: 1px solid var(--line);
+  padding: 10px 2px 12px;
+  border-top: 1px dashed var(--line2);
+  border-bottom: 1px dashed var(--line2);
 }
 .guide-index-title, .guide-index-sub {
-  margin: 0 0 5px;
+  margin: 0 0 7px;
   color: var(--ink3);
-  font: 600 9.5px var(--mono);
-  letter-spacing: 0.14em;
+  font: 700 9px var(--mono);
+  letter-spacing: 0.18em;
 }
-.guide-index-sub { margin: 12px 0 5px; }
+.guide-index-sub { margin: 13px 0 7px; padding-top: 11px; border-top: 1px dashed var(--line); }
 .guide-index a {
-  margin-left: -15px;
-  padding: 3px 8px 3px 13px;
-  border-left: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3.5px 2px;
   color: var(--ink2);
-  font-size: 12.5px;
+  font: 500 11px/1.5 var(--mono);
+  letter-spacing: 0.02em;
   text-decoration: none;
 }
+.gi-px {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  background: var(--line2);
+}
 .guide-index a:hover { color: var(--ink); }
-.guide-index a[aria-current="location"] { border-left-color: var(--acc); color: var(--acc); font-weight: 600; }
+.guide-index a:hover .gi-px { background: var(--ink3); }
+.guide-index a[aria-current="location"] { color: var(--acc); font-weight: 700; }
+.guide-index a[aria-current="location"] .gi-px {
+  background: var(--acc);
+  box-shadow: 0 0 5px 1px rgba(20, 102, 62, 0.45);
+}
+
+/* Start-here steps carry the insert card's 01–05 markers: the card in
+   the box and this page are the same numbered sequence, continued. */
+.guide-view .steps { list-style: none; counter-reset: gstep; padding-left: 30px; }
+.guide-view .steps > li { position: relative; counter-increment: gstep; }
+.guide-view .steps > li::before {
+  content: counter(gstep, decimal-leading-zero);
+  position: absolute;
+  left: -30px;
+  top: 2px;
+  color: var(--acc);
+  font: 700 10.5px/1.6 var(--mono);
+  letter-spacing: 0.06em;
+}
 
 @media (max-width: 1000px) {
   .guide-layout { display: block; }
@@ -461,8 +491,8 @@ nav a[aria-current="page"] .nav-pixel { background: var(--acc); }
     overflow-y: hidden;
     margin: 0 0 14px;
     padding: 8px 2px;
-    border-left: 0;
-    border-bottom: 1px solid var(--line);
+    border-top: 0;
+    border-bottom: 1px dashed var(--line2);
     background: rgba(243, 241, 234, 0.94);
     backdrop-filter: blur(8px);
     -webkit-overflow-scrolling: touch;
@@ -470,14 +500,14 @@ nav a[aria-current="page"] .nav-pixel { background: var(--acc); }
   }
   .guide-index::-webkit-scrollbar { display: none; }
   .guide-index-title { display: none; }
-  .guide-index-sub { margin: 0 2px; white-space: nowrap; }
+  .guide-index-sub { margin: 0 2px; padding: 0; border-top: 0; white-space: nowrap; }
   .guide-index a {
-    margin: 0;
+    gap: 6px;
     padding: 4px 10px;
     border: 1px solid var(--line);
     border-radius: 999px;
     white-space: nowrap;
-    font-size: 11.5px;
+    font-size: 10px;
   }
   .guide-index a[aria-current="location"] { border-color: var(--acc); }
 }
