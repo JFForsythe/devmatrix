@@ -11,50 +11,52 @@ this file links instead of restating.
 What actually runs now — the complete inventory:
 
 - **One static deployment.** The GitHub-connected Vercel project at
-  `devmatrix-console.vercel.app` currently has Root Directory set to
-  `portal/prototype`, so `portal/prototype/index.html` remains live. The
-  in-repository target is the committed, single-file
-  `portal/console/dist-hosted/index.html`, built deterministically and
-  verified against drift in CI. A repository-root `vercel.json` must land
-  **only** in the cutover commit: added while the Root Directory still points
-  at the prototype, it is read anyway and fails the build (observed
-  2026-08-12, deployment 5863328863). No server, database, functions, or
-  telemetry backend runs.
+  `devmatrix-console.vercel.app` (Pro plan — ADR-0034) serves the
+  committed, single-file `portal/console/dist-hosted/index.html`, built
+  deterministically and verified against drift in CI: since the
+  2026-09-01 cutover the project's Root Directory is the repository
+  root and the root `vercel.json` sets the output directory plus the
+  in-box card's `/start → /#/guide` redirect. The prototype is no
+  longer publicly served (it stays in-repo as the design reference).
+  Standing guard from the first attempt: a repository-root
+  `vercel.json` is read whenever it exists, so it must always move in
+  the same coordinated change as the Root Directory setting — adding
+  it early failed the build (observed 2026-08-12, deployment
+  5863328863). No server, database, functions, or telemetry backend
+  runs.
 - **The release chain is owned by [AGENTS.md](../AGENTS.md).** Commit,
   push, deploy, and verification rules live there; this file does not
   duplicate them.
 - **Production is verified live.** `scripts/verify-live.mjs`
   (`make verify-live`) compares the live response byte-for-byte with the
-  committed artifact production actually serves — today
-  `portal/prototype/index.html` — and the CI `verify-production` job runs
-  it on every push to `main`, additionally requiring a successful
-  provider deployment for the exact pushed commit when the artifact
-  changed since the previous commit. `DEVMATRIX_LIVE_FILE` overrides the
-  artifact path; use it to verify
-  `portal/console/dist-hosted/index.html` against a preview before the
-  cutover. The switch commit flips the default in the same change as the
-  dashboard setting — never before, or every release fails closed
-  (ADR-0016's atomicity rule).
-- **Outstanding owner dashboard action.** Immediately before releasing the
-  switch commit, open **Vercel → devmatrix-console → Settings → Build and
-  Deployment → Root Directory → Edit**, clear `portal/prototype` to select the
-  repository root, and save. Do not separately redeploy the pre-switch commit.
-  The switch commit and this setting are one coordinated cutover: that commit
-  adds the root `vercel.json` and flips the verifier default together, and the
-  verifier fails closed if the setting still points at the prototype. That
-  `vercel.json` must also carry the in-box card's guide URL —
-  `{"redirects": [{"source": "/start", "destination": "/#/guide"}]}` — so the
-  printed `devmatrix.flighttrackerled.com/start` lands on the Console's guide
-  page (the Console renders `#/guide` with no panel connected for exactly
-  this reason). Until the Root Directory setting changes, the
-  prototype continues to serve at the public URL.
-- **The hosting decision and its trigger** are
-  [ADR-0016](adr/ADR-0016-static-hosting-cloudflare.md): before the
-  first sale, the public portal/docs move to static Cloudflare Pages —
-  no Functions, no database, no accounts, no standing compute — and
-  `scripts/ship.mjs` and `scripts/verify-live.mjs` are retargeted in
-  the same change. Until that trigger, the Vercel Hobby deployment is
-  acceptable because nothing is sold.
+  committed artifact production actually serves — since the cutover,
+  `portal/console/dist-hosted/index.html` — and the CI
+  `verify-production` job runs it on every push to `main`, additionally
+  requiring a successful provider deployment for the exact pushed
+  commit when the artifact changed since the previous commit.
+  `DEVMATRIX_LIVE_FILE` overrides the artifact path for verifying any
+  other artifact against a preview. The verifier default and the
+  dashboard setting always move in the same change — never apart, or
+  every release fails closed (the atomicity rule ADR-0016 wrote and
+  ADR-0034 keeps).
+- **Outstanding owner dashboard action — the domain.** ADR-0025 names
+  `devmatrix.flighttrackerled.com`; ADR-0034 attaches it to this
+  project. Two dashboard steps: add the domain under **Vercel →
+  devmatrix-console → Settings → Domains**, then create the record
+  Vercel shows as a **DNS-only CNAME** (no proxy) in the parent
+  domain's Cloudflare zone (ADR-0025). Shipped firmware ≥ 0.9.0
+  already pins this origin in its CORS allowlist, so hosted-connect
+  for the fleet lights up as soon as DNS resolves — and the in-box
+  card's printed `/start` URL starts resolving at the same moment
+  (hardware/README's print gate closes then).
+- **The hosting decision** is
+  [ADR-0034](adr/ADR-0034-vercel-pro-hosting.md), superseding
+  ADR-0016's Cloudflare migration: the Console stays on the Vercel Pro
+  project (commercial use permitted on Pro), still static-only — no
+  Functions, no database, no accounts, no standing compute. ADR-0016's
+  atomicity rule survives: if the host ever changes again,
+  `scripts/ship.mjs` and `scripts/verify-live.mjs` retarget in the
+  same change as the deploy target.
 - **The destination is decided**:
   [ADR-0025](adr/ADR-0025-hosted-console-domain.md) names
   `devmatrix.flighttrackerled.com` as the hosted Console's domain.

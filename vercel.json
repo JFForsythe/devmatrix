@@ -1,0 +1,6 @@
+{
+  "outputDirectory": "portal/console/dist-hosted",
+  "redirects": [
+    { "source": "/start", "destination": "/#/guide", "permanent": false }
+  ]
+}

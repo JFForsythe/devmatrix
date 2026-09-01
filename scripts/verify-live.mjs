@@ -8,12 +8,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DEFAULT_URL = "https://devmatrix-console.vercel.app/";
-// Points at whatever production actually serves today. The host's Root
-// Directory still targets portal/prototype, so the prototype is the live
-// artifact; the switch commit changes this constant in the same change as
-// the dashboard setting, never before (ADR-0016's atomicity rule).
-// DEVMATRIX_LIVE_FILE overrides it for verifying the other artifact.
-const DEFAULT_FILE = "portal/prototype/index.html";
+// Points at whatever production actually serves today. Since the
+// ADR-0034 cutover the project's Root Directory is the repository root
+// and the root vercel.json serves the committed Console artifact; this
+// constant changed in the same change as the dashboard setting, never
+// before (the atomicity rule ADR-0016 wrote and ADR-0034 keeps).
+// DEVMATRIX_LIVE_FILE overrides it for verifying another artifact.
+const DEFAULT_FILE = "portal/console/dist-hosted/index.html";
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 
 function fail(message) {

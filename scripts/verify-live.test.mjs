@@ -84,7 +84,7 @@ test("release arguments use explicit values and environment defaults", () => {
     VERIFY_REQUIRE_DEPLOYMENT: "true",
   });
   assert.equal(defaults.url, "https://console.example.test/");
-  assert.equal(defaults.file, "portal/prototype/index.html");
+  assert.equal(defaults.file, "portal/console/dist-hosted/index.html");
   assert.equal(defaults.branch, "main");
   assert.equal(defaults.repository, "owner/repo");
   assert.equal(defaults.requireDeployment, true);
