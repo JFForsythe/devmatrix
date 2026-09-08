@@ -171,3 +171,7 @@ default, no company-run MQTT broker, no accounts required for LAN use.
   is served from `devmatrix.flighttrackerled.com` (ADR-0025).
 - Enclosure question (bare panel vs stand) — affects photography, not
   software.
+
+## Public owner privacy
+
+Per [ADR-0035](adr/ADR-0035-public-owner-privacy.md), public Console views use organization attribution and the brand support route for source-package access. They do not expose a personal account URL, owner name or biography. Pixlet instructions assume the source package has already been obtained. Hosted and device bundles remain generated from the same source.

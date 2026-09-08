@@ -453,12 +453,13 @@ export function AppsView({ transport }: { transport: ConsoleTransport }) {
         <ol class="steps">
           <li>
             <b>Install the toolkit — once.</b> On the computer that stays on (a Mac, Pi, or NAS on
-            this same network), paste this into a terminal. It fetches the free Pixlet renderer
+            this same network), obtain the source package through FlightTrackerLED support.
+            From the parent of the extracted devmatrix folder, run this command. It fetches the free Pixlet renderer
             (integrity-pinned), the community catalog, and a starter config, then checks it can
             reach this panel:
             <div class="command-block">
-              <div><span>STEP 1 · IN A TERMINAL ON THAT COMPUTER</span><button class="btn small" type="button" onClick={() => void copyText(`git clone https://github.com/JFForsythe/devmatrix\nnode devmatrix/examples/setup-pixlet.mjs --device http://${transport.host}`)}>COPY</button></div>
-              <pre>{`git clone https://github.com/JFForsythe/devmatrix\nnode devmatrix/examples/setup-pixlet.mjs --device http://${transport.host}`}</pre>
+              <div><span>STEP 1 · IN A TERMINAL ON THAT COMPUTER</span><button class="btn small" type="button" onClick={() => void copyText(`node devmatrix/examples/setup-pixlet.mjs --device http://${transport.host}`)}>COPY</button></div>
+              <pre>{`node devmatrix/examples/setup-pixlet.mjs --device http://${transport.host}`}</pre>
             </div>
           </li>
           <li>

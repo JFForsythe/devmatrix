@@ -8,7 +8,6 @@ import { useEffect, useState } from "preact/hooks";
 import { Card, GateChip, ViewHeader } from "../components";
 import type { ConsoleTransport } from "../transport";
 
-const REPO = "https://github.com/JFForsythe/devmatrix";
 
 // The index and the sections are one list so they can never drift apart.
 // Entries with group "trouble" render under the TROUBLESHOOTING header.
@@ -380,12 +379,10 @@ export function GuideView({ transport }: { transport: ConsoleTransport }) {
 
           <Card id="deeper" title="Go deeper">
             <p>
-              The full owner's manual — every chapter from unboxing to recovery — lives with the
-              source:
-              {" "}<a href={`${REPO}/blob/main/docs/MANUAL.md`} target="_blank" rel="noreferrer">docs/MANUAL.md</a>.
-              The firmware, this Console, and the hardware files are all in the same repository
-              {" "}(<a href={REPO} target="_blank" rel="noreferrer">{REPO.replace("https://", "")}</a>) —
-              fork it and flash your own build. That's the point of a dev kit.
+              The full owner's manual, firmware, Console, and hardware files are included in
+              the source package. Request source and documentation access through
+              {" "}<a href="mailto:hello@flighttrackerled.com" target="_blank" rel="noreferrer">FlightTrackerLED support</a>.
+              You can fork the source and flash your own build.
             </p>
             {transport.isMock && (
               <p class="note">You're in the demo right now — connect a real panel from the welcome screen to try all of this live.</p>

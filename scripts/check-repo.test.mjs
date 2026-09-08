@@ -402,3 +402,9 @@ test("--ci on a single-commit baseline degrades to whole-tree checks against HEA
   assert.equal(result.summary.comparison, "working tree vs HEAD");
   assert.equal(result.summary.markdownFiles, 1);
 });
+
+ test("privacy support exception permits only the exact role mailbox", () => {
+  const mailbox = Buffer.from(CLEAN_ROOM_ALLOWED_ENCODED[1], "base64").toString("utf8");
+  assert.deepEqual(checkCleanRoomContent([["contact.html", `mailto:${mailbox}`]]), []);
+  assert.ok(checkCleanRoomContent([["contact.html", mailbox.replace("hello@", "personal@")]]).length);
+});

@@ -22,7 +22,7 @@ not listed below is current as written.
 | [ADR-0014](ADR-0014-console-production-stack.md) — Console stack | Preact + TypeScript + Vite, no runtime fonts | Build targets and the committed device header defined by [ADR-0027](ADR-0027-one-console-codebase.md) |
 | [ADR-0016](ADR-0016-static-hosting-cloudflare.md) — Static hosting | The atomicity rule (deploy target, ship.mjs, and verify-live.mjs move together); zero standing compute; GitHub Release assets | Cloudflare Pages migration superseded by [ADR-0034](ADR-0034-vercel-pro-hosting.md) (the Pro plan removed the Hobby commercial-use bar; the Console stays on Vercel and the domain attaches there); destination hostname set by [ADR-0025](ADR-0025-hosted-console-domain.md) |
 | [ADR-0020](ADR-0020-browser-support-matrix.md) — Browser support matrix | The supported-browser baseline | Constraint 1 corrected and the transport decided by [ADR-0031](ADR-0031-browser-to-device-transport.md) |
-| [ADR-0022](ADR-0022-clean-room-enforcement.md) — Clean-room enforcement | The banned-identifier CI gate | Re-scoped by [ADR-0023](ADR-0023-clean-room-rescope.md); exactly one hostname excepted by [ADR-0025](ADR-0025-hosted-console-domain.md) |
+| [ADR-0022](ADR-0022-clean-room-enforcement.md) — Clean-room enforcement | The banned-identifier CI gate | Re-scoped by [ADR-0023](ADR-0023-clean-room-rescope.md); exactly one hostname excepted by [ADR-0025](ADR-0025-hosted-console-domain.md); the public role mailbox is excepted by [ADR-0035](ADR-0035-public-owner-privacy.md) |
 
 ## Reading order for the current design
 
@@ -45,3 +45,5 @@ not listed below is current as written.
 Owner documents carry the current state; this directory carries the
 reasoning. Where a document and a newer ADR disagree, the ADR wins and
 the document is fixed in the same change (AGENTS.md).
+
+- [ADR-0035: Public owner privacy](ADR-0035-public-owner-privacy.md) — organization attribution and private owner identity on public surfaces.

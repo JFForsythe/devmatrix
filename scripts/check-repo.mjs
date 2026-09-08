@@ -655,6 +655,8 @@ export const CLEAN_ROOM_BANNED_ENCODED = [
 // domain and every other subdomain stay banned.
 export const CLEAN_ROOM_ALLOWED_ENCODED = [
   "ZGV2bWF0cml4LmZsaWdodHRyYWNrZXJsZWQuY29t",
+  // ADR-0035: exact brand support mailbox; no product internals are excepted.
+  "aGVsbG9AZmxpZ2h0dHJhY2tlcmxlZC5jb20=",
 ];
 
 const ALLOWED_PATTERNS = CLEAN_ROOM_ALLOWED_ENCODED.map(encoded =>

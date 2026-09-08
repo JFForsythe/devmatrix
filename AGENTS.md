@@ -172,3 +172,7 @@ is genuinely unclear, ask before the external mutation.
 - GitHub Actions is the shared enforcement point; local hooks are convenience
   only and must invoke the same repository checks. Run `make install-hooks`
   once per clone to enable the tracked pre-commit gate.
+
+## Public owner privacy
+
+Never publish personal owner attribution, a biography, personal contact information or personal-profile links in the Console, generated artifacts or printed inserts. Use organization attribution and the existing support route. See ADR-0035.
