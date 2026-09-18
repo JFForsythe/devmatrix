@@ -94,12 +94,17 @@ i = args.index('--port')
 port, cmd, rest = args[i + 1], args[i + 2], args[i + 3:]
 n = count('esptool.calls')
 log('esptool ' + cmd + ' ' + ' '.join(rest))
-if '--after' not in args or args[args.index('--after') + 1] != 'watchdog-reset':
-    # The default RTS reset cannot leave a strap-latched ROM loader (first real-board run).
-    print('A fatal error occurred: station esptool calls must end with --after watchdog-reset')
+calls_so_far = open(os.path.join(S, 'calls.log')).read()
+want_after = 'watchdog-reset' if 'arduino-cli upload' in calls_so_far else 'no-reset'
+if '--after' not in args or args[args.index('--after') + 1] != want_after:
+    # Before the flash: stay in the loader, or the firmware the board arrived with takes over
+    # and may never let esptool back in (second real board). After the flash: a watchdog
+    # reset, because the default RTS reset cannot leave a strap-latched loader (first real board).
+    print('A fatal error occurred: Failed to connect to Espressif device: No serial data received. '
+          '[harness rule: this call needed --after %s]' % want_after)
     sys.exit(2)
 if str(n) in os.environ.get('FAKE_FAIL_CALLS', '').split():
-    print("A fatal error occurred: Could not open %s, the port is busy or doesn't exist." % port)
+    print(os.environ.get('FAKE_FAIL_TEXT') or "A fatal error occurred: Could not open %s, the port is busy or doesn't exist." % port)
     sys.exit(2)
 if cmd == 'read-mac':
     macs = os.environ.get('FAKE_MACS', '48:27:4e:71:09:52').split()
@@ -243,6 +248,8 @@ run_case factory-empty-ssid         0 'NVS: factory'                       1 FAK
 STALE_REFS=1 run_case stale-reflash-references 0 'BOARD READY'             1
 # Before the flash: nothing is written or erased.
 run_case esptool-fails-twice        1 'failed twice'                       0 FAKE_FAIL_CALLS='1 2'
+run_case firmware-ignores-reset     1 'Hold BOOT, tap RESET'               0 FAKE_FAIL_CALLS='1 2' \
+  FAKE_FAIL_TEXT='A fatal error occurred: Failed to connect to Espressif device: No serial data received.'
 run_case short-nvs-read             1 'expected 20480'                     0 FAKE_SHORT_READ=1
 run_case foreign-device             1 'DIFFERENT product'                  0 FAKE_NVS=foreign
 run_case saved-wifi-network         1 'saved Wi-Fi network'                0 FAKE_NVS=system-ssid

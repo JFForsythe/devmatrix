@@ -30,7 +30,13 @@
 #     loader, stays there across esptool's default RTS reset: the firmware
 #     never boots, nothing reaches serial, and NVS is never populated. A
 #     watchdog reset re-samples the boot pins, so every direct esptool
-#     call here ends with one.
+#     call AFTER the flash ends with one.
+#   * BEFORE the flash the script stays in the loader (--after no-reset).
+#     The second real board showed why: its factory firmware ignored every
+#     request to re-enter the loader, so handing control back to it after
+#     the first read locked esptool out until BOOT and RESET were pressed
+#     again. Whatever a board arrives with never runs again once the
+#     station has the loader.
 #   * The core's upload wrapper (tools/flasher.py) leaves *_flashed.bin
 #     copies in the build folder and diffs the NEXT upload against them.
 #     esptool MD5-checks the flash before trusting that diff, so it is
@@ -40,6 +46,10 @@
 #   * A fresh board can carry NVS that only ESP-IDF itself wrote (RF
 #     calibration and Wi-Fi driver defaults). That is not another
 #     product's provisioning; the gate below calls it "factory".
+#   * A board running someone else's firmware (a factory demo) can ignore
+#     both esptool's reset request and the 1200-baud touch. esptool then
+#     reports "No serial data received" twice. Hold BOOT, tap RESET,
+#     release BOOT, and re-run; the watchdog reset above gets it back out.
 #
 # Fail-closed rules (EH-01 in docs/reviews/2026-09-08-full-review/
 # examples-hardware-operations.md; exercised without hardware by
@@ -160,15 +170,22 @@ run_esptool() {
   # esptool against a freshly-globbed stable port. On a non-zero exit,
   # wait out one S3 re-enumeration and retry exactly once; a second
   # failure is fatal. Output reaches stdout only on success.
-  local port out rc
+  local port out rc hint
   port=$(stable_port) || die "no stable USB port (is the board plugged in?)"
-  out=$(python3 -m esptool --after watchdog-reset --port "$port" "$@" 2>&1); rc=$?
+  out=$(python3 -m esptool --after "$ESPTOOL_AFTER" --port "$port" "$@" 2>&1); rc=$?
   if [ $rc -ne 0 ]; then
     echo "   (esptool $1: first touch failed — retrying once)" >&2
     sleep 3
     port=$(stable_port) || die "port never came back after the esptool retry wait"
-    out=$(python3 -m esptool --after watchdog-reset --port "$port" "$@" 2>&1); rc=$?
-    [ $rc -eq 0 ] || die "esptool $1 failed twice (exit $rc): $(printf '%s\n' "$out" | tail -3 | tr '\n' ' ')"
+    out=$(python3 -m esptool --after "$ESPTOOL_AFTER" --port "$port" "$@" 2>&1); rc=$?
+    if [ $rc -ne 0 ]; then
+      hint=""
+      case "$out" in
+        *"No serial data received"*|*"Failed to connect"*)
+          hint=" — the firmware on this board is ignoring esptool's request to enter the loader (a factory demo does; this kit's firmware does not). Hold BOOT, tap RESET, release BOOT, then re-run: the station gets the board back out of the loader by itself." ;;
+      esac
+      die "esptool $1 failed twice (exit $rc): $(printf '%s\n' "$out" | tail -3 | tr '\n' ' ')$hint"
+    fi
   fi
   printf '%s\n' "$out"
 }
@@ -187,6 +204,9 @@ same_board() {  # same_board <when>
   [ "$mac" = "$MAC_BEFORE" ] || die "board changed $1 ($MAC_BEFORE → $mac) — stopping; re-run per board"
 }
 
+# Until this kit's firmware is on the board, stay in the loader between
+# esptool calls; afterwards leave it with a watchdog reset (see header).
+ESPTOOL_AFTER="no-reset"
 NVSDUMP=$(mktemp "${TMPDIR:-/tmp}/nvs-sniff.XXXXXX") || die "mktemp failed"
 PTDUMP=""
 trap 'rm -f "$NVSDUMP" "$PTDUMP"' EXIT
@@ -295,6 +315,7 @@ print(hashes)
 PYEOF
 ) || die "upload not fully verified: $VERIFIED"
 echo "   $VERIFIED regions hash-verified at $EXPECTED_ADDRS, board reset"
+ESPTOOL_AFTER="watchdog-reset"   # this kit's firmware is on the board now
 
 echo "== 3/6 identity + partition-table read-back =="
 sleep 2

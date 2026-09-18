@@ -38,11 +38,14 @@ failures without hardware on every `make check`; the
 [2026-09-18 record](evidence/2026-09-18-flash-station-fault-injection.md)
 has the method and its limits. Its
 [first real-board run](evidence/2026-09-18-flash-station-first-real-run.md)
-found three things simulation could not: a board latched in its ROM loader
+found four things simulation could not: a board latched in its ROM loader
 never boots after esptool's default reset, the arduino core diffs each upload
-against the previous board's files, and a fresh board's NVS can hold ESP-IDF
-radio data. All three are fixed and are now harness scenarios. One clean board
-is not a qualified unattended station; keep runs attended.
+against the previous board's files, a fresh board's NVS can hold ESP-IDF
+radio data, and a board's factory firmware can refuse to re-enter the loader,
+so the station must not hand control back to it before the flash. All four are
+fixed and are now harness rules. A board running firmware that is not this
+kit's needs BOOT held while RESET is tapped before the station can reach it.
+Two clean boards are not a qualified unattended station; keep runs attended.
 
 “BOARD READY” now covers one device identity for the whole run, a fully
 hash-verified write, a factory-fresh NVS, and observed setup mode. It does
@@ -79,7 +82,7 @@ rewriting the old record.
 
 | Date | Record | Observed scope |
 |---|---|---|
-| 2026-09-18 | [Flash-station first real run](evidence/2026-09-18-flash-station-first-real-run.md) | One board, v0.12.7: two stopped runs, three bench fixes, then a clean 2 min 27 s pass with five verified regions and setup mode at 200 Hz; panel legibility pending |
+| 2026-09-18 | [Flash-station first real runs](evidence/2026-09-18-flash-station-first-real-run.md) | Two boards, v0.12.7: four stopped runs with nothing erased, four bench fixes, then clean passes in 2 min 27 s and 2 min 15 s with five verified regions and setup mode at 200 Hz; panel legibility pending |
 | 2026-09-18 | [Flash-station fault injection](evidence/2026-09-18-flash-station-fault-injection.md) | v0.12.7 build identity; 22 simulated failure scenarios against the hardened script, with 8 unsafe acceptances reproduced on the previous script; no hardware touched |
 | 2026-08-26 | [First-ship bench](evidence/2026-08-26-r0-first-ship-bench.md) | v0.12.6 writes and NVS wipes; one production-path board's double-reset **mount** observed; 200 Hz idle / 199 Hz loaded; visual checks still pending in the ledger |
 | 2026-08-24 | [Production intake](evidence/2026-08-24-mp-qual-01-production-intake.md) | One accelerated pilot sample, v0.12.2 write and mapping; later addendum records owner-path OTA to v0.12.4; not whole-lot qualification |

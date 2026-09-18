@@ -95,3 +95,51 @@ fail. With the watchdog reset removed, 22 fail.
 - v0.12.7 has now booted to setup mode on one unit. Refresh with Wi-Fi
   active, OTA from v0.12.6, soak, and every open item in the 2026-08-26
   record remain unmeasured.
+
+## Addendum — second board, same session
+
+**Hardware:** a second MatrixPortal S3, serial `DMX-8FB1-D520`, same chip
+identity. It arrived running firmware that was not this kit's: it
+enumerated as `239a:8125` "MatrixPortal ESP32-S3" and printed no stat line
+in 12 s.
+
+1. **Attempt 1 stopped at the first read, nothing written.** esptool got
+   "No serial data received" twice. The firmware ignored esptool's reset
+   request, and it ignored the 1200-baud touch that arduino-cli uses. The
+   owner put the board in its ROM loader by hand: hold BOOT, tap RESET,
+   release BOOT.
+2. **Attempt 2 stopped at the second read, nothing written.** The first
+   read succeeded in the loader. It ended with the watchdog reset added for
+   the first board, which booted the board's own firmware again, and that
+   firmware locked esptool out a second time.
+3. **Fourth script change.** Before the flash the station now stays in the
+   loader between esptool calls (`--after no-reset`), so whatever a board
+   arrives with never runs again. The watchdog reset applies only once this
+   kit's firmware is on the board. When esptool gets no response twice, the
+   script now prints the BOOT and RESET instruction.
+4. **Attempt 3 passed cleanly with no override, in 2 min 15 s.** The gate
+   classified this board's NVS as `factory`: the first real board to take
+   that path inside a station run.
+
+| Step | Duration | Note |
+|---|---|---|
+| 1 · build, port, MAC, NVS sniff | 11 s | no retries: the board stayed in its loader; NVS read `factory` |
+| 2 · upload | 45 s | five regions written and hash-verified; app region 8.5 s |
+| 3 · MAC re-check, partition-table read-back | 20 s | one retry, after the first watchdog reset started the firmware |
+| 4 · NVS erase | 13 s | one retry |
+| 5 · setup-mode check | 32 s | `refresh_hz` 170, 200, 200; `rssi=0 ip=0.0.0.0`; heap 160,040 |
+| 6 · final MAC check | 14 s | one retry; same MAC |
+
+The harness has 27 scenarios. Its simulated esptool now refuses a call that
+leaves the loader before the flash or fails to leave it afterwards; with
+the watchdog reset forced everywhere in a copy of the script, 22 fail.
+
+| Serial | Flashed | Hash verified | NVS wiped | Hotspot card legible | Boxed |
+|---|---|---|---|---|---|
+| DMX-8FB1-D520 | ✅ 0.12.7 | ✅ (5 regions) | ✅ | pending | — |
+
+This closes two items from the list above: a real board has now passed the
+gate as `factory`, and a board arriving in its loader has a measured time.
+Still open: what firmware this board arrived with was not identified, only
+that it was not this kit's; detection of a saved Wi-Fi network remains
+simulated; both panels' legibility checks stay with the owner.
