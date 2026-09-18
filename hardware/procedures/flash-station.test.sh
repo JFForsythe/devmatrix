@@ -63,7 +63,7 @@ EOF
 chmod +x "$T/bin/"*
 
 cat > "$T/fake-esptool.py" <<'PYEOF'
-import os, sys
+import os, struct, sys
 S = os.environ['FAKE']
 def log(line):
     with open(os.path.join(S, 'calls.log'), 'a') as f:
@@ -73,11 +73,31 @@ def count(name):
     n = (int(open(p).read()) if os.path.exists(p) else 0) + 1
     open(p, 'w').write(str(n))
     return n
+def nvs_page(namespaces, ssid=None):
+    # One active NVS v2 page: 32 B header, 32 B entry-state bitmap, 126 x 32 B entries.
+    def entry(ns, typ, span, key, data):
+        return bytes([ns, typ, span, 0xFF]) + b'\0' * 4 + key.encode().ljust(16, b'\0') + data.ljust(8, b'\xff')
+    entries = [entry(0, 0x01, 1, name, bytes([idx])) for idx, name in enumerate(namespaces, 1)]
+    if ssid is not None:
+        wifi = namespaces.index('nvs.net80211') + 1
+        blob = struct.pack('<I', len(ssid)) + ssid.ljust(32, b'\0')      # ESP-IDF: length + 32 B SSID
+        entries.append(entry(wifi, 0x42, 3, 'sta.ssid', struct.pack('<HH', len(blob), 0xFFFF)))
+        entries += [blob[:32], blob[32:].ljust(32, b'\xff')]
+        entries.append(entry(wifi, 0x48, 1, 'sta.ssid', struct.pack('<IBB', len(blob), 1, 0)))
+    bitmap = bytearray(b'\xff' * 32)
+    for k in range(len(entries)):
+        bitmap[k // 4] &= ~(1 << (k % 4 * 2)) & 0xFF                    # 0b11 empty -> 0b10 written
+    header = struct.pack('<II', 0xFFFFFFFE, 0) + b'\xfe' + b'\xff' * 19 + b'\0' * 4
+    return header + bytes(bitmap) + b''.join(entries).ljust(126 * 32, b'\xff')
 args = sys.argv[1:]
 i = args.index('--port')
 port, cmd, rest = args[i + 1], args[i + 2], args[i + 3:]
 n = count('esptool.calls')
 log('esptool ' + cmd + ' ' + ' '.join(rest))
+if '--after' not in args or args[args.index('--after') + 1] != 'watchdog-reset':
+    # The default RTS reset cannot leave a strap-latched ROM loader (first real-board run).
+    print('A fatal error occurred: station esptool calls must end with --after watchdog-reset')
+    sys.exit(2)
 if str(n) in os.environ.get('FAKE_FAIL_CALLS', '').split():
     print("A fatal error occurred: Could not open %s, the port is busy or doesn't exist." % port)
     sys.exit(2)
@@ -93,6 +113,9 @@ if cmd == 'read-flash':
             data = b'\xff' * size
         elif kind == 'dk01':
             data = b'\xff' * 64 + b'dk01' + b'\x00' * (size - 68)
+        elif kind in ('system', 'system-empty-ssid', 'system-ssid'):
+            ssid = {'system': None, 'system-empty-ssid': b'', 'system-ssid': b'SomeoneElsesNetwork'}[kind]
+            data = nvs_page(['phy', 'nvs.net80211', 'misc'], ssid).ljust(size, b'\xff')
         else:
             data = bytes(range(256)) * (size // 256)
         if os.environ.get('FAKE_SHORT_READ') == '1':
@@ -116,7 +139,7 @@ sys.exit(2)
 PYEOF
 
 cat > "$T/fake-arduino-cli.py" <<'PYEOF'
-import os, sys
+import glob, os, sys
 S = os.environ['FAKE']
 args = sys.argv[1:]
 with open(os.path.join(S, 'calls.log'), 'a') as f:
@@ -125,18 +148,43 @@ if args[:1] != ['upload']:
     sys.exit(0)
 mode = os.environ.get('FAKE_UPLOAD', 'ok')
 port = args[args.index('-p') + 1]
+build = args[args.index('--input-dir') + 1]
 if mode == 'fail':
     print('A fatal error occurred: Failed to connect to ESP32-S3: No serial data received.')
     print('Failed uploading: uploading error: exit status 2')
     sys.exit(1)
+w = sys.stdout.write
+def full(name, addr, size, hashed=True):          # the shape of a real esptool 5.3.1 transcript
+    w("Writing '%s' at %#010x...\n" % (name, addr))
+    w('Flash will be erased from %#010x to %#010x...\n' % (addr, addr + size - 1))
+    w('Compressed %d bytes to %d...\n' % (size, size // 2))
+    w('Writing at %#010x [=========>          ]  50.0%% %d/%d bytes...\r' % (addr, size // 4, size // 2))
+    w('Wrote %d bytes (%d compressed) at %#010x in 1.2 seconds (400.0 kbit/s).\n' % (size, size // 2, addr))
+    w('Verifying written data...\n')
+    if hashed:
+        w('Hash of data verified.\n')
 addrs = [int(a, 16) for a in os.environ['FAKE_ADDRS'].split()]
-if mode == 'missingregion':
-    addrs = addrs[:-1]
-for k, a in enumerate(addrs):
-    print('Wrote %d bytes (%d compressed) at %#010x in 1.2 seconds (400.0 kbit/s).' % (1000 * (k + 1), 500 * (k + 1), a))
-    if not (mode == 'nohash' and k == len(addrs) - 1):
-        print('Hash of data verified.')
-print('Hard resetting via RTS pin...')
+names = ['bootloader.bin', 'partitions.bin', 'boot_app0.bin', 'dk01.ino.bin', 'tinyuf2.bin']
+if glob.glob(os.path.join(build, '*_flashed.bin')):
+    # The core's flasher.py found references from the PREVIOUS board and passed --diff-with:
+    # a skipped table and sector-only app writes, exactly what the first real run produced.
+    full(names[0], addrs[0], 23344)
+    w('Comparing flash contents against new data...\n')
+    w("'%s' at %#010x already in flash, skipping write.\n" % (names[1], addrs[1]))
+    full(names[2], addrs[2], 8192)
+    w('Diff data in flash matches, will reflash changed sectors only...\n')
+    for sub, size in ((0x10000, 12288), (0x13000, 4096), (0x2c000, 8192)):
+        w('Wrote %d bytes (%d compressed) at %#010x in 0.2 seconds (400.0 kbit/s).\n' % (size, size // 2, sub))
+    w('Verifying written data...\nHash of data verified.\n')
+    full(names[4], addrs[4], 206224)
+else:
+    if mode == 'missingregion':
+        addrs, names = addrs[:-1], names[:-1]
+    for k, (name, addr) in enumerate(zip(names, addrs)):
+        full(name, addr, 4096 * (k + 1), hashed=not (mode == 'nohash' and k == len(addrs) - 1))
+w('Hard resetting via RTS pin...\n')
+for ref in ('dk01.ino_flashed.bin', 'dk01.ino.partitions_flashed.bin'):   # flasher.py saves these on success
+    open(os.path.join(build, ref), 'wb').write(b'previous board')
 if os.environ.get('FAKE_DROP_PORT') == '1':
     os.remove(port)
 sys.exit(0)
@@ -167,6 +215,7 @@ run_case() {  # run_case <name> <want exit> <want message> <want erase calls> [V
   mkdir -p "$S"
   printf '%s\n' "${STAT_LINES:-$STAT_OK}" > "$S/stat.txt"
   rm -f "$T/ports"/*
+  [ "${STALE_REFS:-0}" = "1" ] && echo "previous board" > "$root/firmware/dk01/out/dk01.ino_flashed.bin"
   while [ "$n" -lt "${PORTS:-1}" ]; do n=$((n + 1)); : > "$T/ports/cu.usbmodem$n"; done
   local args=(); [ "${FIXED:-1}" = "1" ] && args=("$T/ports/cu.usbmodem1")
   out=$(cd "$root" && env -i PATH="$T/bin:$PATH" HOME="$T" TMPDIR="$T" FAKE="$S" \
@@ -189,10 +238,14 @@ run_case first-touch-retry          0 'BOARD READY'                        1 FAK
 STAT_LINES="${STAT_OK/DEVMATRIX-0952/DEVMATRIX-1108}" \
   run_case rerun-kit-board          0 'ALREADY PROCESSED'                  1 FAKE_NVS=dk01 FAKE_MACS=48:27:4e:71:11:08
 run_case foreign-with-override      0 'override active'                    1 FAKE_NVS=foreign FLASH_ANYWAY=1
+run_case factory-radio-touched      0 'NVS: factory'                       1 FAKE_NVS=system
+run_case factory-empty-ssid         0 'NVS: factory'                       1 FAKE_NVS=system-empty-ssid
+STALE_REFS=1 run_case stale-reflash-references 0 'BOARD READY'             1
 # Before the flash: nothing is written or erased.
 run_case esptool-fails-twice        1 'failed twice'                       0 FAKE_FAIL_CALLS='1 2'
 run_case short-nvs-read             1 'expected 20480'                     0 FAKE_SHORT_READ=1
 run_case foreign-device             1 'DIFFERENT product'                  0 FAKE_NVS=foreign
+run_case saved-wifi-network         1 'saved Wi-Fi network'                0 FAKE_NVS=system-ssid
 FIXED=0 PORTS=2 run_case two-ports-glob 1 'multiple usbmodem ports'        0
 ROOT="$T/root-badpt" run_case build-nvs-elsewhere 1 'refusing to erase blind' 0
 ROOT="$T/root-nobuild" run_case no-build 1 'no build in'                   0

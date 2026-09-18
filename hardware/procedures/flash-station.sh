@@ -24,6 +24,22 @@
 #     before running this.
 #   * refresh_hz reads low (~170) for the first stat line after boot,
 #     then settles at 200 idle. Judge only settled lines.
+# …and on the hardened script's first real board (2026-09-18 — see
+# hardware/evidence/2026-09-18-flash-station-first-real-run.md):
+#   * A board plugged in with BOOT held, or otherwise latched into the ROM
+#     loader, stays there across esptool's default RTS reset: the firmware
+#     never boots, nothing reaches serial, and NVS is never populated. A
+#     watchdog reset re-samples the boot pins, so every direct esptool
+#     call here ends with one.
+#   * The core's upload wrapper (tools/flasher.py) leaves *_flashed.bin
+#     copies in the build folder and diffs the NEXT upload against them.
+#     esptool MD5-checks the flash before trusting that diff, so it is
+#     safe, but the next board then gets a partial or skipped write that
+#     cannot be held to a fixed standard. The references are cleared
+#     before every upload: a station writes every board in full.
+#   * A fresh board can carry NVS that only ESP-IDF itself wrote (RF
+#     calibration and Wi-Fi driver defaults). That is not another
+#     product's provisioning; the gate below calls it "factory".
 #
 # Fail-closed rules (EH-01 in docs/reviews/2026-09-08-full-review/
 # examples-hardware-operations.md; exercised without hardware by
@@ -146,11 +162,12 @@ run_esptool() {
   # failure is fatal. Output reaches stdout only on success.
   local port out rc
   port=$(stable_port) || die "no stable USB port (is the board plugged in?)"
-  out=$(python3 -m esptool --port "$port" "$@" 2>&1); rc=$?
+  out=$(python3 -m esptool --after watchdog-reset --port "$port" "$@" 2>&1); rc=$?
   if [ $rc -ne 0 ]; then
+    echo "   (esptool $1: first touch failed — retrying once)" >&2
     sleep 3
     port=$(stable_port) || die "port never came back after the esptool retry wait"
-    out=$(python3 -m esptool --port "$port" "$@" 2>&1); rc=$?
+    out=$(python3 -m esptool --after watchdog-reset --port "$port" "$@" 2>&1); rc=$?
     [ $rc -eq 0 ] || die "esptool $1 failed twice (exit $rc): $(printf '%s\n' "$out" | tail -3 | tr '\n' ' ')"
   fi
   printf '%s\n' "$out"
@@ -182,12 +199,15 @@ MAC_BEFORE=$(read_mac) || die "could not identify the board on $PORT"
 echo "   board $MAC_BEFORE"
 
 # Foreign-device gate. A board is safe to process when its NVS region
-# is factory-blank OR carries dk01's own namespace (a dev kit boots and
-# re-populates NVS immediately, so wiped boards read as dk01-occupied).
-# NVS with data but WITHOUT the dk01 marker belongs to a DIFFERENT
-# product — on the first ship night a provisioned closed-product device
-# on a second cable was flashed and wiped by mistake; this gate is why
-# that can't recur. Deliberate override:
+# is factory-blank, carries dk01's own namespace (a dev kit boots and
+# re-populates NVS immediately, so wiped boards read as dk01-occupied),
+# or holds nothing but ESP-IDF's own namespaces with no saved Wi-Fi
+# network ("factory": a fresh board whose test firmware touched the
+# radio). Anything else — another namespace, a saved network, or data
+# that does not parse — belongs to a DIFFERENT product or setup. On the
+# first ship night a provisioned closed-product device on a second
+# cable was flashed and wiped by mistake; this gate is why that can't
+# recur. Deliberate override:
 #   FLASH_ANYWAY=1 hardware/procedures/flash-station.sh <port>
 sleep 2
 run_esptool read-flash "$NVS_OFFSET" "$NVS_SIZE" "$NVSDUMP" >/dev/null || die "could not sniff NVS before flashing"
@@ -195,24 +215,65 @@ GOT=$(wc -c < "$NVSDUMP" | tr -d ' ')
 [ "$GOT" -eq $(( NVS_SIZE )) ] || die "NVS sniff returned $GOT bytes, expected $(( NVS_SIZE )) — refusing to classify a partial read"
 NVS_STATE=$(python3 - "$NVSDUMP" <<'PYEOF'
 import sys
+SYSTEM = {'phy', 'nvs.net80211', 'misc'}   # ESP-IDF's own: RF calibration, Wi-Fi driver state, system
 d = open(sys.argv[1], 'rb').read()
-print('blank' if all(b == 0xFF for b in d) else 'dk01' if b'dk01' in d else 'foreign')
+def key(e):
+    return e[8:24].split(b'\0')[0].decode('ascii', 'replace')
+def classify(d):
+    if all(b == 0xFF for b in d):
+        return 'blank'
+    if b'dk01' in d:
+        return 'dk01'
+    items = []                                   # (entry, payload of its extra span slots)
+    for pg in range(0, len(d) - 4095, 4096):     # NVS page: 32 B header, 32 B state bitmap, 126 entries
+        page = d[pg:pg + 4096]
+        if page[:4] == b'\xff\xff\xff\xff':
+            continue
+        bitmap, i = page[32:64], 0
+        while i < 126:
+            e = page[64 + 32 * i: 96 + 32 * i]
+            if (bitmap[i // 4] >> (i % 4 * 2)) & 3 == 2:     # written
+                span = max(1, e[2])
+                items.append((e, page[96 + 32 * i: 64 + 32 * (i + span)]))
+                i += span
+            else:
+                i += 1
+    names = {e[24]: key(e) for e, _ in items if e[0] == 0 and e[1] == 0x01}
+    if not names or any(n not in SYSTEM for n in names.values()):
+        return 'foreign'
+    wifi = [i for i, n in names.items() if n == 'nvs.net80211']
+    for e, payload in items:                     # a saved station SSID means it was set up as something
+        if e[0] in wifi and key(e) == 'sta.ssid' and e[1] != 0x48:
+            if any(b not in (0x00, 0xFF) for b in payload[4:36]):
+                return 'foreign-wifi'
+    return 'factory'
+print(classify(d))
 PYEOF
 ) || die "could not classify the NVS dump"
-if [ "$NVS_STATE" = "foreign" ] && [ "${FLASH_ANYWAY:-}" != "1" ]; then
-  die "board $MAC_BEFORE has NVS data with no dk01 namespace — this is a DIFFERENT product's provisioned device, not a kit board. Unplug it, or if truly intended re-run with FLASH_ANYWAY=1"
-fi
+case "$NVS_STATE" in
+  blank|dk01|factory) ;;
+  foreign-wifi)
+    [ "${FLASH_ANYWAY:-}" = "1" ] || die "board $MAC_BEFORE has a saved Wi-Fi network and no dk01 namespace — it has been set up as something else, not a fresh kit board. Unplug it, or if truly intended re-run with FLASH_ANYWAY=1" ;;
+  foreign)
+    [ "${FLASH_ANYWAY:-}" = "1" ] || die "board $MAC_BEFORE has NVS data with no dk01 namespace — this is a DIFFERENT product's provisioned device, not a kit board. Unplug it, or if truly intended re-run with FLASH_ANYWAY=1" ;;
+  *) die "unexpected NVS classification: $NVS_STATE" ;;
+esac
 echo "   NVS: $NVS_STATE${FLASH_ANYWAY:+ (override active)}"
 
 echo "== 2/6 flashing $BUILD_VERSION =="
-upload_once() { arduino-cli upload --fqbn "$FQBN" -p "$1" --input-dir "$BUILD_DIR" "$SKETCH" 2>&1; }
+upload_once() {
+  rm -f "$BUILD_DIR"/*_flashed.bin   # no diffing against the previous board (see header)
+  arduino-cli upload --fqbn "$FQBN" -p "$1" --input-dir "$BUILD_DIR" "$SKETCH" 2>&1
+}
 UP=$(upload_once "$PORT"); UP_RC=$?
 if [ $UP_RC -ne 0 ] || ! printf '%s\n' "$UP" | grep -q "Hard resetting"; then
+  echo "   (upload: first attempt failed — retrying once)" >&2
   sleep 3
   PORT=$(stable_port) || die "port lost after a failed upload"
   UP=$(upload_once "$PORT"); UP_RC=$?
   [ $UP_RC -eq 0 ] || die "upload failed twice (exit $UP_RC): $(printf '%s\n' "$UP" | tail -3 | tr '\n' ' ')"
 fi
+printf '%s\n' "$UP" > "$BUILD_DIR/last-upload.log"   # raw transcript, for the bench record
 # Every expected region must have been written at its expected address
 # and hash-verified by esptool; "Hard resetting" alone proves nothing.
 VERIFIED=$(UPLOAD_OUT="$UP" EXPECTED_ADDRS="$EXPECTED_ADDRS" python3 - <<'PYEOF'
