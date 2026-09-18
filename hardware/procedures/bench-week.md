@@ -6,7 +6,7 @@ authorize flashing, erasing a device, interrupting power, or burning eFuses.
 The [production plan](../../docs/PRODUCTION-PLAN.md) owns gate criteria;
 the [roadmap](../../ROADMAP.md) owns milestone status.
 
-The evidence now includes v0.12.6 on production-path boards. The earlier
+The evidence now includes v0.12.6 on production-path boards; v0.12.7 is built but not yet bench-recorded. The earlier
 v0.4.0-only baseline is obsolete. Read the [evidence index](../README.md#evidence-index)
 before choosing a run so an old “not tested” statement is not mistaken for
 current status.
@@ -129,7 +129,10 @@ IDs and a successful flash do not prove a board is genuine or qualify its lot.
 Remaining mechanical and manufacturing deliverables include the BOM,
 enclosure, fused harness, certified supply, fixtures, per-unit results, and
 cost/yield record. The [flash-station review](../../docs/reviews/2026-09-08-full-review/examples-hardware-operations.md)
-must be resolved before treating the existing script as an unattended station.
+findings are fixed in the script and covered by
+[fault injection](../evidence/2026-09-18-flash-station-fault-injection.md).
+An attended first run on real boards, with its own evidence record, is still
+required before treating the script as an unattended station.
 
 ## Separate acceptance work
 

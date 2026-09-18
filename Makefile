@@ -3,12 +3,12 @@ NODE ?= node
 CHECK_ARGS ?=
 VERIFY_ARGS ?=
 
-.PHONY: help check test-checker ship verify-live install-hooks portal
+.PHONY: help check test-checker test-flash-station ship verify-live install-hooks portal
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
-check: test-checker ## Run the complete local/CI validation gate
+check: test-checker test-flash-station ## Run the complete local/CI validation gate
 	@$(NODE) scripts/check-repo.mjs $(CHECK_ARGS)
 
 console-verify: ## Rebuild the Console and fail on committed-artifact drift (CI parity)
@@ -18,6 +18,9 @@ console-verify: ## Rebuild the Console and fail on committed-artifact drift (CI 
 
 test-checker: ## Run the repository tooling self-tests
 	@$(NODE) --test scripts/*.test.mjs
+
+test-flash-station: ## Fault-inject the flash-station script (no hardware touched)
+	@bash hardware/procedures/flash-station.test.sh
 
 ship: ## Check, commit, push, deploy, and verify exact files from SHIP_* env
 	@$(NODE) scripts/ship.mjs

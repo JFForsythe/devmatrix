@@ -4,7 +4,7 @@ Build and extend the firmware for the DK-01 64×32 display. It serves the
 Local Console, runs the bundled declarative apps, and accepts content from
 your own scripts over LAN REST or MQTT.
 
-**Current source: v0.12.6, before the P2 contract freeze.** The features
+**Current source: v0.12.7, before the P2 contract freeze.** The features
 below exist in source; signed updates, recovery acceptance, and other
 release gates remain tracked in [ROADMAP.md](../../ROADMAP.md). A successful
 compile does not establish that a board is ready to sell.

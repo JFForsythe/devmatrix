@@ -26,15 +26,24 @@ are still owed. See the bench run list for the next measurements.
 operator tool, not an owner setup command. Keep exactly one identified,
 authorized DK-01 attached; an explicit port argument does not replace that
 physical isolation. Build using the pinned recipe in the
-[firmware README](../firmware/dk01/README.md), record the commit and binary
-hash, and verify the board's actual partition table before any erase.
+[firmware README](../firmware/dk01/README.md) and record the commit and binary
+hash. The script refuses to erase unless the partition table it reads back
+from the board equals the build's.
 
 The [September full review](../docs/reviews/2026-09-08-full-review/examples-hardware-operations.md)
-records unresolved failure-handling and port-selection defects in the
-script (**EH-01**). Do not treat its “BOARD READY” output alone as shipment
-acceptance. Before boxing, independently confirm device identity, verified
-write, factory-fresh setup, visible panel text, and the unit's ledger row.
-A visual pass on one panel cannot establish another unit's assembly quality.
+recorded failure-handling and port-selection defects in the script
+(**EH-01**). The script now fails closed on each of them, and
+[flash-station.test.sh](procedures/flash-station.test.sh) injects those
+failures without hardware on every `make check`; the
+[2026-09-18 record](evidence/2026-09-18-flash-station-fault-injection.md)
+has the method and its limits. Simulated tools are not a bench run: the
+hardened script's first pass on real boards still needs its own dated record.
+
+“BOARD READY” now covers one device identity for the whole run, a fully
+hash-verified write, a factory-fresh NVS, and observed setup mode. It does
+not cover visible panel text or assembly quality. Confirm those per unit
+before boxing, with the unit's ledger row. A visual pass on one panel cannot
+establish another unit's assembly quality.
 
 ## Print pieces
 
@@ -65,6 +74,7 @@ rewriting the old record.
 
 | Date | Record | Observed scope |
 |---|---|---|
+| 2026-09-18 | [Flash-station fault injection](evidence/2026-09-18-flash-station-fault-injection.md) | v0.12.7 build identity; 22 simulated failure scenarios against the hardened script, with 8 unsafe acceptances reproduced on the previous script; no hardware touched |
 | 2026-08-26 | [First-ship bench](evidence/2026-08-26-r0-first-ship-bench.md) | v0.12.6 writes and NVS wipes; one production-path board's double-reset **mount** observed; 200 Hz idle / 199 Hz loaded; visual checks still pending in the ledger |
 | 2026-08-24 | [Production intake](evidence/2026-08-24-mp-qual-01-production-intake.md) | One accelerated pilot sample, v0.12.2 write and mapping; later addendum records owner-path OTA to v0.12.4; not whole-lot qualification |
 | 2026-08-17 | [Pixlet live proof](evidence/2026-08-17-pixlet-bridge-live-proof.md) | One Intel Mac, one app, 150 frames, authenticated panel push; no unattended service or catalog-wide acceptance |

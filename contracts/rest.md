@@ -81,13 +81,13 @@ declarative apps — docs/GLOSSARY.md).
 
 ### `GET /api/v1/health` — open
 
-`{"ok":true,"device":"DMX-4E71-0952","fw":"0.12.6","mode":"run"}` —
+`{"ok":true,"device":"DMX-4E71-0952","fw":"0.12.7","mode":"run"}` —
 `mode` is `run` or `setup`. Safe for monitoring; carries no secrets.
 
 ### `GET /api/v1/info`
 
 ```json
-{"device":"DMX-4E71-0952","serial":"DMX-4E71-0952","fw":"0.12.6",
+{"device":"DMX-4E71-0952","serial":"DMX-4E71-0952","fw":"0.12.7",
  "uptime_s":86432,"heap_free":118432,"rssi_dbm":-52,"ip":"10.0.4.22",
  "mdns":"dmx-0952.local","brightness":120,"refresh_hz":220,
  "slot":"ota_0","scene":"clock","reset_reason":"power-on"}

@@ -7,7 +7,7 @@ owns exact endpoint authentication; [ROADMAP.md](../ROADMAP.md) owns acceptance.
 
 ## What exists today
 
-| Area | Firmware v0.12.6 reality | Remaining work |
+| Area | Firmware v0.12.7 reality | Remaining work |
 |---|---|---|
 | LAN authority | One full-control bearer token per device, minted on first boot, stored in NVS and rotatable | Scoped tokens, revocable individual browser sessions, physical confirmation of sensitive actions |
 | Browser pairing | Six panel digits, five-minute code lifetime, five misses per code | Global throttling and session-bound physical confirmation; a fresh code can currently be requested immediately |
