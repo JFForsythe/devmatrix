@@ -143,3 +143,17 @@ gate as `factory`, and a board arriving in its loader has a measured time.
 Still open: what firmware this board arrived with was not identified, only
 that it was not this kit's; detection of a saved Wi-Fi network remains
 simulated; both panels' legibility checks stay with the owner.
+
+## Session ledger
+
+Every board processed in this bench session, in order. Later rows ran on the
+committed script with no further changes. Times are wall-clock for the
+passing run; "loader by hand" means BOOT was held while RESET was tapped
+before the run.
+
+| Serial | Arrived | Passing run | Flashed | Hash verified | NVS wiped | Setup mode seen | Hotspot card legible | Boxed |
+|---|---|---|---|---|---|---|---|---|
+| DMX-8FB1-AD98 | latched in its loader, carrying the 2026-08-26 v0.12.6 build | 2 min 27 s | ✅ 0.12.7 | ✅ (5 regions) | ✅ | ✅ 200 Hz | pending | — |
+| DMX-8FB1-D520 | other firmware, loader by hand, NVS `factory` | 2 min 15 s | ✅ 0.12.7 | ✅ (5 regions) | ✅ | ✅ 200 Hz | pending | — |
+| DMX-8FB2-02E0 | loader by hand, NVS `factory` | 2 min 16 s, first attempt | ✅ 0.12.7 | ✅ (5 regions) | ✅ | ✅ 200 Hz | pending | — |
+| DMX-8F98-7C94 | loader by hand, NVS `factory` | 2 min 12 s, first attempt | ✅ 0.12.7 | ✅ (5 regions) | ✅ | ✅ 200 Hz | pending | — |
