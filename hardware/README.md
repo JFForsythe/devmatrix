@@ -1,39 +1,77 @@
-# hardware/ — manufacturing files, fixtures, gate evidence
+# Hardware, manufacturing, and evidence
 
-Truth-map owner (AGENTS.md) for the physical product's artifacts.
-Three content classes live here as they come into existence:
+This directory owns the physical product's artifacts. It is for maintainers
+and bench operators; owners should start with the
+[manual](../docs/MANUAL.md). Product qualification and milestone status are
+owned by the [production plan](../docs/PRODUCTION-PLAN.md) and
+[roadmap](../ROADMAP.md).
 
-- [evidence/](evidence/) — dated, immutable records of on-hardware
-  verification runs. Each states exact hardware, firmware
-  commit/version, method, observed results, and what it does **not**
-  prove. This is the only class with content today.
-- [procedures/](procedures/) — run lists and test procedures that
-  produce evidence. Currently: [bench-week.md](procedures/bench-week.md),
-  the queued P1/M0 hardware-evidence runs, and
-  [flash-station.sh](procedures/flash-station.sh) — the per-unit
-  ship flow (flash, serial derivation, factory wipe, setup-mode
-  verification) with the S3 port-re-enumeration gotchas baked in.
-- Manufacturing files — BOM, panel profiles, enclosure, harness,
-  fixtures, per-unit provisioning records. The first exists:
-  [insert/](insert/) holds the in-box print pieces: the quick-start
-  card and the per-unit card generator (`make-card.sh`).
-  Its guide URL is the canonical hosted-console address, live (with
-  its `/start` redirect) since the 2026-09-01 cutover
-  (docs/OPERATIONS.md) — the print gate is closed. The rest arrive
-  with the M0/L0/R0
-  gates (docs/PRODUCTION-PLAN.md §3).
+## What is here
 
-Evidence index (newest first):
+| Directory | Purpose |
+|---|---|
+| [evidence/](evidence/) | Dated records of a specific device, build, method, result, and limitation |
+| [procedures/](procedures/) | The [bench run list](procedures/bench-week.md) and [flash-station script](procedures/flash-station.sh) |
+| [insert/](insert/) | Printable card variants, a per-unit template, and its PDF generator |
 
-| Date | File | What it proves |
+A successful flash or a boxed pilot unit does not close a production gate.
+The latest production-path record reports **199 Hz with Wi-Fi active**
+against the production plan's **200 Hz minimum**. Instrumented power,
+extended soak, destructive recovery, and remaining qualification evidence
+are still owed. See the bench run list for the next measurements.
+
+## Before using the flash station
+
+`flash-station.sh` flashes firmware and erases NVS. It is a destructive
+operator tool, not an owner setup command. Keep exactly one identified,
+authorized DK-01 attached; an explicit port argument does not replace that
+physical isolation. Build using the pinned recipe in the
+[firmware README](../firmware/dk01/README.md), record the commit and binary
+hash, and verify the board's actual partition table before any erase.
+
+The [September full review](../docs/reviews/2026-09-08-full-review/examples-hardware-operations.md)
+records unresolved failure-handling and port-selection defects in the
+script (**EH-01**). Do not treat its “BOARD READY” output alone as shipment
+acceptance. Before boxing, independently confirm device identity, verified
+write, factory-fresh setup, visible panel text, and the unit's ledger row.
+A visual pass on one panel cannot establish another unit's assembly quality.
+
+## Print pieces
+
+Use [card-template.html](insert/card-template.html) with
+[make-card.sh](insert/make-card.sh) for a unit-specific 4×6 card.
+[quick-start-card.html](insert/quick-start-card.html),
+[welcome-receipt.html](insert/welcome-receipt.html), and
+[welcome-ticket.html](insert/welcome-ticket.html) are alternate static layouts.
+The generator needs macOS Google Chrome, Python 3, and the `qrcode` package;
+`--print` is tied to the bench's named printer. Generate and inspect the PDF
+before printing, with the serial validated against [GLOSSARY.md](../docs/GLOSSARY.md).
+
+The generated QR opens that unit's HTTP `.local` Console after setup.
+The phone must be on the same LAN and able to resolve mDNS. It is an address
+shortcut, not a pairing secret or proof of device identity.
+
+The guide URL and hosted-domain operations are owned by
+[OPERATIONS.md](../docs/OPERATIONS.md). Confirm the printed `/start` route and
+public source/help links before a new print batch. The current cards' broad
+power-supply wording still needs the instrumented supply qualification in the
+bench procedure; a working guide URL alone does not qualify all printed claims.
+
+## Evidence index
+
+Read each record's scope and limitations. Earlier “still open” lists are
+historical snapshots; later evidence can close a specific item without
+rewriting the old record.
+
+| Date | Record | Observed scope |
 |---|---|---|
-| 2026-08-26 | [r0-first-ship-bench](evidence/2026-08-26-r0-first-ship-bench.md) | First-ship night: v0.12.6 flashed + hash-verified on production boards; **TinyUF2 double-reset USB recovery PASSED** (first time, closes MP-QUAL-01's open flag); per-unit factory wipe verified (no-traces); 200 Hz idle / 199 Hz Wi-Fi-loaded refresh; per-unit ship ledger |
-| 2026-08-24 | [mp-qual-01-production-intake](evidence/2026-08-24-mp-qual-01-production-intake.md) | MatrixPortal S3 intake sample: full supplier-image backup, v0.12.2 verified write, 64×32 panel mapping, Wi-Fi/API smoke; addenda: factory-fresh wipe verified, then owner-path OTA v0.12.2→v0.12.4 — the first on-MatrixPortal OTA proof — and the unit **ships at v0.12.4** (v0.12.2 in the fallback slot); **199 Hz loaded refresh and USB recovery remain open** |
-| 2026-08-17 | [pixlet-bridge-live-proof](evidence/2026-08-17-pixlet-bridge-live-proof.md) | ADR-0030 end-to-end on hardware: Tronbyt Pixlet v0.53.1 → 150 coalesced frames → authenticated frame API → panel; catalog measured at 1,045 apps |
-| 2026-08-16 | [v0120-ota-and-hardening-verification](evidence/2026-08-16-v0120-ota-and-hardening-verification.md) | On-hardware OTA v0.11.0→v0.12.0 (slot swap, config survival); all v0.12.0 hardening behaviors live; Ed25519 firmware↔noble interop closed; token-format rotation; **199 Hz refresh flag opened** |
-| 2026-08-13 | [hosted-connect-verification](evidence/2026-08-13-hosted-connect-verification.md) | Hosted welcome/connect + Ed25519 identity flow vs a protocol-exact mock (16 checks); hardware acceptance open |
-| 2026-08-12 | [console-parity-verification](evidence/2026-08-12-console-parity-verification.md) | One-codebase Console: deterministic build, self-contained device bundle, all views render |
-| 2026-08-12 | [browser-transport-spike](evidence/2026-08-12-browser-transport-spike.md) | Desk research behind ADR-0031's plain-HTTP decision; four experiments left open |
-| 2026-08-07 | [integrated-firmware-ota](evidence/2026-08-07-integrated-firmware-ota.md) | v0.2.0→v0.4.0 on hardware: dual-slot OTA swaps, brightness clamp, reset-reason |
-| 2026-08-07 | [panel-and-local-firmware](evidence/2026-08-07-panel-and-local-firmware.md) | First pixel and full pattern ladder on the real panel; 200 Hz floor |
-| 2026-08-07 | [board-alone-bringup](evidence/2026-08-07-board-alone-bringup.md) | MatrixPortal S3 alone: toolchain, memory watermarks |
+| 2026-08-26 | [First-ship bench](evidence/2026-08-26-r0-first-ship-bench.md) | v0.12.6 writes and NVS wipes; one production-path board's double-reset **mount** observed; 200 Hz idle / 199 Hz loaded; visual checks still pending in the ledger |
+| 2026-08-24 | [Production intake](evidence/2026-08-24-mp-qual-01-production-intake.md) | One accelerated pilot sample, v0.12.2 write and mapping; later addendum records owner-path OTA to v0.12.4; not whole-lot qualification |
+| 2026-08-17 | [Pixlet live proof](evidence/2026-08-17-pixlet-bridge-live-proof.md) | One Intel Mac, one app, 150 frames, authenticated panel push; no unattended service or catalog-wide acceptance |
+| 2026-08-16 | [OTA and hardening](evidence/2026-08-16-v0120-ota-and-hardening-verification.md) | v0.11.0→v0.12.0 OTA, signature interop, selected auth checks; destructive recovery and hostile-browser tests not run |
+| 2026-08-13 | [Hosted connect](evidence/2026-08-13-hosted-connect-verification.md) | Browser flow against a protocol mock; not real-device/browser transport acceptance |
+| 2026-08-12 | [Console parity](evidence/2026-08-12-console-parity-verification.md) | Dated deterministic build and rendered views; not present-day artifact or hardware proof |
+| 2026-08-12 | [Transport spike](evidence/2026-08-12-browser-transport-spike.md) | Research behind ADR-0031; browser experiments left open |
+| 2026-08-07 | [Integrated firmware and OTA](evidence/2026-08-07-integrated-firmware-ota.md) | Early OTA slot swaps, brightness clamp, reset reporting |
+| 2026-08-07 | [Panel bring-up](evidence/2026-08-07-panel-and-local-firmware.md) | Pattern ladder and early 200 Hz result on a development unit |
+| 2026-08-07 | [Board-alone bring-up](evidence/2026-08-07-board-alone-bringup.md) | Chip/memory/toolchain checks, no panel |

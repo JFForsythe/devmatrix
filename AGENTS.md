@@ -62,6 +62,23 @@ Rules:
 
 ## Work safely
 
+- Follow the user's authorized scope through completion. Keep planning-only,
+  read-only and explicit target limits; follow-up corrections steer the task.
+  Make routine reversible choices without asking again. The explicit release
+  semantics below remain the authority for commit/push/deploy requests.
+- Delegate bounded independent reviews or disjoint files when useful. Give each
+  agent the clean-room boundary, its owner documents, file ownership and required
+  evidence. Keep a single operator for a physical board or release and review
+  delegated results before integrating them.
+- Read `docs/OPERATIONS.md`, `ROADMAP.md` and the relevant hardware evidence
+  before relying on deployment or acceptance status. Their dated observations
+  are not a fresh device identity, port, boot or provider check. Local compilation,
+  USB flash, boot, browser/LAN behavior and production acceptance are separate.
+- For instructions-only edits, validate document contracts, paths and the exact
+  diff; do not rebuild Console artifacts, compile firmware or touch hardware.
+  Code and release work still require the checks below. Once the required checks
+  pass, expand testing only for a new edit, failure or unresolved concern.
+
 - Start with `git status --short --branch`. Preserve unrelated changes and
   never reset, clean, or rewrite work you did not create.
 - Read the owner document before changing a product fact. Update that owner in
@@ -175,4 +192,4 @@ is genuinely unclear, ask before the external mutation.
 
 ## Public owner privacy
 
-Never publish personal owner attribution, a biography, personal contact information or personal-profile links in the Console, generated artifacts or printed inserts. Use organization attribution and the existing support route. See ADR-0035.
+Never publish personal owner attribution, a biography, personal contact information or personal-profile links in the Console, generated artifacts or printed inserts. Use organization attribution and the existing support route. See ADR-0035. This includes visible copy, metadata, JSON-LD, social previews, images, downloads and public source links. Do not invent staff or credentials. Check built artifacts and relevant live surfaces before a public release is complete; general SEO or credibility work does not reverse this policy.

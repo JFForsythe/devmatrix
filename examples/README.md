@@ -1,39 +1,128 @@
-# Examples — things a box with an open API can do
+# Host apps and developer tools
 
-Companion scripts that drive a DK-01 from anywhere on your LAN using
-nothing but `/api/v1` ([firmware/dk01/README.md](../firmware/dk01/README.md)).
-No SDK, no cloud, no firmware changes.
+These programs run on your computer and control a DK-01 through its LAN API.
+The computer must stay awake and connected while a host app is running. Device
+setup, pairing, and recovery are in the [owner's manual](../docs/MANUAL.md);
+the [firmware README](../firmware/dk01/README.md) documents the current API.
 
-| Script | What it does |
-|---|---|
-| [`dmx-top.mjs`](dmx-top.mjs) | A live terminal panel for one DK-01 (zero dependencies, Node 20+): vitals, what the panel is showing, per-app fetch diagnostics from `/api/v1/apps/diag`, an event log, and a command line — `pair`, `text`, `show`, `weather`, `flights <url>` / `flights prompt`, `bright`, raw `get`/`post`. Config via flags, `DMX_URL`/`DMX_TOKEN`, or `~/.dmx-top.json` (written by `pair`, mode `0600`). Start: `node examples/dmx-top.mjs --device http://dmx-xxxx.local`, then type `help`. |
-| [`flights-overhead.mjs`](flights-overhead.mjs) | Polls **your own ADS-B receiver** (dump1090-fa / readsb / PiAware `aircraft.json` — the open receiver ecosystem, ADR-0023) and drives the panel in two views, toggled live from the Console's **Apps** view, Flights list card: **List** (`AAL2883 - 295kts`, nearest first) and **Radar** (every pixel an aircraft, altitude-colored with faint white comet trails; runways as paired lines that landing planes thread; touchdowns blink green). The radar view pushes raw frames, so it is frame-layer and same-LAN in Local Mode; Cloud Mode's paid relay (**Ahead · gate C1**) is the only remote path (ADR-0029). The host-app half of the bundled Flights Overhead experience — Today ([docs/MANUAL.md](../docs/MANUAL.md) ch. 8); gate M4 adds more reviewed declarative apps, not this. |
-| [`install-flights.mjs`](install-flights.mjs) | Installs Flights Overhead as a persistent `systemd` service on Linux/Pi or `launchd` agent on macOS; also supports status, dry-run, and uninstall. |
-| [`setup-pixlet.mjs`](setup-pixlet.mjs) | One-command Pixlet onboarding: downloads the sha256-pinned Tronbyt engine for this OS/CPU, clones the 1,000+-app community catalog, installs the bridge dependency, writes a starter config, and preflights the panel. Idempotent; never overwrites an existing config. |
-| [`pixlet-manager/`](pixlet-manager/) | **Pixlet Easy Mode** — a zero-dependency local page (`node examples/pixlet-manager/manager.mjs`, bound to `127.0.0.1` only): search the community catalog, fill an app's settings in a schema-driven form, preview the exact 64×32 GIF, pair with the panel by claim code, test-push once, and build the rotation — no JSON editing. Writes the same `bridge.config.json` the bridge and service installer use; the LAN token lives in a mode-`0600` secret file beside it, never in the JSON. |
-| [`pixlet-bridge/`](pixlet-bridge/) | Runs open-source Pixlet community apps on the owner's machine, coalesces their native 64×32 GIF frames, and pushes RGB565 frames to the DK-01 over the LAN-only frame API (ADR-0030). |
-| [`install-pixlet-bridge.mjs`](install-pixlet-bridge.mjs) | Installs the owner-hosted Pixlet rotation as `dmx-pixlet.service` on Linux/Pi or `com.devmatrix.pixlet` on macOS, with redacted dry-run, status, uninstall, purge, and mode-`0600` secrets. |
+## Choose a starting point
 
-Setup: open the Console → **Apps** → **Flights list** → type your
-receiver's `aircraft.json` URL (the **COPY FINDER PROMPT** button helps
-you locate it — the panel itself never scans a network, ADR-0032) →
-Save. Then run with Node 18+:
+| I want to… | Start here | Requirements |
+|---|---|---|
+| Inspect the panel or send a quick message | [dmx-top.mjs](dmx-top.mjs) | Node 20+, same LAN |
+| Run community clocks, transit, weather, and other Pixlet apps | [Pixlet setup and Easy Mode](pixlet-bridge/README.md) | Node 20+, Git, macOS or 64-bit Linux; some apps also need internet access or your own API keys |
+| Show aircraft from my own receiver | [Flights Overhead below](#flights-overhead) | Node 18+, same LAN, your own ADS-B receiver |
+| Keep Flights or Pixlet running after closing a terminal | [Service lifecycle below](#service-lifecycle) | Linux/systemd or a signed-in macOS desktop session |
+
+No company account or rendering service is required. External data access is
+determined by each app. The current host tools use the LAN path; mode and
+remote-access availability are owned by [MODES.md](../docs/MODES.md).
+
+All commands below run from the repository root. Replace `dmx-xxxx.local`
+with the address displayed on your panel. If `.local` does not resolve, use
+the panel's current IP address. Never commit a token, receiver URL, location,
+or app configuration containing your keys.
+
+## Terminal control
 
 ```sh
-DMX_URL=http://dmx-xxxx.local DMX_TOKEN=<your LAN token> \
+node examples/dmx-top.mjs --device http://dmx-xxxx.local
+```
+
+Type `pair`, enter the six digits shown on the panel, then type `help`.
+Useful commands include `text Hello`, `clear`, `bright 75`, `diag`, and
+`flights prompt`. Pairing saves the device address and token in
+`~/.dmx-top.json`; that is a local credential file. Command-line flags take
+precedence over `DMX_URL` / `DMX_TOKEN`, which take precedence over that file.
+
+The tool's current `text` command displays a message for **30 seconds**.
+Use the Console for the guided settings and firmware-update flow.
+
+## Flights Overhead
+
+The source is your own dump1090-fa, readsb, PiAware, or compatible
+`aircraft.json` feed. The clean-room scope is
+[ADR-0023](../docs/adr/ADR-0023-clean-room-rescope.md). Configure its URL in
+Console → **Apps** → **Flights list**, then save. **COPY FINDER PROMPT**
+helps locate the receiver through your router's device list; the panel does
+not probe your network ([ADR-0032](../docs/adr/ADR-0032-no-device-initiated-discovery.md)).
+
+Use the Console's **COPY WITH MY TOKEN** command on your own computer, or
+supply the two environment variables before starting the script:
+
+```sh
+DMX_URL='http://dmx-xxxx.local' DMX_TOKEN='<LAN token>' \
   node examples/flights-overhead.mjs
 ```
 
-(The Flights list card prints this command with your values filled in.)
+The token placeholder must be replaced. Keep the resulting command out of
+screenshots and shared shell history. The installer below offers a hidden
+token prompt for persistent use.
 
-Permanent service: `node examples/install-flights.mjs` (use the `sudo`
-form in the owner's manual on Linux/Pi).
+**List** shows callsigns and speed or altitude. Distance sorting needs a
+valid receiver location; otherwise the script sorts by altitude. **Radar**
+pushes animated frames and needs a receiver location or a configured airport.
+Only the approximate O'Hare geometry (`AIRPORT=ord`) is bundled. Landing
+flashes are visual heuristics, not verified touchdown reports.
 
-Pair a browser with the device first — the Console will hand you the
-token. Receiver URLs, tokens, and locations do not belong in this
-repository. The service installer saves its host-side values only in the
-mode-`0600` environment file (and the mode-`0600` launch agent on macOS).
+The Console chooses the view. Environment overrides are `RECEIVER_URL`,
+`INTERVAL_S`, `ROWS`, `FORMAT=kts|alt`, `VIEW=list|radar`, `VIEW_MI`, `FPS`,
+and `AIRPORT`. Restart after changing receiver or polling settings so the
+host re-reads its location and timer. `--once` performs one update; a radar
+frame sent with `--once` persists until cleared.
 
-To keep a script running unattended (systemd on a Pi, launchd on
-macOS), follow the owner's manual:
-[docs/MANUAL.md](../docs/MANUAL.md) → "Keep it running".
+**Current limitation:** if the receiver stops responding during radar mode,
+the host can keep showing the last tracks. Stop the host and clear the display
+from the Console when diagnosing a receiver outage. A running host also
+continues independently of the device's native app-rotation enable switch.
+Run one frame-producing host app per panel to avoid competing writes.
+
+## Service lifecycle
+
+Inspect the plan first with a dummy token; this writes no files and contacts
+no device:
+
+```sh
+node examples/install-flights.mjs --dry-run \
+  --url http://dmx-xxxx.local --token example-placeholder
+node examples/install-pixlet-bridge.mjs --dry-run \
+  --config "$HOME/tronbyt/bridge.config.json" --token example-placeholder
+```
+
+The installers currently take configuration from their **flags and prompts**;
+they do not import exported `DMX_TOKEN`, `DMX_URL`, or `BRIDGE_CONFIG` despite
+the environment-variable names shown in their help. For Pixlet, always pass
+`--config` and keep `device.tokenEnv` set to `DMX_TOKEN`. The manager's saved
+pairing file is not automatically imported by the service installer.
+
+On macOS, run the relevant installer without `sudo` and enter the token at
+its hidden prompt. For example:
+
+```sh
+node examples/install-pixlet-bridge.mjs --config "$HOME/tronbyt/bridge.config.json"
+node examples/install-pixlet-bridge.mjs --status
+node examples/install-pixlet-bridge.mjs --uninstall
+```
+
+Replace `install-pixlet-bridge.mjs` with `install-flights.mjs` for Flights;
+its interactive installer also prompts for the panel URL. macOS agents run
+in your signed-in desktop session and do not keep a sleeping Mac awake.
+
+Linux installation requires `sudo`, but the current generated systemd units
+also run the apps as root. Review finding **EH-02** in the
+[full review](../docs/reviews/2026-09-08-full-review/examples-hardware-operations.md)
+before using these units on a shared host. Foreground use as your ordinary
+user avoids that installer limitation.
+
+The installers reference the current Node executable and checkout by absolute
+path. Keep both in place; reinstall if either moves. After editing a Pixlet
+rotation, restart the bridge. On Linux, `systemctl enable --now` during
+reinstallation does not restart an already-running service; explicitly restart
+the corresponding `dmx-flights.service` or `dmx-pixlet.service` afterward.
+
+`--uninstall` removes the service and preserves its environment file.
+`--uninstall --purge` also removes that environment file; it does **not**
+delete Pixlet app settings, the manager's pairing file, catalog, engine, or
+logs. Saved installer secrets use mode `0600`. A successful `--status`
+command is not proof of a successful render: inspect the displayed process
+state and recent logs, then confirm the panel changes.

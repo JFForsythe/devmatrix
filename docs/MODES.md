@@ -16,15 +16,21 @@ must be fixed.
 
 ## Feature matrix
 
+**Read the columns differently:** Local describes current behavior where
+explicitly stated and labels its unfinished gates. The entire Cloud column
+is a proposed service behind C0–C3, not an available subscription. SDKs,
+Registry packages, signed manifests, and guided Eject are also future work
+unless their owner documents explicitly record implementation.
+
 | Capability | Local (free forever) | Cloud (subscription) |
 |---|---|---|
 | Setup & WiFi provisioning | ✓ SoftAP today · USB Improv **Ahead · gate M0** | — (always local) |
 | Claiming | ✓ possession + LAN token, no account | adds passkey account binding |
 | Mirror, push text/frames, scenes | ✓ push text/frames/scenes today · live Mirror **Ahead · gate M1** | ✓ from anywhere (relay) |
-| Install / upload apps | ✓ | ✓ remote |
+| Install / upload apps | bundled-app configuration and custom JSON layout today; `.dmapp` packages **Ahead · M4** | planned remote installation |
 | Firmware OTA | ✓ manual upload to the inactive slot today · signed manifest + channels (stable/beta/dev) **Ahead · gates M0/M1** | ✓ plus staged multi-site rollout |
 | USB recovery flash | ✓ TinyUF2 USB today · browser WebSerial **Ahead · gate M2** | — (inherently local) |
-| Home Assistant / MQTT / SDKs | ✓ your broker, your LAN | — (unchanged; never hosted by me) |
+| Home Assistant / MQTT / SDKs | MQTT + HA on your broker today; SDKs **Ahead · M2/M3** | — (owner-operated) |
 | Fleet view | ✓ one device per browser today · same-LAN fleet **Ahead · gate M1** | ✓ across homes/offices/sites |
 | Remote access | via your own VPN/Tailscale (documented) | ✓ built in, zero config |
 | Snapshots (E2EE) | export/restore as files **Ahead · gate M2** | ✓ hosted sync + retention |
@@ -33,7 +39,7 @@ must be fixed.
 | Offline / security alerts | — | ✓ email + push |
 | Mark lost / remote wipe / rotate | — (physical access is your tool) | ✓ |
 | Own signing key, BYO firmware | physical ceremony **Ahead · gate M2** | ✓ plus CI deploy convenience |
-| Eject (self-host everything) | ✓ always | ✓ always |
+| Eject (self-host everything) | source and local operation today; guided export/migration and signed mirrors **Ahead · M1/M2** | planned guided exit |
 
 The matrix marks Local capability. Where a row is not yet built, its gate
 is named inline using the same Today/Ahead discipline as
@@ -43,8 +49,9 @@ is named inline using the same Today/Ahead discipline as
 
 - **Local:** you run nothing but the box. It serves the full Local
   Console. I host only **static public files** (an optional Console
-  entry point, docs, Registry, manifest, and signed binaries) —
+  entry point today; Registry, manifest, and signed binaries are planned) —
   cacheable, mirrorable, no accounts, no relay, no telemetry.
+  [OPERATIONS.md](OPERATIONS.md) owns what is actually published.
 - **Owner-hosted remote:** owners may put Local Mode behind their own
   VPN, Tailscale network, NAS, Raspberry Pi, or VPS. I document this
   path and do not charge for or operate it.
@@ -55,8 +62,9 @@ is named inline using the same Today/Ahead discipline as
 - There is no permanent free managed relay. Cloud capacity is
   provisioned only when paying subscribers cover its fixed and variable
   costs; Local launches and keeps working independently.
-- The community **Registry stays free** in both modes (a public PR-based
-  repo served statically).
+- The planned community **Registry stays free** in both modes (a public
+  PR-based repo served statically); **Ahead · M4**. The existing Pixlet
+  community catalog is a separate owner-hosted integration.
 - **Price:** set at the C0 billing gate (ADR-0007). Any figure that
   appears anywhere before then is a placeholder, not an offer.
 
@@ -72,6 +80,11 @@ requires it. Returns and warranty stay as
 
 ## The claim/account split
 
+Today a device-wide LAN token is generated on first boot and shared with
+paired clients. The signed claim attestation, passkey account binding, and
+subscription steps below describe the target protocol, not today's
+six-digit pairing. [SECURITY.md](SECURITY.md) owns authentication details.
+
 Claiming is **device-local**: possession proof mints the LAN token in
 your browser — no account exists yet. Creating a **passkey account** is
 an optional next step toward Cloud Mode, but it never purchases or
@@ -84,10 +97,10 @@ attestation; cancelling later keeps every Local capability.
 
 | Situation | What still works |
 |---|---|
-| Your internet is down | Everything on the LAN (control, apps, scenes) |
+| Your internet is down | LAN control, saved messages/layout literals, local receiver data, and reachable local-broker integrations; outside data cannot refresh, and a cold-boot clock needs SNTP |
 | My cloud is down | Everything Local; Cloud features queue/pause |
 | Your subscription lapses | Everything Local; Cloud features pause — never the box |
-| The company disappears | Everything Local, forever; OTA continues from any mirror of the static manifest; Eject was always available |
+| The company disappears | Device-served Console, local APIs, and locally held source/build tools keep working; mirrored signed-manifest OTA and guided Eject remain future deliverables |
 
 **Sunset covenant:** if I ever end Cloud Mode, subscribers get 12
 months' notice and an automatic, guided Eject. A dead cloud costs

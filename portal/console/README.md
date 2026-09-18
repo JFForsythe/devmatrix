@@ -4,11 +4,37 @@
 [ADR-0027](../../docs/adr/ADR-0027-one-console-codebase.md). It uses the Preact,
 TypeScript, and Vite stack selected in
 [ADR-0014](../../docs/adr/ADR-0014-console-production-stack.md), including only
-system UI and native monospace fonts. Packet 2B ported the complete seven-view
-Local Console, the live `/api/v1` transport and panel-code pairing flow, plus
-an interactive in-memory demo seeded from `docs/USER-STORY.md`. The tree now
-adds the hosted welcome/connect flow, the in-console Guide view (eight views
-total), and Ed25519 device-identity verification with key pinning (ADR-0031).
+system UI and native monospace fonts. The source includes eight views, a
+hosted welcome/connect flow, panel-code pairing, a live HTTP transport, and
+an in-memory demo. The current behavior and remaining feature gaps are
+listed in [docs/PORTAL.md](../../docs/PORTAL.md#current-console).
+
+For owner setup and recovery, use the
+[Owner's Manual](../../docs/MANUAL.md). This document is for contributors
+changing the Console, not a firmware flashing guide.
+
+## Develop locally
+
+From the repository root, using Node 20:
+
+```sh
+npm --prefix portal/console ci
+npm --prefix portal/console run typecheck
+```
+
+To explore the hosted source with sample data:
+
+```sh
+cd portal/console
+npx vite --host 127.0.0.1
+```
+
+Open the local URL printed by Vite and choose **Explore the interactive
+demo**. Keep the development server bound to loopback. A development
+origin is not automatically in the firmware's CORS allowlist; use the
+device-served Console for a live hardware check unless the permitted
+origin is deliberately configured. The older `make portal` command serves
+the historical prototype, not this source tree.
 
 ## Build targets
 
@@ -35,44 +61,77 @@ local clean installs use `npm ci`; no additional `.npmrc` is required.
 
 ## Vercel handoff
 
-The `devmatrix-console` project's Root Directory is still `portal/prototype`,
-so the mock design reference remains live. **Do not add a repository-root
-`vercel.json` before that setting changes** — it is read while the Root
-Directory still points at the prototype and fails the build (observed
-2026-08-12, deployment 5863328863). Build config and dashboard setting land
-together or not at all.
+The prototype-to-Console cutover is complete. Current hosting configuration,
+public URLs, and provider-side requirements are owned by
+[Operations → Hosting today](../../docs/OPERATIONS.md#hosting-today), under
+[ADR-0034](../../docs/adr/ADR-0034-vercel-pro-hosting.md). Do not repeat the
+old Root Directory migration. The release procedure is owned by
+[AGENTS.md](../../AGENTS.md#release-requests).
 
-The cutover, as one coordinated change: in Vercel, open **devmatrix-console →
-Settings → Build and Deployment → Root Directory → Edit**, clear
-`portal/prototype` so the repository root is selected, and save; then release a
-commit that adds the root `vercel.json` (`installCommand` `npm --prefix
-portal/console ci`, `buildCommand` `npm --prefix portal/console run
-build:hosted`, `outputDirectory` `portal/console/dist-hosted`) and flips
-`scripts/verify-live.mjs`'s `DEFAULT_FILE` to the hosted artifact. Set the
-Node.js Version to 20.x while in that settings page. Do not redeploy the
-pre-switch commit from the new root.
+## Verify a change
 
-`scripts/verify-live.mjs` defaults to the artifact production actually serves
-and fails closed if the two disagree. Before the cutover, the hosted artifact
-can be checked against a preview deployment with
-`DEVMATRIX_LIVE_URL=<preview-url> DEVMATRIX_LIVE_FILE=portal/console/dist-hosted/index.html make verify-live`.
-Unset both for the switch release.
+After changing source, regenerate both build targets. Then, from the
+repository root:
+
+```sh
+make check
+make console-verify
+git diff --check
+```
+
+On a clean committed tree, `console-verify` rebuilds and checks that both
+artifacts match the source. Its current final `git diff` compares against
+the index, so a legitimate uncommitted artifact change also makes the gate
+fail; pre-staging to silence that failure conflicts with the release
+preflight. This is an open tooling defect, tracked in
+[the repository review](../../docs/reviews/2026-09-08-full-review/repository-and-product.md).
+Review source and generated changes together, and report that gate result
+accurately until the comparison is repaired. These checks do not establish
+browser, LAN, or hardware acceptance. Test
+the changed flow in the demo and on the intended device/browser path,
+including its error and reconnect states. Build output alone does not
+prove a new firmware image booted successfully.
+
+For a dependency change, run `npm audit --package-lock-only`, examine
+whether each advisory affects runtime or build tooling, and update the
+provenance table below with the lockfile. Do not use an automatic forced
+upgrade as a substitute for checking compatibility and both outputs.
 
 ## Runtime modes
 
 - The device build talks to same-origin `/api/v1` and `/update` routes.
 - The hosted build opens with a welcome flow: enter the panel's address to
-  connect over the LAN (ADR-0031 — the browser's Local Network Access
-  permission on Chromium/Firefox; firmware v0.9.0+ answers with the
-  exact-origin CORS allowlist), or enter a clearly-labeled interactive demo.
-  `?device=<host>` still works and is remembered. Safari cannot reach LAN
-  devices from a hosted page; the device-served build is the documented
-  fallback there and remains the authoritative live path everywhere.
-- Connecting verifies the device's Ed25519 signed-nonce identity proof and
-  pins the public key in the browser (`src/identity.ts`); pairing re-checks
-  the pin, and Security → Device identity re-runs the proof on demand.
+  connect over the LAN, or enter the labeled interactive demo. A previously
+  saved address bypasses the welcome flow. Browser-dependent hosted access
+  and the direct-device fallback are explained in the
+  [Owner's Manual](../../docs/MANUAL.md); transport policy belongs to
+  [ADR-0031](../../docs/adr/ADR-0031-browser-to-device-transport.md).
+- The welcome connect action checks an Ed25519 signed nonce, and pairing
+  compares returned identity material with the saved key. Security → Device
+  identity offers a manual check. These are not an encrypted or
+  automatically verified session: current cached reconnects and the
+  `?device=<host>` path can send a saved token without a fresh identity
+  check. The security model and current limitations are owned by
+  [docs/SECURITY.md](../../docs/SECURITY.md).
 - LAN bearer tokens are browser-local. A `401` opens claim-code pairing and
   retries the interrupted request after the panel code is accepted.
+- Demo changes last only for the current page load. The demo does not prove
+  pairing, firmware update, source-fetch, persistence, or recovery behavior
+  on hardware. The older prototype is a separate design reference.
+
+## Source map
+
+| Component | Responsibility |
+|---|---|
+| `src/main.tsx` | Routing, welcome entry, mode/reachability indicator, pairing dialog |
+| `src/transport.ts` | HTTP requests, token storage, identity orchestration, mock route handling, OTA upload |
+| `src/identity.ts` | Nonce generation and WebCrypto/pure-JavaScript Ed25519 verification |
+| `src/PairingFlow.tsx` | Panel-code entry, manual token entry, identity-change recovery |
+| `src/views/` | The eight Console pages plus the hosted welcome view |
+| `src/frame.ts`, `src/layouts.ts` | RGB565 frame encoding and the weather starter layout |
+| `src/mock.ts`, `src/types.ts` | Demo fixtures and TypeScript response shapes; types do not validate network JSON |
+| `src/components.tsx`, `src/styles.css` | Shared UI, clipboard fallback, responsive styling |
+| `vite.config.ts`, `scripts/gen-header.mjs` | Single-file builds and deterministic device gzip/header generation |
 
 ## Dependency provenance
 

@@ -21,13 +21,13 @@ first; then use.
 | **Sunset covenant** | If Cloud Mode ever ends: 12 months' notice + automatic Eject. A dead cloud costs convenience, never function. |
 | **Claiming** | Binding a device to its owner via proof of physical possession; mints the LAN token in the browser — no account involved (docs/MODES.md). A passkey account and explicit subscription confirmation are separate, optional Cloud Mode steps. |
 | **Claim code** | Short code shown on the panel when a browser asks to pair. Reading the panel proves physical presence. Format: six digits, e.g. `482913`, shown as two panel rows of three for browser pairing today; the device ignores any separator the owner types. The **Ahead · gate M1** first-boot claim code is `XXX-XXX`. |
-| **Claim attestation** | The signed record a device mints when claiming completes, binding device and claiming session. A later, optional Cloud account re-uses the same attestation (docs/SECURITY.md → Ceremonies; docs/MODES.md → the claim/account split). |
+| **Claim attestation** | **Ahead · gate M1:** the signed record the target claim ceremony would mint, binding device and claiming session. A later, optional Cloud account re-uses the same attestation (docs/SECURITY.md → Ceremonies; docs/MODES.md → the claim/account split). |
 | **Serial** | Device identity, printed + in cert. Format `DMX-####-####` (e.g. `DMX-4E71-0952`). |
-| **LAN token** | Per-device bearer credential minted at claim; required on every `/api/v1` call on the LAN. Rotatable/revocable; read-only scoped variants are **Ahead · gate M1**. |
-| **Device identity key** | Ed25519 keypair a device mints on first boot and keeps in NVS (wiped by factory reset). The device signs Console-supplied nonces with it so a browser can prove the host is the panel and not an mDNS spoofer (ADR-0031). The Console pins the public key at pairing. |
+| **LAN token** | Per-device bearer credential generated on first boot and given to paired clients; required for protected LAN API routes. Health, identity, and pairing have public exceptions documented in contracts/rest.md. Rotation revokes all old copies; per-client and read-only credentials are **Ahead · gate M1**. |
+| **Device identity key** | Ed25519 keypair a device mints on first boot and keeps in NVS (wiped by factory reset). The device signs Console-supplied nonces for a key-continuity check (ADR-0031). The Console can pin and compare the public key; this does not encrypt HTTP, authenticate first contact, or bind every later request to the proof. docs/SECURITY.md owns the limits. |
 | **Key fingerprint** | Short, human-checkable form of the device identity public key: first 4 bytes of its SHA-256, shown as `XXXX-XXXX` (e.g. `6EDE-F5A0`) in the Console's Security view and on USB serial. |
 | **App** | Anything an owner installs or runs to put content on the panel. Three tiers, defined below (ADR-0026). UI says "Apps". |
-| **Declarative app** | An app the device runs itself: a layout, data bindings, and a schedule, installed from the Console. The device fetches its own data. Needs no second machine and no broker. Bundle: `.dmapp` (ADR-0026). |
+| **Declarative app** | An app the device runs itself: a layout, data bindings, and a schedule, installed from the Console. The device fetches its own data. Needs no second machine and no broker. Today these are bundled configurations and custom JSON layouts; installable `.dmapp` bundles are **Ahead · M4** (ADR-0026). |
 | **Host app** | An app running on hardware the owner already operates, pushing content to the device over LAN REST or MQTT. For work the device cannot do — e.g. the Flights Overhead radar view (ADR-0026). |
 | **App host** | The owner's always-on machine running host apps: Raspberry Pi, NAS, Home Assistant box, mini PC. Never company hardware (ADR-0016). |
 | **Pixlet bridge** | Owner-hosted host app that renders open-source Pixlet community apps (Tronbyt-maintained fork, Apache-2.0) at 64×32 and pushes frames over the LAN API. Each owner runs their own; the company renders nothing (ADR-0030). |
@@ -40,20 +40,20 @@ first; then use.
 | **Finder prompt** | Owner-side copy-paste prompt (Console → Apps → Flights list → COPY FINDER PROMPT) that walks any AI assistant through locating a receiver's `aircraft.json` URL from the router's device list and standard paths. The owner discovers; the box never scans (ADR-0032). |
 | **Frame layer** | Display API tier for raw 64×32 pixel frames — REST/WebSocket only, never MQTT; remote reach only via Cloud Mode's relay (ADR-0029). |
 | **Semantic layer** | Display API tier for text, layouts, bindings, scenes, and brightness — available on every transport, and therefore remote-safe (ADR-0029). |
-| **Registry** | Community index of apps/layouts (PR-based public repo). |
-| **Channel** | Firmware release track: `stable` \| `beta` \| `dev`. |
-| **Safe mode** | Minimal always-bootable firmware state: display + recovery only. |
+| **Registry** | **Ahead · gate M4:** Devmatrix community index of apps/layouts (PR-based public repo), separate from the existing third-party Pixlet catalog. |
+| **Channel** | **Ahead · gates M0/M1:** firmware release track: `stable` \| `beta` \| `dev`. |
+| **Safe mode** | **Ahead · gate M0:** minimal firmware state with display and recovery; distinct from today's TinyUF2 recovery partition. |
 | **Native clock** | The built-in C++ clock experience — first-boot default and the permanent safe fallback after app failure. |
 | **Scene** | A scheduled display experience. Scene scheduling rotates enabled apps and always returns to the native clock. |
 | **Simulator** | Contract-compatible virtual device (including the golden renderer) used for Console development, app CI, and conformance testing (ADR-0019). |
 | **Golden renderer** | The simulator's reference 64×32 renderer; its golden frames are what CI compares against. |
-| **Mirror** | Live view of the physical panel inside the Console. |
+| **Mirror** | **Ahead · gate M1:** live view of the physical panel inside the Console. The current paint canvas is an editor, not panel telemetry. |
 | **Identify** | Action that flashes the panel to locate a specific device. |
 | **Snapshot** | End-to-end-encrypted backup of device config + apps. |
 | **Guest access** | Scoped, expiring control grant to a non-owner. |
 | **Relay** | Outbound-only encrypted tunnel device→cloud for Cloud Mode. No inbound ports. |
 | **Root-of-trust enrollment** | Physical-presence ceremony adding the owner's firmware signing key. |
 | **Eject** | Guided path to self-host everything and leave Cloud Mode entirely. |
-| **Quiet hours** | Scheduled dimming/off window. |
+| **Quiet hours** | Planned scheduled dimming/off window; current brightness control is manual or owner-automated through REST/MQTT. |
 | **Gate ladder** | The single delivery sequence P0 · P1 · P2 · M0 · M1 · M2 · M3 · M4 · L0 · R0 · GA. ROADMAP.md owns the definitions; Cloud gates C0–C3 are a separate paid track (ADR-0007). |
 | **EVT / DVT / PVT** | Engineering / design / production validation hardware builds, paired with gates M0, L0, and R0 (ROADMAP.md). |

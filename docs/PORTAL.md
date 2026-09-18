@@ -4,6 +4,45 @@ The Console is one web app where an owner claims, controls, extends,
 and — if they want — leaves. Every screen answers
 three questions: *what is my box doing, can I change it, can I trust it?*
 
+This document owns Console behavior and the intended screen design. It is
+not a claim that every proposed feature is implemented. Use the
+[Owner's Manual](MANUAL.md) to operate a panel, the
+[contributor guide](../portal/console/README.md) to build the UI, and
+[ROADMAP.md](../ROADMAP.md) for milestone acceptance. Current hosting and
+public URLs are owned by [Operations](OPERATIONS.md#hosting-today).
+
+## Current Console
+
+The source at `portal/console/` builds the same client for a device-served
+page and a hosted page. Its eight post-connect views currently provide:
+
+| Screen | Implemented interface | Limits to keep visible |
+|---|---|---|
+| **Welcome / Pair** | Hosted address entry or sample-data demo; live panel-code entry when authentication is needed; manual token entry | Current pairing is six-digit code entry. The session-code/button ceremony below remains a target; it is not today's setup flow. |
+| **Dashboard** | Polled device statistics, temporary text, brightness, identify, reboot, and a paint canvas that sends full frames | The paint canvas is an editor, not a readback of the physical panel. Mirror, screenshot, quiet hours, and activity history are not implemented here. |
+| **Devices** | The connected device and instructions to pair another browser; three illustrative cards in demo mode | No working fleet selection, grouping, renaming, transfer, or guest access. |
+| **Apps** | Messages, owner-configured Flights list, Custom layout editor, a weather starter, scene controls, and host-app setup instructions | One Custom layout slot. Radar and Pixlet run on a separate owner-controlled computer. Registry installation and permission sheets remain future work. |
+| **Deploy** | Local `.bin` upload to the inactive OTA slot, upload progress, a reconnect attempt, and USB recovery guidance | Signed updates and automatic failed-boot rollback remain pending. Upload acceptance does not prove successful boot. |
+| **Dev console** | A bounded command interpreter using HTTP, app diagnostics, and curl command generation | No general shell, browser MQTT connection, live log stream, file manager, or movable multipane workbench. |
+| **Security** | Identity-check action, token rotation, Wi-Fi reset, and factory reset | Security guarantees and missing safeguards are owned by [SECURITY.md](SECURITY.md); passkeys, owner-key enrollment, audit export, Snapshots, and Eject are not implemented here. |
+| **Settings** | Timezone, network addresses, MQTT settings, and forgetting the saved device | The current forget/switch control is hidden if initial settings reads fail. Broker trust limitations belong to [SECURITY.md](SECURITY.md). |
+| **Guide** | Built-in setup, page reference, and troubleshooting text | The concise guide must stay consistent with the owner manual; a link to online recovery documentation does not make those detailed recovery steps available offline. |
+
+The demo uses in-memory state and is explicitly labeled sample data.
+Reloading resets its simulated device changes. It does not reproduce every
+firmware validation rule, timeout, source fetch, rotation, or reset effect.
+Use a real device to validate those behaviors. The separate
+[`portal/prototype/`](../portal/README.md) illustrates more of the intended
+experience; it is not the live transport implementation or an API reference.
+
+Identity checking is currently an explicit welcome/manual action plus a
+pairing comparison; do not describe every reconnect as authenticated.
+[SECURITY.md](SECURITY.md) owns the trust model, first-use limitations,
+and remaining work. The
+[2026-09-08 Console review](reviews/2026-09-08-full-review/console.md)
+records the implementation defects and acceptance checks discovered in the
+full repository review; it is review evidence, not a new feature commitment.
+
 ## Principles
 
 1. **Local-first.** The same Console works in Local Mode (LAN, no
@@ -22,7 +61,12 @@ three questions: *what is my box doing, can I change it, can I trust it?*
 4. **Every capability has an API.** Anything a button does, a documented
    `/api/v1` call or MQTT topic does too.
 
-## Information architecture
+## Target information architecture
+
+The following inventory describes the intended product experience. A feature
+is delivered only when the current inventory above and its
+[roadmap gate](../ROADMAP.md) say so. Cloud features are conditional on the
+demand decision in [MODES.md](MODES.md), not part of current Local setup.
 
 | Nav item | Job to be done | Key modules |
 |---|---|---|
@@ -36,7 +80,7 @@ three questions: *what is my box doing, can I change it, can I trust it?*
 | **Settings** | Make it mine | Device name/timezone, network info, MQTT credentials + topic tree (user's broker), panel calibration, notifications (offline alerts ☁), plan & billing (Cloud), account |
 | **Guide** | Learn it without leaving it | In-console owner's guide: five-minute setup path, page-by-page reference, the Local/Cloud split, first-line troubleshooting — served by the device, works offline |
 
-Console-wide search is a combined search and command palette, available
+The target Console-wide search is a combined search and command palette, available
 from every post-claim screen and from the keyboard (`Cmd/Ctrl+K`). It
 covers pages, settings, devices, installed apps, API keys, actions,
 documentation, and local log results, then navigates to the matched
@@ -44,7 +88,7 @@ surface or runs the matched action. This is still the owner's
 already-loaded Console state plus that device's local logs — never a
 server-side or cross-tenant search service.
 
-The Device workbench is intentionally smaller than a browser IDE. Its
+The target Device workbench is intentionally smaller than a browser IDE. Its
 job is fast integration and debugging against one selected box: run a
 documented REST or MQTT command, inspect logs, or trace a layout's
 bindings without hiding the underlying contracts. Panes are movable,
@@ -54,7 +98,7 @@ locally in that browser. Terminals are custom DOM components
 prototype never executes arbitrary code.
 
 That workbench constraint is now decided (ADR-0028): a browser cannot
-speak raw MQTT TCP, so the MQTT pane requires the owner's broker to
+speak raw MQTT TCP, so a future live MQTT pane requires the owner's broker to
 expose a WebSocket listener, documented in the pane UI and the setup
 docs. The device is not made a broker proxy for the Console.
 
@@ -64,6 +108,9 @@ a font at runtime (ADR-0014).
 
 ## Five-minute first pixel
 
+For today's exact setup and pairing sequence, follow the
+[Owner's Manual](MANUAL.md). The sequence below is the **target acceptance
+flow**, including the physical session ceremony that is not yet implemented.
 The Local path is the primary onboarding path and must fit on one
 checklist:
 
@@ -77,7 +124,7 @@ checklist:
 5. Continue in free Local Mode. Only after first-pixel success may the
    Console explain optional paid Cloud or owner-hosted remote access.
 
-## The full-control inventory
+## Target full-control inventory
 
 Ways an owner has *actual* control, beyond the obvious. Each maps to a
 tier from VISION.md and must survive into the real build.
@@ -112,7 +159,11 @@ tier from VISION.md and must survive into the real build.
 - **Fleet as config**: export a device's setup as a named config and
   apply it to a group — declarative, diffable, audit-logged.
 
-## Architecture (modes)
+## Target architecture (modes)
+
+The Local client and HTTP transport exist today. The relay, fleet service,
+and signed artifact distribution in this diagram are planned components;
+the diagram does not establish a running Cloud service.
 
 ```mermaid
 flowchart LR
@@ -134,26 +185,25 @@ flowchart LR
 - Discovery is read-off-the-panel (address + claim code); the Console
   never scans a LAN. LAN auth is the LAN token; mTLS is device→relay
   only. See SECURITY.md → Discovery & local transport.
-- The device serves the complete static Local Console, including setup,
-  control, apps, deploy, developer tools, security, and Eject. The
+- The intended device bundle includes the complete Local Console, including
+  setup, control, apps, deploy, developer tools, security, and Eject. The
   hosted Console is an optional distribution of the same client, not a
   dependency.
 - The production stack is decided and built: Preact + TypeScript + Vite
   at `portal/console/`, one codebase emitting the device's generated
   gzipped header and the hosted static bundle (ADR-0014, ADR-0027).
-  The hosted copy opens with a welcome flow: connect a real panel over
-  the LAN (ADR-0031 path 2 — Local Network Access on Chromium/Firefox,
-  with the device-served path as the documented fallback), or enter a
-  clearly-labeled mock demo. Connecting verifies the device's signed
-  nonce and pins its Ed25519 identity key in that browser; firmware
-  enforces the exact-origin CORS allowlist and Host allowlist that
-  make the cross-origin path safe. Four named ADR-0031 browser
+  The hosted copy offers a welcome flow for a real panel or a labeled demo;
+  a remembered target opens the live views directly. The device-served path
+  remains the fallback when hosted browser-to-LAN access fails.
+  [SECURITY.md](SECURITY.md) owns signed-nonce checking, token handling,
+  CORS/Host rules, and their limits; those checks are not equivalent to an
+  authenticated encrypted session. Four named ADR-0031 browser
   experiments (ws:// LNA exemption, `.local` HTTPS-Upgrades, Firefox
   151→153 parity, macOS local-network permission) remain open P1
   hardware-evidence items.
-- API contract: DRAFT contracts live in
-  [contracts/](../contracts/README.md), including the per-transport
-  capability descriptors; they freeze at gate P2 (ADR-0019).
+- API contract: REST, MQTT, layout, and OTA drafts live in
+  [contracts/](../contracts/README.md). Per-transport capability descriptors
+  remain planned; the contracts freeze at gate P2 (ADR-0019).
 
 ## Non-goals
 

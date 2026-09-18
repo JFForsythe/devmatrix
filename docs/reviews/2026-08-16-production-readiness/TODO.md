@@ -1,5 +1,9 @@
 # Execution TODO — working the 2026-08-16 review to done
 
+> Historical August assessment. For the current source review and open work,
+> start with the [September review](../2026-09-08-full-review/README.md).
+> Checkboxes below retain their original meaning and are not current gate acceptance.
+
 Tracker for executing steps 01–10's findings. Status: `[ ]` open ·
 `[x]` done · `[J]` owner-only (John) · `[HW]` needs the physical board.
 Every `[x]` lands in a shipped commit; this file is updated as groups

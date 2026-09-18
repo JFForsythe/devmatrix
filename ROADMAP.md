@@ -12,6 +12,21 @@ snapshot: where §3 and an owner doc or later ADR disagree (for
 example, the workbench and command palette are **Ahead · gate M2**
 per docs/GLOSSARY.md, not §3's M1 line), the owner doc or ADR wins.
 
+## Current acceptance status — reviewed 2026-09-08
+
+Features have landed ahead of this sequence. That does not pass a gate. The
+[hardware evidence index](hardware/README.md) includes first-ship bench
+records, but the full P1/P2/M0 acceptance bundles and GA qualification are
+not established by this repository. Contracts remain DRAFT; signed OTA,
+qualified rollback, security hardening, and unassisted setup acceptance
+remain open.
+
+The [September review](docs/reviews/2026-09-08-full-review/README.md) records
+current bugs and proposed remediation order. It is a dated assessment, not
+a replacement gate ladder. Resolve its release-blocking security and
+recovery findings and file evidence against the gates below; do not infer
+readiness from a firmware version, a green compile, or a shipped-unit note.
+
 ## The ladder — P0 → GA
 
 - **P0 — Governance and roadmap reset** *(in progress)*: adopt the
@@ -32,7 +47,9 @@ per docs/GLOSSARY.md, not §3's M1 line), the owner doc or ADR wins.
 - **P2 — Contract and security freeze**: freeze REST, WebSocket,
   MQTT, OTA, and app-bundle contracts, budgets, toolchain pins, and
   the secure-boot/owner-key/recovery resolution on sacrificial
-  boards. Production code is authorized only after this gate.
+  boards. The continuously developed firmware tree is authorized by
+  ADR-0024 before this gate; freezing and production acceptance still wait
+  for the criteria below.
   *Accept: Console, simulator, firmware, SDK, and tests can be built
   independently against frozen contracts.*
 - **M0+EVT — Firmware bedrock (10 units)**: display, native clock,

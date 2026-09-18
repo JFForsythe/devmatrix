@@ -9,7 +9,9 @@ only when no product fact or decision changed.
 
 ## Verification
 
-- [ ] `make check` passes from the repository root.
+- [ ] `make check` and `git diff --check` pass from the repository root.
+- [ ] If Console source/build inputs changed, `make console-verify` passes
+      and both generated artifacts were reviewed.
 - [ ] I reviewed the exact changed-file diff and excluded unrelated files.
 - [ ] Owner documentation and canonical mock identifiers remain aligned.
 - [ ] Accepted ADRs were not rewritten; changed decisions use a new ADR.

@@ -18,6 +18,23 @@ manufacturing system, or production gates are implemented. Until work lands
 through the repository's normal ADR and owner-document process, `docs/`,
 `ROADMAP.md`, and accepted ADRs remain the current-state authority.
 
+## How to use this snapshot
+
+Use this document to understand the approved gate criteria, not as a
+copy-and-paste build or owner guide. Current instructions live in the
+[manual](MANUAL.md), [firmware build guide](../firmware/dk01/README.md), and
+[Console guide](../portal/console/README.md). [ROADMAP.md](../ROADMAP.md)
+owns current sequencing and acceptance status.
+
+Later decisions change specific parts of this snapshot: ADR-0023 defines
+the local-receiver clean-room scope; ADR-0024 permits the living firmware
+tree; ADR-0026 defers scripting; ADR-0027 selects the shared Console;
+ADR-0031 defines browser transport; ADR-0032 removes device discovery;
+ADR-0033 makes Cloud/support demand-driven; ADR-0034 retains Vercel Pro.
+The [ADR index](adr/README.md) provides the forward links. Historical
+provider limits, tool versions, and browser-version claims below are dated
+context and must be rechecked before execution.
+
 ## 1. Product and architecture decisions
 
 - Launch in the United States with a first run sized to produce 50 saleable

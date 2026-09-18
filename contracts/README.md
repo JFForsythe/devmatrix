@@ -1,15 +1,22 @@
 # contracts/ — public interface contracts
 
-This directory is the future owner of the DK-01's public interface
+This directory owns the DK-01's public interface
 contracts ([ADR-0019](../docs/adr/ADR-0019-repo-restructure.md)):
 REST (`/api/v1`), WebSocket (`/api/v1/stream`), MQTT, OTA, app bundle,
 diagnostics, transport capability descriptors, and error formats.
 
 **Today it holds drafts.** Nothing here is normative until the P2
-contract-and-security freeze ([ROADMAP.md](../ROADMAP.md)). Until a
-surface's draft lands here, [docs/FIRMWARE.md](../docs/FIRMWARE.md)
-keeps the illustrative REST/WebSocket sketch; implementations must not
-treat any draft as frozen.
+contract-and-security freeze ([ROADMAP.md](../ROADMAP.md)). The drafts
+describe implemented behavior and label future surfaces explicitly; a
+planned endpoint is not available merely because it has a name here.
+[docs/FIRMWARE.md](../docs/FIRMWARE.md) owns architecture, not a second
+route list.
+
+Start with **REST** for a local script, **layout** for content the device
+fetches and renders itself, **MQTT** for semantic commands through your own
+broker, and **OTA** when building firmware updates. For runnable examples,
+use [examples/README.md](../examples/README.md). Raw pixel frames use LAN
+REST today; they never travel over MQTT.
 
 ## Current files
 

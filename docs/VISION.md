@@ -1,8 +1,9 @@
 # Vision
 
 **One line:** a networked pixel display that its owner fully
-controls — open firmware, stable APIs, and a Console for shipping your
-own apps to your own hardware.
+controls — open firmware, documented local APIs, and a Console for putting
+your own content on your own hardware. Public contracts are still
+[DRAFT](../contracts/README.md); stability is a P2 acceptance target.
 
 ## Brand
 
@@ -27,19 +28,30 @@ targeted — phishing, account takeover, resale scams — because some
 will be, and the rest lose nothing by it. "Basic code/config comfort"
 expected.
 
-## Promises (every claim must map to a shipped feature at launch)
+## Launch promises and current limits
 
-1. First pixel in under 5 minutes, using only the quickstart.
+These are product requirements, not a list of completed features. See the
+[manual](MANUAL.md) for usable instructions and [ROADMAP.md](../ROADMAP.md)
+for acceptance. Firmware in the repository does not establish that a
+launch gate passed.
+
+1. First pixel in under 5 minutes, using only the quickstart — an M1
+   usability target requiring independent user tests.
 2. No app, no account, no cloud **required** — full control on your
    LAN, free forever (docs/MODES.md owns the split).
-3. Upload your own apps to the box: OTA from the Console today; browser
-   USB flash is **Ahead · gate M2**.
-4. Hosted OTA included — static files, free, fully self-hostable (the
-   Eject path).
-5. MQTT + REST + WebSocket ready; Home Assistant discovery out of the box.
+3. Configure bundled apps and a custom layout today; installable `.dmapp`
+   packages are **Ahead · gate M4**. Firmware OTA is a separate update
+   action; browser USB flash is **Ahead · gate M2**.
+4. Hosted signed OTA artifacts, channels, and self-hosted manifests are
+   **Ahead · gates M0/M1**. Current updates use a compatible local image;
+   [OPERATIONS.md](OPERATIONS.md) owns release-artifact availability.
+5. REST, owner-broker MQTT, and Home Assistant discovery are implemented
+   subsets; WebSocket support and cross-transport conformance remain
+   **Ahead · gates M1–M3**. See [contracts](../contracts/README.md).
 6. Full implementation guide; versioned `/api/v1` contract.
-7. Never bricks: dual slots and USB recovery today; automatic rollback
-   is **Ahead · gate M0**.
+7. Recoverability is an invariant: dual slots and USB recovery are present;
+   signed OTA and qualified automatic rollback are **Ahead · gate M0**.
+   A second slot alone does not establish unattended recovery.
 8. Cloud Mode is optional, **paid, and demand-driven** — I would offer
    it if demand requires it (ADR-0033), the subscription funds its own
    operations, and the sunset covenant (12-month notice + automatic
@@ -47,8 +59,10 @@ expected.
 
 ## The four tiers of hackability
 
-Each tier is a complete stopping point. The Console is the
-surface for all four.
+Each tier is intended to be a complete stopping point. This table describes
+the target experience; quiet hours, WebSocket, `.dmapp` installation, signing
+ceremonies, and guided Eject are not all implemented. The
+[Console specification](PORTAL.md) owns current versus planned controls.
 
 | Tier | Who | What they do | Console surface |
 |---|---|---|---|

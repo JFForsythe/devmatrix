@@ -1,132 +1,136 @@
 # Operations — company-side runbook
 
-This file owns company-side operations: hosting, deployment, secrets
-handling, and artifact monitoring. Device-side security is owned by
-[docs/SECURITY.md](SECURITY.md); the mode split and who-runs-what are
-owned by [docs/MODES.md](MODES.md). Where a fact is owned elsewhere,
-this file links instead of restating.
+This file owns hosting, deployment configuration, secrets handling, and
+artifact monitoring. [AGENTS.md](../AGENTS.md) owns release authorization and
+the required release chain. Device security belongs to
+[SECURITY.md](SECURITY.md); mode availability belongs to [MODES.md](MODES.md).
 
 ## Hosting today
 
-What actually runs now — the complete inventory:
+| Component | Configured location / behavior |
+|---|---|
+| Hosted Console | GitHub-connected Vercel project `devmatrix-console`; public domain `devmatrix.flighttrackerled.com`; alias `devmatrix-console.vercel.app` |
+| Static artifact | Committed `portal/console/dist-hosted/index.html`, generated from the Console source |
+| Vercel root | Repository root since the recorded 2026-09-01 cutover |
+| Output and card redirect | Root [vercel.json](../vercel.json): `portal/console/dist-hosted`, `/start → /#/guide` |
+| DNS | Recorded cutover configuration: DNS-only CNAME in the parent Cloudflare zone to the Vercel-assigned target |
+| Hosting decision | [ADR-0034](adr/ADR-0034-vercel-pro-hosting.md): Vercel Pro, static-only, superseding the Cloudflare Pages migration |
+| Company runtime | No application server, database, account service, renderer, or telemetry backend is implemented in this repository |
 
-- **One static deployment.** The GitHub-connected Vercel project at
-  `devmatrix-console.vercel.app` (Pro plan — ADR-0034) serves the
-  committed, single-file `portal/console/dist-hosted/index.html`, built
-  deterministically and verified against drift in CI: since the
-  2026-09-01 cutover the project's Root Directory is the repository
-  root and the root `vercel.json` sets the output directory plus the
-  in-box card's `/start → /#/guide` redirect. The prototype is no
-  longer publicly served (it stays in-repo as the design reference).
-  Standing guard from the first attempt: a repository-root
-  `vercel.json` is read whenever it exists, so it must always move in
-  the same coordinated change as the Root Directory setting — adding
-  it early failed the build (observed 2026-08-12, deployment
-  5863328863). No server, database, functions, or telemetry backend
-  runs.
-- **The release chain is owned by [AGENTS.md](../AGENTS.md).** Commit,
-  push, deploy, and verification rules live there; this file does not
-  duplicate them.
-- **Production is verified live.** `scripts/verify-live.mjs`
-  (`make verify-live`) compares the live response byte-for-byte with the
-  committed artifact production actually serves — since the cutover,
-  `portal/console/dist-hosted/index.html` — and the CI
-  `verify-production` job runs it on every push to `main`, additionally
-  requiring a successful provider deployment for the exact pushed
-  commit when the artifact changed since the previous commit.
-  `DEVMATRIX_LIVE_FILE` overrides the artifact path for verifying any
-  other artifact against a preview. The verifier default and the
-  dashboard setting always move in the same change — never apart, or
-  every release fails closed (the atomicity rule ADR-0016 wrote and
-  ADR-0034 keeps).
-- **The domain is live.** `devmatrix.flighttrackerled.com` (ADR-0025,
-  ADR-0034) attached to the project on 2026-09-01 — Production
-  environment, verified "Valid Configuration" — via a **DNS-only
-  CNAME** (no proxy) in the parent domain's Cloudflare zone pointing
-  at the project's `vercel-dns-017.com` target. Shipped firmware
-  ≥ 0.9.0 pins this origin in its CORS allowlist, so hosted-connect
-  works for the fleet as shipped, and the in-box card's printed
-  `/start` URL resolves (hardware/README's print gate is closed).
-- **The hosting decision** is
-  [ADR-0034](adr/ADR-0034-vercel-pro-hosting.md), superseding
-  ADR-0016's Cloudflare migration: the Console stays on the Vercel Pro
-  project (commercial use permitted on Pro), still static-only — no
-  Functions, no database, no accounts, no standing compute. ADR-0016's
-  atomicity rule survives: if the host ever changes again,
-  `scripts/ship.mjs` and `scripts/verify-live.mjs` retarget in the
-  same change as the deploy target.
-- **The destination is decided**:
-  [ADR-0025](adr/ADR-0025-hosted-console-domain.md) names
-  `devmatrix.flighttrackerled.com` as the hosted Console's domain.
-  Outstanding owner action before the migration: create the DNS record.
-  The device-served Console stays authoritative either way — the hosted
-  copy is a convenience and a demo, never a dependency
-  ([docs/PORTAL.md](PORTAL.md)).
-- **Release artifacts** — firmware, recovery images, Registry
-  metadata, and app packages — will ship as signed GitHub Release
-  assets, mirrorable and locally installable (ADR-0016). None exist
-  yet: the signing pipeline is gate M0 work. Since 2026-08-16 every
-  firmware version is annotated-tagged (`vX.Y.Z`, e.g. `v0.11.0`) so
-  versions, commits, and hardware evidence reconcile ahead of that
-  pipeline.
-- **Outstanding pre-sale dashboard hardening.** Two enforcement gaps
-  are dashboard-side and cannot be closed from the repository:
-  (1) Vercel deploys each push immediately, before CI concludes — a
-  failing commit still goes live until `verify-production` flags it;
-  enable build gating (deployment protection / required checks, or an
-  Ignored Build Step keyed on CI) before anything is sold. (2) The
-  private free-plan repository cannot enable branch protection;
-  making the repository public (GA requires public source anyway) or
-  upgrading the plan unlocks required status checks and force-push
-  protection for `main`.
+The device serves its own Console. The hosted page is an additional way to
+connect or try the demo, not a device dependency
+([PORTAL.md](PORTAL.md)). The prototype remains a repository design reference;
+it is not the production output.
+
+**Verified 2026-09-08:** the GitHub repository is public, `main` is its default
+branch, and both public Console origins returned the committed 143,051-byte
+artifact for commit `180f0572edebe133c7e7f22bf5b2c962dfee7f4b`, SHA-256
+`b3bfdc54d85301a7ef7d1e59fc0b996964f845fab6e1f8ae2b42fffbd69c822a`.
+These are dated observations, not a promise that future deployments match.
+The Vercel billing plan and dashboard build settings were not re-audited by
+that byte comparison.
+
+## Before and after a release
+
+Follow [AGENTS.md](../AGENTS.md) for the complete authorized release chain.
+Read-only diagnosis does not authorize a release:
+
+```sh
+git status --short --branch
+make check
+git diff --check
+make verify-live
+```
+
+A Console change also requires `make console-verify` before release.
+`make verify-live` compares live bytes against the committed artifact.
+A local build, successful push, provider deployment, successful CI run, and
+verified public artifact are distinct facts; report each only when proved.
+
+The [verifier](../scripts/verify-live.mjs) defaults to the Vercel alias.
+Check the canonical domain and printed `/start` route separately when
+diagnosing DNS or onboarding problems; a working alias cannot establish
+that the printed domain is usable. `DEVMATRIX_LIVE_FILE` selects another
+committed artifact for a deliberate verification target; keep production
+defaults aligned with the provider configuration.
+
+Changing the provider Root Directory, output path, or host requires a
+coordinated change to the provider and the release/verifier configuration.
+The original failed cutover demonstrated that a root `vercel.json` can be
+read even while the project's Root Directory points elsewhere.
+[ADR-0034](adr/ADR-0034-vercel-pro-hosting.md) preserves the coordinated-cutover
+rule; changing files alone does not change the dashboard.
+
+## Enforcement still to close
+
+The 2026-09-08 read-only GitHub check found classic `main` protection enabled:
+admin enforcement on, force pushes off, branch deletion off. **Required status
+checks and required pull-request reviews were unset.** Earlier statements
+that protection was unavailable on a private free-plan repository are obsolete.
+
+Vercel's Git integration and repository checks are separate systems.
+The repository does not itself establish that Vercel waits for all CI jobs
+before serving a push. CI's `verify-production` job currently depends on
+`validate`, while Console build and firmware compile run separately.
+A successful artifact-verification job alone is therefore not proof of the
+whole workflow passing. Confirm provider gating and required checks before
+claiming production is protected against failed builds; the
+[full review](reviews/2026-09-08-full-review/README.md) records the remaining
+release-tooling gaps. Do not bypass the existing release chain to close them.
+
+## When production is wrong
+
+1. Record the failing URL, time, response status/hash, expected commit, exact
+   CI run, and provider deployment result. Keep credentials out of the report.
+2. Check whether the issue is DNS/redirect, stale artifact, a failed build,
+   or a product behavior that also occurs in the device-served Console.
+3. Prepare a minimal fix or a reviewed revert of the offending change. A
+   revert creates a new commit; do not reset shared history.
+4. Once a release is authorized, use the normal release chain and prove the
+   canonical domain, guide redirect, and artifact again.
+
+No provider-side instant-rollback drill is recorded here. A provider rollback
+would change what is served without moving Git and needs explicit incident
+authorization plus reconciliation afterward. The device-served Console is
+the owner's fallback while the hosted page is being repaired.
 
 ## Secrets and credentials
 
-The layers, closest to the secret first:
+- The repository sensitive-data gate checks tracked files for known credential
+  signatures; `.env*` files are ignored. This is detection, not proof that
+  every secret format or historical commit is clean.
+- CI credentials belong in GitHub Actions secrets and provider settings.
+  Operator tools may use the operator's authenticated local session; never
+  print, copy into a report, or commit those credentials.
+- Device-held credentials and firmware-signing keys are owned by
+  [SECURITY.md](SECURITY.md). Host-app configs, tokens, and provider keys have
+  different storage paths documented in [examples/README.md](../examples/README.md).
+  Do not promise that every provider key is stored on the panel: Pixlet keys
+  live on the owner's host.
+- Bench Wi-Fi credentials, receiver endpoints, raw flash/NVS backups, and
+  owner configuration stay in private local files. A factory-wipe record
+  belongs in hardware evidence; its secret contents do not.
+- For an exposed credential, revoke or rotate it first and assess the affected
+  surface. History cleanup is a separate coordinated operation: it rewrites
+  shared history and is not authorized by an ordinary docs fix. Extend the
+  detection gate for the observed leak class after reviewing false positives.
 
-- **Nothing secret is ever committed.** The `scripts/check-repo.mjs`
-  sensitive-data gate scans every tracked file for credential
-  signatures on every run; local `.env*` files are git-ignored.
-- **CI and deploy credentials** live only in GitHub Actions secrets
-  and the deploy provider's own settings. Contributor machines hold no
-  shared secrets.
-- **Owner-supplied provider keys** (for example a stocks key,
-  [ADR-0015](adr/ADR-0015-official-app-data-providers.md)) are entered
-  by the owner, stored in device NVS, referenced by apps as named
-  credential handles, and never transit company infrastructure.
-  [docs/SECURITY.md](SECURITY.md) owns the key hierarchy.
-- **Firmware signing keys** are owned by
-  [docs/SECURITY.md](SECURITY.md) (Identity & key hierarchy, Ops &
-  supply chain) — link only.
-- **Bench configuration stays local.** Development Wi-Fi credentials,
-  LAN addresses, and receiver endpoints live only in git-ignored local
-  files or environment variables — never in the repository and never
-  in a shipped image ([docs/SECURITY.md](SECURITY.md) owns the
-  shipped-unit guarantee, ADR-0023).
-- **Incident rule.** An exposed credential is revoked, rotated, and
-  purged from history — then the checker's pattern list is extended in
-  the same change, so the class of leak is caught next time, not just
-  the instance.
+## Monitoring and release artifacts
 
-## Observability
+[CI](../.github/workflows/ci.yml) runs repository, Console, and firmware checks.
+It also schedules daily artifact verification at `09:17 UTC` and repeats
+production verification on pushes to `main`. Inspect the actual run result;
+a schedule declaration is not evidence that every run completed or that an
+incident notification reached an operator.
 
-- **Company side:** static artifact availability and integrity are
-  monitored without any device telemetry — a GA requirement
-  ([docs/PRODUCTION-PLAN.md](PRODUCTION-PLAN.md) §GA). Implemented
-  today for the one live artifact: the CI `verify-production` job
-  re-proves the served page byte-for-byte against the committed
-  artifact on a **daily schedule** (`.github/workflows/ci.yml`) in
-  addition to every push. When release artifacts begin at gate M0,
-  monitoring extends to their hashes and signatures staying fetchable
-  and reconciling; there is no device telemetry to consume, by design.
-- **Owner side:** fleet visibility is the Console fleet view —
-  same-LAN in Local Mode, cross-site via the paid Cloud track. The
-  feature matrix in [docs/MODES.md](MODES.md) and the Console spec in
-  [docs/PORTAL.md](PORTAL.md) own the details; they are not restated
-  here.
+Firmware, recovery images, Registry metadata, and app packages are intended
+to become signed, mirrorable GitHub Release assets. The current tree has
+firmware compile checks but no completed signed-artifact release pipeline.
+Follow the [roadmap](../ROADMAP.md) for that gate and
+[SECURITY.md](SECURITY.md) for signing responsibilities. Historical tags and
+bench binaries are not a signed public recovery distribution.
 
-## Wi-Fi and provisioning
-
-Owned elsewhere: [docs/SECURITY.md](SECURITY.md) "Discovery & local
-transport" and the [docs/PORTAL.md](PORTAL.md) five-minute first
-pixel. Link only.
+When those assets exist, extend monitoring to availability, hashes,
+signatures, and correspondence to release commits. No device telemetry is
+needed. Owner-visible device diagnostics and fleet capabilities are owned by
+[PORTAL.md](PORTAL.md) and [MODES.md](MODES.md).

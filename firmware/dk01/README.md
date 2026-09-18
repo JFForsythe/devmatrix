@@ -1,9 +1,13 @@
 # DK-01 firmware
 
-The firmware that makes the DK-01 plug-and-play: power it up, join its
-setup hotspot, pick your Wi-Fi on a friendly page, and the box hands you
-its Console and API token. From then on it updates over the air — USB is
-a one-time event.
+Build and extend the firmware for the DK-01 64×32 display. It serves the
+Local Console, runs the bundled declarative apps, and accepts content from
+your own scripts over LAN REST or MQTT.
+
+**Current source: v0.12.6, before the P2 contract freeze.** The features
+below exist in source; signed updates, recovery acceptance, and other
+release gates remain tracked in [ROADMAP.md](../../ROADMAP.md). A successful
+compile does not establish that a board is ready to sell.
 
 **No secrets live in this code, ever.** Wi-Fi and MQTT credentials plus
 the LAN token are created at runtime and stored only in the device's NVS
@@ -17,7 +21,9 @@ owner-facing walkthrough — setup, Console, apps, updates, recovery — is
 
 - **Setup hotspot** — first boot opens `DEVMATRIX-XXXX`; a captive
   portal scans your networks and joins live (no blind reboot-and-pray).
-  The phone that ran setup signs into the Console automatically.
+  The Finish link can carry that browser's token into the Console. Captive
+  mini-browsers may require reopening and pairing in a full browser; follow
+  [the setup walkthrough](../../docs/MANUAL.md).
 - **Claim-code pairing** — any other browser taps **Pair**, the panel
   shows a 6-digit code (white row, then blue), and typing it earns the
   LAN token. Reading the panel *is* the credential: nothing to write
@@ -29,8 +35,9 @@ owner-facing walkthrough — setup, Console, apps, updates, recovery — is
   canvas, brightness, identify, timezone, token rotation, and OTA
   upload, plus optional MQTT broker settings. No cloud, no account, no
   internet required.
-- **Clock** — SNTP native clock with seconds bar, shown whenever
-  nothing else is.
+- **Clock** — native clock with seconds bar. Its present time-source
+  dependency and fallback are described in
+  [docs/FIRMWARE.md](../../docs/FIRMWARE.md#boot-and-main-loop).
 - **`/api/v1`** — Bearer-token HTTP API for everything the Console
   does. The Console's **Dev console** view writes the curl commands for
   you.
@@ -41,45 +48,60 @@ owner-facing walkthrough — setup, Console, apps, updates, recovery — is
 - **OTA** — upload a `.bin` from the Console. Dual app slots; the
   TinyUF2 factory partition survives every update for USB recovery.
 
-## Build it
+## Build it from the repository root
+
+Install [Arduino CLI](https://arduino.github.io/arduino-cli/) first. These
+versions match the current repository CI. The original core pin in
+ADR-0013 still needs reconciliation; see
+[docs/FIRMWARE.md](../../docs/FIRMWARE.md#stack).
 
 ```sh
-arduino-cli core install esp32:esp32          # pinned family: 3.3.x
-arduino-cli lib install "Adafruit Protomatter" # 1.7.1
+arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+arduino-cli core install esp32:esp32@3.3.11 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+arduino-cli lib install "Adafruit Protomatter@1.7.1"
 arduino-cli lib install "ArduinoJson@7.4.3"
 arduino-cli lib install "Crypto@0.4.0"         # Rhys Weatherley — Ed25519 device identity
 arduino-cli compile --fqbn esp32:esp32:adafruit_matrixportal_esp32s3 \
   --output-dir out firmware/dk01
 ```
 
-Console changes happen in `portal/console/`; edit `portal/console/src/`
-and run `npm run build` from `portal/console/` before compiling firmware.
+The generated Console is committed, so an unchanged checkout needs no
+Node build. For Console changes, edit `portal/console/src/`, run `npm ci`
+and `npm run build` inside `portal/console/`, then run `make console-verify`
+from the repository root before compiling firmware. Never edit
+`web_console.h` by hand.
 
 `out/dk01.ino.bin` is what the Console's **Deploy → OTA upload** card
 wants.
 
-## First (and last) cable flash
+## Cable flash
+
+List connected boards, then use the exact port for the intended board:
 
 ```sh
+arduino-cli board list
 arduino-cli upload --fqbn esp32:esp32:adafruit_matrixportal_esp32s3 \
-  -p /dev/cu.usbmodem* firmware/dk01
+  --input-dir out --port /dev/cu.usbmodemREPLACE_ME firmware/dk01
 ```
 
-macOS re-enumerates the port constantly — glob it, never hardcode it,
-and never hold a serial monitor open while uploading (the port is
-exclusive-open).
+Replace the example port with the board-list result. macOS may change it
+after a reset, so list again when it does. Close any serial monitor before
+uploading. A wildcard is ambiguous when several boards are connected.
 
 ## USB recovery (make a UF2)
 
 The TinyUF2 factory partition mounts the board as a USB drive on a
 double-press of reset ([docs/MANUAL.md](../../docs/MANUAL.md) ch. 10).
 The drive wants a `.uf2`, not the `.bin` the build produces — convert
-with `uf2conv.py` from Microsoft's public
-[uf2 repository](https://github.com/microsoft/uf2), using the ESP32-S3
-UF2 family id (offset 0 is the app-slot base TinyUF2 expects):
+with Microsoft's public
+[uf2conv.py](https://github.com/microsoft/uf2/blob/master/utils/uf2conv.py).
+Download that script first; it is not included in this checkout. Run the
+following from the repository root, replacing `/path/to/uf2conv.py` with
+its saved location. This uses the ESP32-S3 UF2 family id (offset 0 is the
+app-slot base TinyUF2 expects):
 
 ```sh
-python3 uf2conv.py out/dk01.ino.bin -c -f 0xc47e5767 -b 0x00 \
+python3 /path/to/uf2conv.py out/dk01.ino.bin -c -f 0xc47e5767 -b 0x00 \
   -o out/dk01.uf2
 ```
 
@@ -109,57 +131,35 @@ curl -H "$H" -H 'Content-Type: application/json' \
      http://dmx-xxxx.local/api/v1/display/text
 ```
 
-Routes: `health`, `info`, `display/text`, `display/frame` (4096 bytes
-RGB565 little-endian, base64 in `{"b64":…}`), `display/brightness`,
-`display/clear`, `identify`, `identity` (open GET — Ed25519 public key
-and fingerprint) + `identity/verify` (open POST `{"nonce":…}` — signs
-`"dmx-id-v1:<serial>:" + nonce` so a browser can prove this host is the
-panel, ADR-0031), `claim/start` + `claim/finish` (pairing —
-start is open, finish wants the panel code and returns the token plus
-the identity key for pinning), `settings` (GET/POST,
-`tz`), `mqtt` (GET/POST; password is write-only), `token/rotate`,
-`reboot`, `wifi/reset`, `factory/reset`, `apps` (GET/POST enable + scene
-interval), `apps/diag` (GET — per-app fetch verdicts: last HTTP code,
-bytes, `ok`/`too-big`/`bad-json`/`no-url`/`no-aircraft`/`bind-miss`/
-`connect-failed`/`http-<code>`, plus
-the fetch-buffer size; the answer to "why is this app blank?"),
-`apps/messages` (GET/POST), `apps/messages/show`,
-`apps/custom` (GET/POST — shape in contracts/layout.md),
-`apps/custom/show`, `apps/flights` (GET/POST),
-`apps/flights_list/show`, and `POST /update` (multipart `.bin`, OTA).
-There is deliberately no discovery/scan route: the device never opens a
-connection to an address the owner didn't configure (ADR-0032).
-Text submitted to `display/text` is capped at 120 characters. JSON
-bodies need `Content-Type: application/json` and are refused over
-8 KB (413). Tokens minted by firmware 0.12.0+ carry a `dmx_lan_`
-prefix; older bare-hex tokens stay valid. Scripts get the token from the
-Console's **Dev console** view (**COPY WITH MY TOKEN**) or USB serial.
+The full route table, request examples, ranges, identity and pairing protocol,
+and error responses live in [contracts/rest.md](../../contracts/rest.md).
+For integrations, start with [examples/README.md](../../examples/README.md);
+for your own on-device layout, use
+[contracts/layout.md](../../contracts/layout.md). There is no device-side
+receiver discovery route (ADR-0032).
+
+Use the Console's **Dev console → COPY WITH MY TOKEN** or the boot-time
+USB serial output to obtain your token. It grants full device control;
+[docs/SECURITY.md](../../docs/SECURITY.md) owns the trust and transport limits.
 
 ## Files
 
 | File | What it is |
 |---|---|
-| `dk01.ino` | The whole firmware — boot, Wi-Fi, scenes, API, OTA |
+| `dk01.ino` | Main sketch — boot, Wi-Fi, scenes, API, OTA |
 | `mqtt_client.h` | Static-buffer esp-mqtt client, contract envelopes, replay guard, state, and Home Assistant discovery |
 | `apps_engine.h` / `apps_builtin.h` | Declarative-app parser, renderer, scheduler, and built-in app state |
 | `web_setup.h` | Captive-portal setup page (embedded, zero assets) |
 | `web_console.h` | GENERATED from `portal/console` — do not hand-edit; edit `portal/console/src` and run `npm run build` |
 
-## Honest limits (current tree, pre-P2-freeze)
+## Before using a development build
 
-- Plain HTTP on the LAN is permanent (ADR-0031). Server identity is the
-  Ed25519 signed-nonce proof above, not TLS; the CORS allowlist admits
-  only the hosted Console origin and the Host allowlist rejects DNS
-  rebinding. Expect the browser's "Not secure" chip — same as Home
-  Assistant, ESPHome, and OctoPrint.
-- Declarative-app fetches to `https://` sources are encrypted but not
-  yet certificate-verified — the CA-store contract is P2 work. Prefer
-  LAN sources until then.
-- MQTT TLS uses esp-mqtt's encrypted transport but is likewise not CA-
-  verified before P2. Use a trusted LAN/VPN broker path and do not treat
-  the TLS toggle as broker identity proof yet.
-- OTA images are length/magic-checked, not yet signature-verified, and
-  automatic boot-failure rollback is M0 work — until then the TinyUF2
-  USB drag-and-drop is the recovery path.
-- The `/api/v1` shapes here are implementation-informed **drafts**;
-  contracts/ freezes them at P2.
+Read [the current security posture](../../docs/SECURITY.md#what-exists-today)
+for setup-window exposure, plain HTTP and key-pinning limits, outbound TLS,
+and unsigned OTA. Dual app slots exist; automatic rollback and USB recovery
+still require the hardware acceptance evidence in
+[ROADMAP.md](../../ROADMAP.md). USB may be needed again after a bad update.
+
+The API shapes remain drafts until P2. For known defects and the exact scope
+of the latest source review, see
+[firmware and contracts review](../../docs/reviews/2026-09-08-full-review/firmware-and-contracts.md).

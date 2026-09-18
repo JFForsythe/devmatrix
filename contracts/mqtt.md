@@ -33,7 +33,7 @@ canonical serial `DMX-4E71-0952`
 | `devmatrix/DMX-4E71-0952/state/<resource>` | device | Last known state, retained — e.g. `state/display`, `state/health` |
 | `devmatrix/DMX-4E71-0952/event/<kind>` | device | Transient occurrences, never retained — e.g. `event/button`, `event/app`. **Planned — no firmware publishes events yet** |
 | `devmatrix/DMX-4E71-0952/request/<verb>` | client | Commands; verbs are dot-namespaced in one topic level, e.g. `request/display.text` |
-| `devmatrix/DMX-4E71-0952/response/<request-id>` | device | Exactly one response per request, correlated by the request's `id` |
+| `devmatrix/DMX-4E71-0952/response/<request-id>` | device | Correlated response attempt for a valid request id; delivery is not guaranteed |
 
 ## Message envelope
 
@@ -74,14 +74,28 @@ and Home Assistant expects plain availability payloads.
 | `request/<verb>` | no | 1 | Never retain a request — a retained command re-fires for every new subscriber; `expiry` backstops queued duplicates |
 | `response/<request-id>` | no | 1 | Correlated by topic; the requester unsubscribes after receipt |
 
-QoS 2 is unused by design: the envelope `id` makes handlers idempotent
-where it matters, at far lower cost on a small device. A duplicate
-delivery of an already-seen `id` is dropped **without a second
-response** — clients treat the first response as authoritative. A
+QoS 2 is unused. The device remembers only the eight most recent request
+ids in RAM; another eight distinct ids can evict an earlier command, and
+reboot or MQTT reconfiguration clears that memory. A still-remembered duplicate
+is dropped **without a second response**. This is bounded deduplication,
+not a durable exactly-once guarantee. If the first response is lost, a retry
+with the same id may receive no answer. A
 request whose `id` is missing or not a well-formed UUID is dropped
 silently (no valid response topic exists to answer on).
 
+Expiry relies on the device's wall clock. Before SNTP sets it, a request
+with a modern timestamp is in the future and can pass the current expiry
+check; there is no future-skew rejection or unsynchronized-clock guard.
+Do not treat replay rejection as proven before clock synchronization. Queue
+and payload bounds today are four inbound requests and 2,048 bytes per
+request; overflows may return `device-busy` or `payload-too-large` when an id
+can be recovered.
+
 ## Worked examples
+
+The timestamps and UUIDs below are illustrative. Generate a fresh UTC
+timestamp and unique id for each real command; copying these old timestamps
+into a synchronized device produces `request-expired`.
 
 **Push text — the request/response round trip.** Subscribe to
 `devmatrix/DMX-4E71-0952/response/+` (or the exact id below), then
@@ -115,7 +129,9 @@ Had the request arrived after `ts + expiry`, the same topic would carry
 
 Brightness uses the 0–255 Home Assistant light convention (draft; the
 P2 schema decides finally). The device confirms on the response topic
-and republishes the retained `state/display`.
+and republishes the retained `state/display`. The scale maps linearly to
+REST's 10–150 hardware range: MQTT 0 means minimum brightness 10, not off;
+MQTT 255 means hardware brightness 150.
 
 **Other implemented verbs.** `request/display.clear` takes an empty
 `payload` (`{}`) and returns the panel to its scheduled rotation.
@@ -154,9 +170,14 @@ republishes discovery after a Home Assistant restart. The M2 acceptance
 is zero custom YAML: Home Assistant discovers and controls the device
 with no manual configuration ([ROADMAP.md](../ROADMAP.md)).
 
+The current light discovery always reports `on`, and its off command sets
+the safe minimum brightness rather than blanking the display. Actual off
+behavior and end-to-end Home Assistant conformance remain open work; do not
+promise an off switch based on the entity type alone.
+
 ## Broker configuration
 
-The broker is always the owner's own, on their LAN —
+The broker is always the owner's own; the normal setup is on their LAN —
 [docs/SECURITY.md](../docs/SECURITY.md) owns that stance. The company
 runs no broker, and a device never requires one to exist: MQTT is an
 optional integration beside the always-present LAN API.
@@ -178,9 +199,16 @@ topic read homeassistant/status
 
 The device's MQTT username and password are entered on the Console
 ([docs/PORTAL.md](../docs/PORTAL.md) owns the Console IA); the password
-field is write-only, and rotation is re-entering it.
+field is write-only, and rotation is re-entering it. REST omits `password`
+to preserve it and accepts an explicit empty string to clear it. MQTT TLS
+is not a verified working path in the current tree; see
+[SECURITY.md](../docs/SECURITY.md#outbound-connections) before configuring a
+broker outside a trusted LAN/VPN.
 
-## Console workbench
+## Console workbench — planned
+
+The workbench is a specification, not a currently available broker-terminal
+feature in the Console.
 
 Browsers cannot open raw MQTT TCP connections. That choice is now
 decided ([ADR-0028](../docs/adr/ADR-0028-mqtt-stack.md)): the Console's
@@ -197,7 +225,10 @@ alternative was routing through the device's own MQTT client over the
 multiplexed event socket; the device is not made a broker proxy for the
 Console.
 
-## Reserved prefixes and apps
+## Reserved prefixes and apps — M4 target
+
+The current firmware has no `.dmapp` parser or app MQTT permission engine.
+The following is the required future boundary.
 
 Everything under `devmatrix/<serial>/` shown above is device-reserved.
 Apps declare their MQTT topic patterns in the `.dmapp` manifest; the

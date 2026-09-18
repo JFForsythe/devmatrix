@@ -1,8 +1,24 @@
 # User story — the canonical example
 
-This is the journey every design decision serves. Mock data in the
-Console prototype uses these exact identifiers (the repo's working
-agreements pin this rule).
+This is the **target buyer journey**, illustrated by a fictional owner. It
+is a design reference, not setup instructions or evidence that its timings
+and features work today. Use the [manual](MANUAL.md) to operate a real unit.
+Both Console demos use the canonical identifiers in this story; keep those
+identifiers intact when updating the narrative.
+
+Read the story with these implementation boundaries:
+
+| Story element | Current status owner |
+|---|---|
+| Hotspot setup, six-digit browser pairing, first message | [Manual, chapters 3–6](MANUAL.md) |
+| USB Improv and physical-button claiming | [Console spec](PORTAL.md), **Ahead · M0/M1** |
+| Naming, live Mirror, audit history, quiet hours | [Console spec](PORTAL.md), planned controls |
+| App Registry and `.dmapp` drag-and-drop | [Firmware app model](FIRMWARE.md), **Ahead · M4** |
+| Automatic rollback, browser USB, signing-key enrollment | [Security](SECURITY.md), **Ahead · M0/M2** |
+| Passkey accounts, remote fleet, guest links | [Modes](MODES.md), demand-driven Cloud track |
+
+The times below are acceptance targets. The complete story has not passed
+end-to-end hardware or independent-user acceptance.
 
 **Maya Chen**, 41. Sold her infrastructure company three years ago.
 Runs a homelab she's mildly embarrassed about how much she loves. Buys
@@ -17,7 +33,7 @@ as targets, because they are. She ordered a DK-01 after a friend's demo.
   install.
 - **T+0:01 — Power.** The panel types its boot line (VISION.md owns
   the copy), then: `SETUP: JOIN DEVMATRIX-0952` — the setup hotspot.
-  (USB Improv works too; either way, no app.)
+  (USB Improv is an **Ahead · M0** alternative.)
 - **T+0:02 — WiFi.** She picks her network in the captive portal. The
   panel now shows its address and claim code:
   `dmx-0952.local · 482913` (the panel shows it as two rows of three).
@@ -34,7 +50,8 @@ Local and free; docs/MODES.md is the line.)*
   dashboard shows the Mirror — her actual panel, live. The quickstart
   hands her a copy-paste command with her LAN token already embedded:
   `curl -X POST http://dmx-0952.local/api/v1/display/text -H
-  "Authorization: Bearer dmx_lan_…" -d '{"text":"SHIP IT"}'`
+  "Authorization: Bearer dmx_lan_…" -H "Content-Type: application/json"
+  -d '{"text":"SHIP IT"}'`
   — and SHIP IT scrolls across the physical panel. Under five minutes,
   as promised.
 - **After success — optional reach.** Only now does she add a passkey

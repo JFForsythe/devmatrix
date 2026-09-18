@@ -8,26 +8,49 @@ step-by-step instructions.
 Two status labels keep this manual honest (a P0 rule — no unsupported
 claim in this repo):
 
-- **Today** — current firmware v0.12.6 behavior. This slice is build-verified;
-  final on-panel and live-receiver acceptance remains a hardware step.
+- **Today** — implemented behavior in the [current firmware](../firmware/dk01/README.md).
+  This label does not imply every hardware acceptance test passed; the
+  [evidence index](../hardware/README.md) records what was tested and when.
 - **Ahead · gate X** — specified and coming; the gate names are
   [ROADMAP.md](../ROADMAP.md)'s. Nothing labeled Ahead is a promise the
   current firmware keeps.
+
+## Find the right instructions
+
+| I want to… | Start here |
+|---|---|
+| Use an assembled kit | [First boot](#first-boot), then [pairing](#pairing) |
+| Build firmware for a bare board | [Build and flash](#build-firmware) |
+| Put my first message on the panel | [Console → Apps](#console-pages) |
+| Send content from my own code | [HTTP API walkthrough](#first-api-request) |
+| Choose between built-in and computer-hosted apps | [App types](#app-types) |
+| Set up flights or community Pixlet apps | [Host apps](#host-apps) |
+| Fix a connection or reset problem | [Troubleshooting](#troubleshooting), then [recovery](#recovery) |
+
+**Before you start:** use a network you trust. Current setup, token handling,
+and firmware updates have known security limits in [SECURITY.md](SECURITY.md).
+A demo success message does not prove a physical panel displayed anything.
+For real setup, success means seeing your chosen message on the panel.
 
 ## 1 · What you need — Today
 
 - The board and panel: Adafruit MatrixPortal S3 driving a 64×32 HUB75
   RGB matrix (the DK-01 hardware, [docs/VISION.md](VISION.md)).
   Verified bring-up evidence lives in [hardware/](../hardware/).
-- A 5 V USB-C supply rated **2 A or more** — a modern 10–15 W phone
-  brick qualifies; a 1 A charger or an unpowered laptop port does not.
+- For development, a USB-C supply whose label specifies **5 V at 2 A or
+  more**. Check the 5 V output rating; an advertised fast-charging wattage
+  alone does not establish suitability.
   A full-bright white frame can out-draw weak USB-C power and
   brown-out the board — the firmware caps brightness at 150/255 for
-  exactly that reason, and the Dashboard warns you when a reset was a
-  brown-out.
+  that reason, and the Dashboard warns you when a reset was a
+  brown-out. This is a starting guideline; supply/cable qualification is
+  still open in the [hardware evidence](../hardware/README.md).
 - A phone or laptop with Wi-Fi, and a 2.4 GHz network to join.
-- No app, no account, no cloud needed for anything in this manual
-  ([docs/MODES.md](MODES.md) owns that split).
+- No phone app, company account, or company cloud is needed for Local Mode.
+  Individual data apps can require outside services, provider accounts, or an
+  always-on computer; [docs/MODES.md](MODES.md) owns that split.
+
+<a id="build-firmware"></a>
 
 ## 2 · Get the firmware onto the board — Today
 
@@ -35,19 +58,21 @@ claim in this repo):
 skip straight to chapter 3. This chapter is for bare boards, forks,
 and rebuilding from source.
 
-One cable flash, then never again (updates go over the air):
+Use a cable for the initial flash and keep it for recovery. Later firmware
+updates can go over the LAN:
 
-1. Install `arduino-cli`, the pinned `esp32` core (3.3.x), and
-   Adafruit Protomatter 1.7.1 — exact commands in
+1. Install `arduino-cli` and all core/library versions listed in the
+   firmware guide — exact commands in
    [firmware/dk01/README.md](../firmware/dk01/README.md).
 2. Compile and upload `firmware/dk01/` with the
-   `adafruit_matrixportal_esp32s3` board target (same README, "First
-   (and last) cable flash").
+   `adafruit_matrixportal_esp32s3` board target (same README, **Cable flash**).
 3. The panel boots into the setup flow below.
 
 Re-flashing a board that has been used before? Chapter 10 → **Back to
 default** returns it to out-of-box first — the settings wipe needs no
 token and no working Console.
+
+<a id="first-boot"></a>
 
 ## 3 · First boot and Wi-Fi — Today
 
@@ -57,8 +82,10 @@ token and no working Console.
    portal opens by itself. If it doesn't, browse to `http://192.168.4.1`.
 3. The portal scans and lists your networks live. Pick yours, type the
    password, and watch it join — no blind reboot-and-hope.
-4. When the join succeeds, the phone that ran setup is signed in to
-   the Console automatically. (If nothing taps Finish, the device
+4. When the join succeeds, use **Finish** in the setup page, then rejoin
+   your normal Wi-Fi. The full browser may retain the setup token; captive
+   portal mini-browsers may not share storage with it. If pairing is asked
+   for, follow chapter 4. (If nothing taps Finish, the device
    closes its setup hotspot by itself 90 seconds after the join and
    boots onto your Wi-Fi.)
 5. After the restart the panel itself walks you to the last step:
@@ -80,13 +107,17 @@ Security → **CHANGE WI-FI…** reopens this flow (or `POST /api/v1/wifi/reset`
 hotspot step) — specified in [docs/PORTAL.md](PORTAL.md);
 [docs/MODES.md](MODES.md) owns the gate.
 
+<a id="pairing"></a>
+
 ## 4 · Claim the device and pair more browsers — Today
 
-The phone that ran setup is already paired. For every other browser:
+If the browser received the setup token it is already paired. Otherwise,
+or for any additional browser:
 
 1. Browse to `http://dmx-xxxx.local/` and tap **Pair**.
 2. The panel shows a 6-digit code — a white row, then blue.
-3. Type the code into that browser. It now holds the LAN token — the
+3. Type all six digits without a space or hyphen; the current input can
+   truncate a pasted separator. It now holds the LAN token — the
    bearer credential every API call uses ([docs/GLOSSARY.md](GLOSSARY.md)).
 
 Codes expire after 5 minutes, die after 5 wrong tries, and asking
@@ -95,28 +126,27 @@ panel *is* the proof of possession: nothing to write down, and a lost
 browser never means factory reset — just pair again. To revoke every
 existing session at once: Security → **ROTATE LAN TOKEN**.
 
-Pairing also pins the device's **identity key**: the box signs every
-later challenge with an Ed25519 key minted on its first boot, and the
-Console verifies the signature against the key it pinned here — so an
-mDNS spoofer squatting `dmx-xxxx.local` cannot impersonate your panel
-(ADR-0031; [docs/SECURITY.md](SECURITY.md) → Discovery & local
-transport). Check or re-run the proof any time: Security → **Device
-identity** → **VERIFY NOW**.
+The Console can pin the device's **identity key** and run a signed-nonce
+check in **Security → Device identity → VERIFY NOW**. This checks key
+continuity against the stored key. It does not encrypt HTTP or protect all
+later API calls, and the current saved-token reconnect path does not require
+the check before sending credentials. Use the address read from your own
+panel; do not follow someone else's `?device=` link in a paired browser.
+[SECURITY.md](SECURITY.md) explains first-contact and active-network limits.
 
-**Prefer starting from the hosted Console?** Open
-`https://devmatrix.flighttrackerled.com` (live since the 2026-09-01
-cutover — [docs/OPERATIONS.md](OPERATIONS.md) owns the hosting state;
-the panel's own address above serves the identical Console, so nothing
-ever depends on the hosted copy), follow the welcome
-screen, and enter the panel's address — Chrome, Edge, and Firefox ask
-once for local-network permission and then talk straight to the panel
-over your LAN. Safari doesn't allow that yet; use the panel's own
-address there. Either way the panel stays 100 % local — the hosted
-page is a static file, and nothing routes through any server of mine.
+**Prefer starting from the hosted Console?** Open the
+[hosted Console](https://devmatrix.flighttrackerled.com) and enter the panel's
+address. Browser and operating-system local-network permissions can affect
+this path. If it fails, open the panel's own HTTP address directly. That
+serves the Console from the device and works without the company site.
+[PORTAL.md](PORTAL.md) owns browser transport support; [OPERATIONS.md](OPERATIONS.md)
+owns hosting status.
 
 **Ahead · M1:** the full claim ceremony — session code on the panel
 plus a 2-second physical button hold, per
 [docs/SECURITY.md](SECURITY.md) → Ceremonies.
+
+<a id="console-pages"></a>
 
 ## 5 · The Console, page by page — Today
 
@@ -124,8 +154,8 @@ Served by the device itself at `http://dmx-xxxx.local/` — no internet
 needed. Today's Console has eight views, converged with
 [docs/PORTAL.md](PORTAL.md) from one codebase per
 [ADR-0027](adr/ADR-0027-one-console-codebase.md). The hosted copy adds
-a welcome screen that walks a new owner from unboxing to a connected,
-identity-verified panel (or into a clearly-labeled interactive demo) —
+a welcome screen that walks a new owner from unboxing to connecting and
+pairing a panel (or into a clearly-labeled interactive demo) —
 chapter 4:
 
 - **Dashboard** — live status tiles: firmware version and slot, display
@@ -155,7 +185,7 @@ chapter 4:
   it's built — then validates and saves any 2 KB JSON layout with literal
   rows or RFC 6901 bindings. Each on-device card can be enabled, assigned
   a scene interval, saved to NVS, or shown immediately. The **Pixlet
-  bridge** card covers 1,000+ community-built Tidbyt-ecosystem apps
+  bridge** card links the community Pixlet catalog
   via the owner-hosted bridge (chapter 7's host tier; installer in
   `examples/`). **Ahead · gate M4** — the Community Registry adds more
   reviewed apps, permission sheets, and one-click installation.
@@ -179,7 +209,9 @@ chapter 4:
   custom **POSIX STRING**, then **SAVE TIMEZONE**. The same view shows
   the hostname, IP address, and current Console target, with
   **FORGET / SWITCH DEVICE…** to clear this browser's stored address,
-  token, and pinned key. Its **MQTT broker** card holds the optional
+  token, and pinned key. **Current limitation:** this control may not load
+  when the saved device is offline; see chapter 13 for browser recovery.
+  Its **MQTT broker** card holds the optional
   broker host/port, username, write-only password, TLS and enable
   toggles, plus a live connection status chip.
 - **Guide** — this manual's working summary, inside the Console: the
@@ -187,19 +219,38 @@ chapter 4:
   and first-line troubleshooting. Served by the panel itself, so the
   instructions survive an internet outage.
 
+<a id="first-api-request"></a>
+
 ## 6 · Push things from your own code — Today
 
-Get `$TOKEN` from the Console's Dev console view (**COPY WITH MY
-TOKEN**). Full route list:
+Choose the panel's real address and copy the credential from **Dev console →
+COPY WITH MY TOKEN**. The generated command contains a bearer token; the
+placeholder command without that option currently quotes `$TOKEN` literally.
+Use the working pattern below and replace both quoted placeholders:
+
+```sh
+export DMX_URL='http://dmx-xxxx.local'
+export TOKEN='<your LAN token>'
+```
+
+Keep the token out of screenshots, public issues, and committed files.
+A normal token grants full device control; it is not read-only. Full route list:
 [firmware/dk01/README.md](../firmware/dk01/README.md).
 
 **Text** (up to 300 s on screen):
 
 ```sh
-curl -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+curl --fail-with-body -H "Authorization: Bearer $TOKEN" \
+     -H 'Content-Type: application/json' \
      -d '{"text":"SHIP IT","duration_s":30}' \
-     http://dmx-xxxx.local/api/v1/display/text
+     "$DMX_URL/api/v1/display/text"
 ```
+
+Expect HTTP success, a JSON response, and **SHIP IT** on the panel. If you
+get `401`, pair again and replace the token. For longer JSON or text containing
+apostrophes, save the request in `message.json` and use `--data-binary @message.json`
+in place of `-d`; the current Console command generator does not escape shell
+apostrophes correctly.
 
 **Multi-line boards:** embed `\n` in `text` and the panel switches to a
 tiny 3×5 font — up to 5 rows of 16 characters, perfect for tabular
@@ -209,12 +260,15 @@ boards like the flights list.
 4096 bytes of RGB565 (little-endian), base64-encoded in `{"b64":…}`. Host
 apps can add `"lease_ms":3000`; each new frame renews the lease, and the
 panel returns to its own rotation if the host disappears.
-Frames ride REST/WebSocket only, never MQTT (ADR-0029) — push them as
-fast as ~15 fps on your LAN.
+Today frames use REST, never MQTT (ADR-0029). WebSocket streaming is
+**Ahead · gate M1**. The host bridge limits pushes to approximately 15 fps;
+actual sustainable throughput depends on network and firmware load.
 
 **Also useful:** `display/brightness` (10–150), `display/clear`,
 `identify` (flashes the panel so you can find it), `health` (open, no
 token — good for monitoring).
+
+<a id="app-types"></a>
 
 ## 7 · The three kinds of apps
 
@@ -230,9 +284,15 @@ Messages, Flights list, and Custom layout need no other computer.
 Richer host apps such as the animated Flights Overhead radar still need
 a computer that stays on; M4 adds more reviewed declarative apps.
 
+<a id="host-apps"></a>
+
 ## 8 · Flights Overhead — Today (host app)
 
-Shows aircraft your own ADS-B receiver hears — a live list, or an
+The **on-device Flights list** needs only the panel and your local receiver:
+enter its `aircraft.json` URL in **Apps → Flights list**, enable it, and save.
+Use the host app below when you want the animated radar or host-rendered list.
+
+The host app shows aircraft your own ADS-B receiver hears — a list, or an
 animated radar with altitude-colored aircraft, comet trails, runways,
 and green landing strobes. Local receiver only, by design
 ([docs/VISION.md](VISION.md) — never a company feed).
@@ -260,11 +320,16 @@ any always-on machine with Node 18+.
    RADAR HOST COMMAND**. It looks like:
 
    ```sh
-   DMX_URL=http://dmx-xxxx.local DMX_TOKEN=<your LAN token> \
+   DMX_URL='http://dmx-xxxx.local' DMX_TOKEN='<your LAN token>' \
      node examples/flights-overhead.mjs
    ```
 
 4. Flip List/Radar from the Console while it runs — no restart needed.
+
+**Current stale-data limitation:** after a receiver outage the radar can keep
+showing the last aircraft while continuing to renew its display lease. A
+moving or populated radar is not proof of fresh receiver data. Check the host
+logs and receiver URL; stop the host process to return control to the panel.
 
 ### Keep it running when you close your laptop
 
@@ -297,36 +362,13 @@ node examples/install-flights.mjs --uninstall --purge
 ```
 
 On Linux, use the same `sudo "$(command -v node)" ...` prefix for install
-and uninstall. Re-running the installer replaces and restarts the existing
-service cleanly.
+and uninstall. Re-running the installer updates its files. On Linux, an
+already-running service also needs `sudo systemctl restart dmx-flights.service`
+to load the changes; the macOS installer restarts its agent automatically.
 
-<details>
-<summary>What it writes on Linux (systemd)</summary>
-
-The installer writes credentials to `/etc/devmatrix/flights.env` and the
-following auditable unit to
-`/etc/systemd/system/dmx-flights.service`. The two `ExecStart` paths are
-resolved absolute paths on the machine running the installer.
-
-```ini
-[Unit]
-Description=Devmatrix Flights Overhead
-After=network-online.target
-
-[Service]
-EnvironmentFile=/etc/devmatrix/flights.env
-ExecStart="/absolute/path/to/node" "/absolute/path/to/examples/flights-overhead.mjs"
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
-
-It then runs `systemctl daemon-reload` and
-`systemctl enable --now dmx-flights.service`.
-
-</details>
+Service paths, file formats, and installer limitations are owned by
+[examples/README.md](../examples/README.md). Current Linux units run as root;
+use the foreground command under your own user while evaluating the host app.
 
 ### The Pixlet bridge
 
@@ -366,63 +408,21 @@ service with the installer below, exactly as before.
 Prefer assembling the pieces by hand? The step-by-step path is in
 `examples/pixlet-bridge/README.md`.
 
-Edit `~/tronbyt/bridge.config.json` (written by the setup command), or
-craft your own anywhere and set `BRIDGE_CONFIG` to its absolute path:
+Continue with the [Pixlet bridge walkthrough](../examples/pixlet-bridge/README.md)
+for a verified starter app, foreground run, background service, and config
+reference. Use `dvdlogo` for the first local render; each community app has
+its own settings and API-key requirements.
 
-```json
-{
-  "device": {
-    "url": "http://dmx-xxxx.local",
-    "tokenEnv": "DMX_TOKEN"
-  },
-  "pixlet": "auto",
-  "appsDir": "/absolute/path/to/tronbyt-apps",
-  "rotation": [
-    {
-      "app": "apps/weather/weather.star",
-      "duration_s": 15,
-      "render_interval_s": 30,
-      "config": { "location": "Chicago" }
-    }
-  ]
-}
-```
+**Two different actions:** saving in Easy Mode writes the rotation config;
+an already-running bridge must be restarted to pick it up. Pairing Easy Mode
+also does not automatically populate the service installer's token. The
+[examples guide](../examples/README.md) explains the secret files and explicit
+`--config` path so all components use the same setup.
 
-`pixlet` may instead be the binary's absolute path. An `app` may be a path
-relative to `appsDir` or a catalog name. Keep the LAN token out of JSON: the
-bridge reads the environment variable named by `tokenEnv`.
+Raw frames stay on the LAN (ADR-0029). Community app compatibility, data
+sources, and continued maintenance vary; the company operates no Pixlet service.
 
-From the repository root, check the complete setup, push one app for one
-animation cycle, then install the rotation as a background service:
-
-```sh
-export BRIDGE_CONFIG="$HOME/tronbyt/bridge.config.json"   # or your own
-DMX_TOKEN='<LAN token>' node examples/pixlet-bridge/bridge.mjs --check
-DMX_TOKEN='<LAN token>' node examples/pixlet-bridge/bridge.mjs --once dvdlogo
-node examples/install-pixlet-bridge.mjs --config "$BRIDGE_CONFIG"
-```
-
-The installer securely prompts for the token, records the absolute
-`BRIDGE_CONFIG` path and `DMX_TOKEN` in a mode-`0600` environment file, and
-installs `dmx-pixlet.service` on Linux or `com.devmatrix.pixlet` on macOS.
-Preview it, inspect it, or remove it with the same lifecycle as the Flights
-installer above:
-
-```sh
-node examples/install-pixlet-bridge.mjs --dry-run --token 'test-only'
-node examples/install-pixlet-bridge.mjs --status
-node examples/install-pixlet-bridge.mjs --uninstall
-node examples/install-pixlet-bridge.mjs --uninstall --purge
-```
-
-Use the same `sudo "$(command -v node)" ...` prefix on Linux.
-
-**Honest limits:** raw frames are LAN-only (ADR-0029), so the bridge and DK-01
-must share a LAN in Local Mode. These apps are community-maintained; quality,
-data sources, key requirements, and continued maintenance vary. Every render
-runs on the owner's hardware—the company operates no Pixlet service.
-
-More examples and script details: [examples/README.md](../examples/README.md).
+<a id="update-firmware"></a>
 
 ## 9 · Update firmware over the air — Today
 
@@ -430,7 +430,9 @@ More examples and script details: [examples/README.md](../examples/README.md).
    artifact once releases begin (**Ahead · M0**, signed).
 2. Console → **Deploy** → **OTA upload** → choose the `.bin` → **UPLOAD
    & REBOOT**. It writes to the inactive slot and reboots into it; the
-   Dashboard shows the new version and slot.
+   Dashboard shows the new version and slot. Wait for the actual device to
+   return, reload the Console, verify the reported version, and send a test
+   message. A progress bar finishing is not proof the new image booted.
 
 **Honest limits, today:** images are length/magic-checked but not yet
 signature-verified, and rollback on a failed boot is not automatic —
@@ -438,9 +440,11 @@ both are M0 acceptance work. Until then, chapter 10 is the safety net.
 ([firmware/dk01/README.md](../firmware/dk01/README.md) owns these
 caveats.)
 
+<a id="recovery"></a>
+
 ## 10 · Recovery and resets — Today
 
-The never-brick ladder, mildest first:
+Choose the least destructive action that solves the problem:
 
 | Action | How | What it wipes |
 |---|---|---|
@@ -456,8 +460,8 @@ always there even if both app slots are bad. Physical access is the
 recovery tool — by design ([docs/SECURITY.md](SECURITY.md)). To turn a
 compiled `.bin` into the UF2 file the drive wants, follow
 [firmware/dk01/README.md](../firmware/dk01/README.md) → "USB recovery
-(make a UF2)". The one thing that removes TinyUF2 is a deliberate
-full-chip erase — **Back to default** below covers when that is worth
+(make a UF2)". A full-chip erase or an incompatible partition/bootloader flash can
+remove TinyUF2 — **Back to default** below covers when that is worth
 it and how everything comes back.
 
 ### Factory reset over USB — no Console, no token
@@ -474,12 +478,16 @@ firmware in both app slots stays untouched.
    The commands below use esptool **v5** spellings — an older v4
    install writes them with underscores (`erase_region`) and rejects
    these, so upgrade rather than reuse a stale install.
-2. Connect USB-C. The board appears as `/dev/cu.usbmodem*` on macOS,
-   `/dev/ttyACM0` on Linux.
+2. Connect only the board you intend to reset. Run `arduino-cli board list`
+   and identify its exact port (for example `/dev/cu.usbmodem1234` on macOS
+   or `/dev/ttyACM0` on Linux). In the commands below, replace
+   `/dev/cu.usbmodemXXXX` with that exact port; do not use a wildcard.
+   Close serial monitors before continuing. These offsets apply only to the
+   documented DK-01 partition map, not arbitrary forks.
 3. Erase exactly the settings region (offsets from the flash map):
 
    ```sh
-   python3 -m esptool --port /dev/cu.usbmodem* erase-region 0x9000 0x5000
+   python3 -m esptool --port /dev/cu.usbmodemXXXX erase-region 0x9000 0x5000
    ```
 
 4. Tap the reset button. The panel comes back factory-fresh —
@@ -506,7 +514,7 @@ usually no reason to erase the whole chip — but for the true
 zero-mile state, or a flash you no longer trust:
 
 ```sh
-python3 -m esptool --port /dev/cu.usbmodem* erase-flash
+python3 -m esptool --port /dev/cu.usbmodemXXXX erase-flash
 ```
 
 then run chapter 2's cable flash. One upload restores everything the
@@ -531,7 +539,7 @@ it wasn't.
   reset frees it:
 
   ```sh
-  python3 -m esptool --port /dev/cu.usbmodem* --after hard-reset chip-id
+  python3 -m esptool --port /dev/cu.usbmodemXXXX --after hard-reset chip-id
   ```
 
 - **Serial monitors lie on this board.** The S3's USB serial port
@@ -544,12 +552,13 @@ it wasn't.
   other. Before touching the hardware, check which network *your
   computer* is on — `dmx-xxxx.local` only resolves from the network
   the panel joined.
-- **Never hardcode the port.** macOS re-enumerates `/dev/cu.usbmodem*`
-  constantly — glob it every time.
+- **Recheck the port after reconnecting.** macOS can assign a new port
+  after reset. Use `arduino-cli board list` and select the intended board
+  explicitly, especially with more than one USB device attached.
 - **Experiments are cheap.** After every OTA the previous firmware is
   still in the other app slot (the Dashboard shows which slot is
-  live), and USB recovery is the floor under everything — update
-  boldly.
+  live). Do not assume the previous slot will boot automatically: keep the
+  cable, compatible firmware, and recovery instructions available.
 
 ## 11 · Home Assistant and MQTT — Today
 
@@ -562,8 +571,9 @@ and leaving the host empty keeps the device's MQTT client completely off.
    `devmatrix/<serial>/#` tree, Home Assistant discovery writes, and the
    `homeassistant/status` birth topic.
 3. Console → Settings → **MQTT broker**. Enter the broker hostname or IP,
-   port (1883 by default), username, and password; choose TLS if needed,
-   turn on **ENABLE MQTT**, then **SAVE MQTT**.
+   port (1883 by default), username, and password. For the current verified
+   path use a trusted LAN/VPN broker without the TLS toggle; see the TLS
+   limitation below. Turn on **ENABLE MQTT**, then **SAVE MQTT**.
 4. Watch the card's status move through **CONNECTING** to **CONNECTED**.
    The password is write-only: a blank password field leaves the saved value
    unchanged, and entering a value replaces it.
@@ -597,8 +607,10 @@ and leaving the host empty keeps the device's MQTT client completely off.
    request verbs today are `display.brightness`, `display.clear`, and
    `app.show`.
 
-TLS is encrypted but not yet CA-verified in this pre-P2 firmware; use a
-trusted LAN or VPN path. The exact topics, envelope, QoS/retain rules,
+MQTT TLS is not yet a verified working feature: the current client has no
+broker CA configuration, and the reviewed SDK is expected to reject that
+setup. Use a broker over a trusted LAN or VPN while CA support and hardware
+TLS acceptance remain open. The exact topics, envelope, QoS/retain rules,
 per-device Mosquitto ACL, and the broker WebSocket listener needed by a
 browser MQTT workbench are in
 [contracts/mqtt.md](../contracts/mqtt.md) (DRAFT until the P2 freeze).
@@ -614,20 +626,23 @@ browser MQTT workbench are in
   fleet view, alerts — optional, and the box never
   depends on it. [docs/MODES.md](MODES.md) is the line.
 
+<a id="troubleshooting"></a>
+
 ## 13 · Troubleshooting — Today
 
 | Symptom | Fix |
 |---|---|
 | Captive portal never opened | Browse to `http://192.168.4.1` while on the `DEVMATRIX-XXXX` network |
 | `dmx-xxxx.local` not found | Your network (or an Android browser) blocks mDNS — use the panel's IP address instead; it works everywhere the name does. Your router's client-device list shows the panel as `dmx-xxxx`; any already-connected Console also shows the IP on the Dashboard's device info |
-| Panel shows the clock but nothing answers after an outage | Power-cycle the panel once — it rejoins your Wi-Fi by itself, and if the router is still down it keeps retrying in the background until it's back |
+| Panel is unreachable after a router outage | Restore the router, check the panel's address and your computer's network, then power-cycle once if necessary. If boot cannot join Wi-Fi, firmware can reopen its setup hotspot; follow chapter 3 on a trusted network |
 | My Wi-Fi isn't listed in the setup portal | The board's radio is 2.4 GHz-only, so a 5 GHz-only network can't appear. Enable a 2.4 GHz band or guest SSID on your router, then rescan |
 | The setup page closed before I finished | Rejoin the `DEVMATRIX-XXXX` hotspot and it reopens (or browse to `http://192.168.4.1`). If the hotspot is gone, the panel already joined your Wi-Fi and is showing its address — chapter 3, step 5 |
-| Hosted Console can't reach the panel | Same Wi-Fi? Allow the browser's local-network permission when asked (Chrome/Edge/Firefox). Safari can't do this — open the panel's own address instead |
-| Identity warning (key mismatch) | A factory reset (Console or USB settings wipe) legitimately changes the device key — an ordinary firmware update does not — Settings → **FORGET / SWITCH DEVICE…**, then reconnect and re-pair. If you didn't reflash, stop and check what's answering on that address |
+| Hosted Console can't reach the panel | Check both devices are on the same LAN and browser/OS local-network permissions allow access. Open the panel's own HTTP address directly if the hosted path fails |
+| Settings never loads and I cannot switch an offline device | Current UI bug: the switch control waits for the offline device. Open the correct panel's address directly. For the hosted Console, clear site data for that Console origin in browser settings, then reload and pair again; this removes that origin's saved token/key, not device settings |
+| Identity warning (key mismatch) | A factory reset (Console or USB settings wipe) legitimately changes the device key — an ordinary firmware update does not — Settings → **FORGET / SWITCH DEVICE…**, then reconnect and re-pair. If you did not intentionally factory-reset it, stop and check what is answering on that address; an ordinary OTA does not justify a new key |
 | `401 unauthorized` | Stale token — re-pair (chapter 4) or re-copy from the Dev console view |
 | Panel resets at high brightness | Under-powered supply. The 150 cap exists for this; the Dashboard's reset-reason tile confirms a brown-out |
-| Clock is wrong | Settings → timezone; the clock needs one internet moment for SNTP after boot |
+| Clock is wrong or shows `--:--` | Check Settings → timezone and SNTP reachability. The current firmware cannot set time manually or select a local time server; cold boot without public SNTP leaves time unavailable |
 | Weather / Flights list / any fetching app shows only the clock | The app has no usable data and is telling you why: check **`GET /api/v1/apps/diag`** (or run `node examples/dmx-top.mjs`) — `too-big` means the feed outgrew the fetch buffer (point the URL at the raw `aircraft.json`, not a dashboard page that wraps it), `no-url` means set the receiver URL, `connect-failed` means the source is unreachable, `http-…` means it answered with an error (check the path), `no-aircraft`/`bind-miss` means the feed answered but held nothing to render |
 | Apps → Flights list saves but the radar shows nothing | The host script isn't running — chapter 8; check `systemctl status dmx-flights` |
 | MQTT stays disabled | Turn on **ENABLE MQTT** and enter a host; an empty host deliberately keeps MQTT off |

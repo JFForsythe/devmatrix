@@ -4,38 +4,45 @@
 update surface the firmware implements today, and the gate M0 target
 it grows into (signed manifest OTA — docs/SECURITY.md owns the trust
 model; [ROADMAP.md](../ROADMAP.md) owns the gate). Public sources:
-[RFC 9110](https://www.rfc-editor.org/rfc/rfc9110) (multipart upload
+[RFC 9110](https://www.rfc-editor.org/rfc/rfc9110) (HTTP
 semantics), [RFC 8032](https://www.rfc-editor.org/rfc/rfc8032)
 (Ed25519, for the M0 signature scheme).
 
 ## Partition layout (docs/FIRMWARE.md owns the budget)
 
-Two 2 MB app slots (`ota_0`/`ota_1`); updates always write the
-**inactive** slot. A 256 KB TinyUF2 factory partition survives every
-update and provides drag-and-drop USB recovery
-(firmware/dk01/README.md → "USB recovery (make a UF2)"). A 3.7 MB
-`ffat` data partition is reserved.
+Updates target the inactive app slot. The flash map, slot capacity and
+TinyUF2 partition are owned by
+[docs/FIRMWARE.md](../docs/FIRMWARE.md#hardware-budget-dk-01-8-mb-flash-2-mb-psram).
+USB recovery instructions are in the
+[firmware README](../firmware/dk01/README.md#usb-recovery-make-a-uf2).
+Recovery acceptance remains a hardware gate, not a guarantee established by
+the partition layout alone.
 
 ## Today: `POST /update` (authenticated multipart upload)
 
 - One multipart file field carrying an app image (`.bin` from the
-  documented build). Authorization is checked when the upload starts
-  **and** again before the final response; an unauthorized upload is
-  discarded without writing.
+  documented build). The bearer token is checked when a file upload starts;
+  the final handler consults the saved `otaAuthed` flag rather than checking
+  the request again. A file upload without valid authorization does not begin
+  a flash write. The current server invokes multipart upload callbacks before
+  Host middleware, so that middleware is not an early OTA enforcement point.
 - The image is validated by the platform's magic-byte and length
-  checks only — **not signature-verified** (disclosed in
-  firmware/dk01/README.md → Honest limits; closing this is M0).
+  checks only — **not signature-verified** (see
+  [the current security posture](../docs/SECURITY.md#what-exists-today);
+  closing this is M0).
 - During the write the panel shows `UPDATING <n> KB / keep power on`;
   on success the response is `{"ok":true,"rebooting":true}` and the
   device reboots into the new slot. On failure:
   `500 {"error":"<platform error>"}` and the running image continues
   untouched (the inactive slot is simply left invalid).
 - Rollback machinery: the bootloader's app-rollback support is
-  compiled in; a new image marks itself valid only after a healthy
-  boot. The health signal and its test evidence are M0 acceptance
-  work (hardware/procedures/bench-week.md, run 5) — until then treat
-  rollback as designed-but-unproven, with TinyUF2 USB recovery as the
-  floor.
+  enabled in the current SDK. The application calls
+  `esp_ota_mark_app_valid_cancel_rollback()` on a loop pass after 30 seconds
+  of global uptime; it does not count 30 seconds of successful loop operation
+  or check that call's result. Slow boot-time Wi-Fi attempts consume that
+  interval. The health criteria and real rollback/recovery evidence remain
+  M0 work ([bench procedure](../hardware/procedures/bench-week.md), run 5).
+  Do not infer verified rollback from the presence of two slots.
 
 ## Gate M0 target: signed manifest OTA (freezes at P2)
 

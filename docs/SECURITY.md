@@ -1,11 +1,35 @@
 # Security model
 
-Some of the people who buy hardware like this get phished and scammed
-for it, so I design as if every owner does. Everything below is
-checkable in the Console — the audit log, the key fingerprints, the
-session list.
+This document owns the threat model, key hierarchy and security ceremonies.
+It separates implemented controls from the release design. The
+[manual](MANUAL.md) owns owner actions; [contracts/rest.md](../contracts/rest.md)
+owns exact endpoint authentication; [ROADMAP.md](../ROADMAP.md) owns acceptance.
 
-## Principles
+## What exists today
+
+| Area | Firmware v0.12.6 reality | Remaining work |
+|---|---|---|
+| LAN authority | One full-control bearer token per device, minted on first boot, stored in NVS and rotatable | Scoped tokens, revocable individual browser sessions, physical confirmation of sensitive actions |
+| Browser pairing | Six panel digits, five-minute code lifetime, five misses per code | Global throttling and session-bound physical confirmation; a fresh code can currently be requested immediately |
+| Device identity | First-boot Ed25519 key and signed-nonce proof, Console key pinning | Independently authenticated first-use key capture and protection against an active HTTP proxy |
+| LAN transport | Plain HTTP, Host allowlist in Console mode, hosted-origin CORS responses | Request-side Origin checks, pre-buffer request caps and complete browser/device abuse tests |
+| Setup | Open hotspot; unauthenticated setup routes; closes after successful join and Finish or a 90-second timeout | Constrain setup to the intended interface/session and require presence before reopening on a provisioned device |
+| OTA | Bearer-authenticated image upload into the inactive app slot; SDK rollback support enabled | Signed manifests/images, health-based rollback acceptance and recovery evidence |
+| App sources | Size/depth limits, stale rendering; HTTPS certificate verification disabled | CA trust, redirect destination enforcement and total fetch deadlines |
+| MQTT TLS | TLS option exists, but the code supplies no CA or other verification mechanism | Verified broker trust and a successful TLS device test; do not assume the option establishes a working TLS connection |
+| Cloud and advanced security UI | Design and demo surfaces | Passkeys/accounts, relay, audit log, guests, snapshots and owner signing-key enrollment are not implemented device services |
+
+Plain HTTP does not encrypt credentials, commands or responses. A trusted LAN
+is part of today's operating assumptions. The identity proof can detect a
+changed pinned key, but cannot make the HTTP connection confidential or stop
+an active proxy from forwarding a valid proof and then reading bearer traffic.
+The device-served Console itself is delivered over HTTP. Do not describe this
+as equivalent to server-authenticated TLS.
+
+## Principles — target design
+
+These are design requirements. The table above identifies current exceptions;
+planned controls below must not be presented as release evidence.
 
 1. **Physical presence beats cloud.** Claiming, factory reset, and
    root-of-trust changes require touching the device.
@@ -31,7 +55,7 @@ hardware root, and a wipeable software trust set it verifies.
 | Secure Boot v2 digests (RSA-3072) | Hardware — one-way eFuse slots on ESP32-S3 | Root of trust for the boot chain; burning and revocation permanent, no erase path | **Ahead** — resolved on sacrificial boards at gate P2 |
 | Release signing key (Ed25519) | Software OTA trust set; private key offline/HSM, company | Signs official firmware; verified by the RSA-signed chain | **Ahead · gate M0** (signed OTA) |
 | Owner signing key (optional, Ed25519) | Software OTA trust set; owner's custody | Enrolled via ceremony; device then also accepts owner-signed firmware | **Ahead · gate M2** |
-| Per-device identity keypair + cert | Burned at provisioning (secure boot; flash encryption per the stance below) | Device authentication to relay (mTLS) and to LAN clients | LAN half **today** (first-boot Ed25519 identity key, v0.9.0+, ADR-0031); provisioning-burned cert + relay mTLS **Ahead · gate C1** |
+| Per-device identity keypair + cert | Today: Ed25519 secret in runtime NVS. Target relay certificate: provisioning | Key continuity for LAN clients; future relay mTLS | LAN key **Today** (ADR-0031); provisioning certificate + relay mTLS **Ahead · gate C1** |
 | Account passkeys (WebAuthn) | User's authenticators | Only way into a Cloud account; hardware keys supported | **Ahead · gate C0** |
 | Device LAN token / pairing | Device NVS | Guards `/api/v1` on LAN; rotatable from Console | **Today** |
 | Snapshot key | Derived on the user side | E2EE backups; never leaves user custody | **Ahead · gate M2** |
@@ -41,7 +65,7 @@ release-mode flash encryption, or (b) flash encryption with the
 per-device key handed to the owner at provisioning — never escrowed.
 Burning `DIS_DOWNLOAD_MODE` is forbidden; USB recovery must survive.
 
-## Discovery & local transport
+## Discovery and local transport
 
 How a browser finds and talks to the box — specified here because this
 is where LAN products usually hand-wave (browsers cannot scan a LAN,
@@ -51,32 +75,35 @@ and I would not want them to):
   Join it via the `DEVMATRIX-XXXX` SoftAP captive portal today, or —
   **Ahead · gate M0** ([docs/MODES.md](MODES.md) owns the gate) — Improv
   WiFi over USB (the start page talks to the cable, not the LAN). No app.
-- **The setup window is open by design — and bounded.** The
-  `DEVMATRIX-XXXX` hotspot is unencrypted and its `/setup` surface is
-  unauthenticated; from a successful Wi-Fi join until the owner
-  finishes setup, the joining page (or any client still on the
-  hotspot) can read the minted LAN token. Exposure is bounded by RF
-  range and time: since firmware 0.12.0 the device **auto-closes the
-  window** — it reboots onto the owner's Wi-Fi 90 s after a
-  successful join if Finish is never tapped. An AP password shown on
-  the panel remains a candidate M0 hardening.
-- **The panel is the directory.** Once on WiFi, the panel shows its
-  own address (`dmx-0952.local`) next to the claim code. Discovery is
-  the owner reading the panel — never a cloud page scanning the LAN.
-- **The box never scans either (ADR-0032).** The device initiates
-  connections only to addresses the owner explicitly configured — SNTP,
-  the owner's MQTT broker, and owner-entered app sources. There are no
-  discovery probes: consumer router security suites flag
-  device-initiated multi-host probing, and a panel that gets its
-  owner's network flagged is a failure regardless of how polite the
-  probe was. Its mDNS *responder* only answers questions, never asks
-  them. Receiver discovery is owner-side (a finder prompt in the
-  Console), not device-side.
-- **LAN auth is the LAN token.** Every `/api/v1` route requires
-  `Authorization: Bearer <LAN token>`. The token is minted at claim,
-  surfaced in the Console (which renders copy-paste commands with it
-  embedded), and rotatable/revocable per device. Read-only scoped
-  tokens for integrations are **Ahead · gate M1**.
+- **The setup window is open by design, with important limits.** The
+  `DEVMATRIX-XXXX` hotspot and setup routes are unauthenticated. Setup runs
+  in AP+STA mode, and the HTTP listener is not restricted to the hotspot
+  interface. After Wi-Fi joins, `/setup/status` exposes the current token
+  to reachable clients on either interface until reboot. Finish closes the
+  window; otherwise a successful join starts a 90-second timeout. This does
+  not bound an unsuccessful setup session. A provisioned device also reopens
+  setup after a 25-second boot-time join failure, without a button press.
+  Interface restriction, session binding and physically authorized recovery
+  setup are open hardening work, not enforced today.
+- **The panel is the directory.** The final setup card shows the device's
+  address. Asking to pair replaces it temporarily with two rows of digits;
+  address and code are not displayed together today. Discovery begins with
+  the owner reading the panel, not a hosted page scanning the LAN.
+- **No discovery probes (ADR-0032).** Receiver discovery is owner-side,
+  assisted by the Console's finder prompt. Firmware advertises its own mDNS
+  name; it contains no receiver-probing route. The stronger configured-host
+  boundary still has a gap: app HTTP clients follow redirects without checking
+  the new host. SNTP also uses built-in public servers rather than an
+  owner-configurable time source. [FIRMWARE.md](FIRMWARE.md) owns that behavior.
+- **LAN auth is the LAN token.** Protected routes require
+  `Authorization: Bearer <LAN token>`. Health, identity and pairing routes
+  are intentional public exceptions, listed in
+  [contracts/rest.md](../contracts/rest.md). The token is minted on first boot,
+  returned during setup or successful panel-code pairing, and rotatable.
+  All paired clients share it; rotating it invalidates every client. There
+  is no separate owner account, ownership-transfer lock or individual session
+  revocation today. Factory reset currently requires the token, not a button
+  hold; the USB reset path requires physical access.
 - **The local transport is plain HTTP, permanently** (ADR-0031, decided
   by the P1 spike —
   [evidence](../hardware/evidence/2026-08-12-browser-transport-spike.md)).
@@ -88,42 +115,60 @@ and I would not want them to):
   hosted Console may additionally reach it through the browser's Local
   Network Access permission (Chromium and Firefox; never Safari), and
   must degrade to the device-served path rather than fail. Optional
-  self-signed HTTPS with a panel-displayed fingerprint stays available
-  as an advanced, opt-in path. mTLS remains reserved for the
-  device→relay link, where no browser is involved.
-- **Because TLS is absent, the device authenticates at the application
-  layer** (implemented in firmware 0.9.0). mDNS is unauthenticated — any
-  LAN host can claim the name — and plain HTTP authenticates no server,
-  so a bearer token alone can be phished by a spoofer. The device
-  therefore signs a Console-supplied nonce
-  (`"dmx-id-v1:<serial>:" + nonce`) with an Ed25519 device key minted on
-  first boot and held in NVS; the Console verifies the signature and
-  pins the public key at pairing time — the possession-proof moment —
-  then checks every later proof against the pin. The panel-readable
-  key fingerprint is the first 4 bytes of SHA-256 of the public key.
-  A non-secure origin has no `crypto.subtle`, so the Console carries a
-  small pure-JS verifier (@noble/ed25519); it prefers WebCrypto where
-  the browser's WebCrypto supports Ed25519. Firmware enforces the
-  exact-origin CORS allowlist (never `*`) and a Host-header allowlist
-  against DNS rebinding, and the token is a bearer header only — never
-  a cookie, so there is no ambient authority to forge.
+  self-signed HTTPS with a panel-displayed fingerprint is an accepted
+  advanced direction, **not implemented in the current firmware**. mTLS remains
+  reserved for the planned device→relay link, where no browser is involved.
+- **Application-layer identity (ADR-0031).** The device signs a fresh
+  Console nonce with its Ed25519 NVS key; the Console can compare the result
+  to a remembered public key. [contracts/rest.md](../contracts/rest.md) owns
+  the signed bytes and response fields. Key capture during pairing currently
+  travels over the same HTTP path as the token; it is trust on first use,
+  not an independently authenticated out-of-band channel. The setup page
+  receives identity fields but forwards only the token in its Console link.
+  The short key fingerprint is visible in the Console and USB serial; the
+  firmware does not currently render it on the panel. A trusted copy of the
+  Console and an independently checked key improve first-use confidence;
+  they do not encrypt later bearer traffic or prevent proof forwarding.
 - **No WebAuthn on the device origin, ever.** Chrome refuses WebAuthn on
   origins with certificate errors, and bare IPs are not valid RP IDs.
   Passkeys are a Cloud Mode account credential on the hosted origin
   only; device-local authority is the LAN token plus physical presence.
-- **Rebinding/CSRF-hostile.** Mutating routes validate `Host` against
-  the device's own names and reject foreign `Origin`s; combined with
-  the bearer-token requirement. P1 must exercise DNS-rebinding and CSRF
-  cases against the chosen browser transport before this mitigation is
-  considered proven.
+- **Host/CORS controls and their limits.** Console-mode middleware rejects
+  unrecognized Host values and grants CORS preflight only to the hosted origin.
+  Non-OPTIONS handlers do not reject foreign Origin headers. CORS controls
+  browser response access, not all request side effects; open pairing routes
+  remain anonymously writable. In the current Arduino core, multipart upload
+  callbacks run before server middleware, so OTA must enforce relevant checks
+  in the upload callback too. Bearer headers avoid cookie-based ambient
+  authority, but are not a substitute for these missing checks.
 
-## Ceremonies
+## Outbound connections
+
+App HTTPS currently calls `setInsecure()`: traffic is encrypted without
+certificate identity verification. Use data sources appropriate to that
+limitation until CA trust is implemented. Redirects and slow-response
+handling also need enforcement, as described above.
+
+The MQTT client selects TLS when enabled but provides no CA, certificate
+bundle, PSK or global trust store. Skipping the certificate common-name check
+alone does not select a trust method. ESP-TLS defaults to failing connection
+setup when none is configured; the installed 3.3.11 SDK does not enable the
+insecure bypass. A working, verified MQTT TLS path remains unproven. See
+[Espressif's verification model](https://docs.espressif.com/projects/esp-idf/en/v5.5/esp32/api-reference/protocols/esp_tls.html#tls-server-verification)
+and the [current review](reviews/2026-09-08-full-review/firmware-and-contracts.md).
+
+## Ceremonies — target requirements
+
+The following ceremonies specify the release design. Current pairing and
+reset behavior is described above; the button holds, claim attestation,
+owner-key enrollment, update signature verification and guest system below
+are not implemented in the current tree.
 
 **Claiming** (proof of possession — the full ceremony below is the
 gate M1 target; today's firmware pairs by panel code,
 [docs/MANUAL.md](MANUAL.md) ch. 4):
 1. Unclaimed device shows its claim code and LAN address on the panel
-   (see Discovery & local transport — nothing secret is broadcast).
+   (see Discovery and local transport).
 2. User opens the start page and enters what the panel shows — or
    browses to the device address directly for a cloudless claim.
 3. Console requests possession proof → the panel displays the
@@ -165,7 +210,7 @@ slot that survives factory reset and resale; see
 `quiet-hours`) + expiry → invite link → guest uses their own passkey;
 every guest action is audit-logged and attributed.
 
-## Tenancy & cloud
+## Tenancy and cloud — planned
 
 - Strict isolation: row-level security keyed by account; device list,
   metrics, logs, and audit streams are never queryable across tenants.
@@ -175,21 +220,24 @@ every guest action is audit-logged and attributed.
   hosted broker it will be opt-in with per-device ACLs scoped to
   `devmatrix/<serial>/#` — but the default posture is: I don't run one.
 
-## App sandbox
+## App permissions — current bounds and M4 target
 
-Apps declare capabilities in the bundle manifest; the Console shows them
-before install (permission chips): allowed hosts, storage quota, refresh
-rate, draw access. Launch apps are declarative (ADR-0026), so the
-enforcement surface is the binding engine: fetches go only to declared
-hosts, responses have bounded size and parse depth, and refresh-rate and
-storage quotas are enforced per app — a hostile app or a hostile data
-source cannot hang the panel or reach beyond its declared hosts. The
-scripted tier's VM protections (per-tick instruction budgets, watchdog
-kill) are deferred with that tier and return only if it ships. Registry
-apps get static checks + community review; sideloaded apps are the
-owner's own risk.
+Today's declarative engine accepts one owner-entered custom layout plus the
+bundled app settings. It bounds layout bytes, rows, pointer traversal and
+response storage; [contracts/layout.md](../contracts/layout.md) owns the
+numbers. It does not implement a `.dmapp` capability manifest, allowed-host
+list, Registry review pipeline, per-app storage quota or app audit log.
+Redirect destinations are not constrained, and a response can hold the main
+loop busy by continually sending bytes before the idle timeout.
 
-## Data & privacy
+At M4, declarative apps must declare allowed hosts, storage, refresh rate and
+draw permissions before installation, with enforcement in the binding engine.
+Registry apps require static checks and community review. The scripted tier
+remains deferred (ADR-0026); any future VM additionally needs instruction
+budgets and watchdog termination. Sideloading must not be described as a
+sandbox guarantee until those controls exist and are tested.
+
+## Data and privacy — target requirements
 
 - Telemetry: **off by default**, opt-in, and visible ("what I'd send"
   preview). Crash reports likewise.
@@ -197,10 +245,11 @@ owner's own risk.
 - Snapshots E2EE; loss of user key = loss of backups, and I say so.
 - No location collection. mDNS/LAN discovery never leaves the LAN.
 
-## Ops & supply chain
+## Ops and supply chain — release requirements
 
-- Firmware built and signed by public CI from tagged releases;
-  reproducible builds documented; SBOM published per release.
+- Current public CI compiles firmware. Signed tagged-release artifacts,
+  reproducible-build evidence and a published SBOM are still release work;
+  [OPERATIONS.md](OPERATIONS.md) owns the pipeline.
 - Dependencies pinned; the display driver is Adafruit Protomatter at
   the exact pinned release (ADR-0013).
 - Shipped units carry zero manufacturer-environment traces: no company
@@ -211,22 +260,24 @@ owner's own risk.
 - Signing keys: release key offline; a documented key-rotation and
   compromise-response runbook before the first sellable run (gate R0).
 
-## Threats → mitigations (abridged)
+## Threats → target mitigations (not a current acceptance checklist)
 
 | Threat | Mitigation |
 |---|---|
 | Phished account | Passkeys only; no password/SMS to phish; new-login + security-event notifications |
 | Stolen/resold device | Re-claim requires factory reset + physical access; prior owner notified; data wiped |
 | Claimed device lost / walks away | Owner marks it lost: relay sessions revoked instantly; secure wipe of NVS secrets + app storage queued for next contact; LAN token / WiFi / MQTT credentials rotated in one click; all audit-logged |
-| LAN scanner / drive-by | LAN token required on every route; Host/Origin validation is tested against DNS rebinding + CSRF; no inbound WAN ports; nothing anonymously writable |
+| LAN scanner / drive-by | Token for protected control routes, explicitly bounded public pairing/setup, Host/Origin validation and browser/device abuse tests; current gaps are listed above |
 | Malicious app / hostile data source | Declared capabilities, quotas, bounded fetch + parsers, per-app audit (ADR-0026) |
 | Malicious/compromised OTA | Signature verify against trust set, anti-rollback floor, dual-slot rollback |
 | Insider/cloud breach | E2EE snapshots, minimal data, Local Mode & Eject as standing exits, audit transparency |
 | Supply-chain dep attack | Pinned deps, SBOM, public reproducible CI |
 | Buyer dumps a shipped unit's flash/NVS | Full dev access is the product; units ship factory-fresh with no manufacturer credentials, addresses, or endpoints to find (ADR-0023) |
 
-## What I never do
+## Product commitments
 
-Run required cloud. Hold unencrypted backups. Ship silent updates
-(every change lands in the audit log and the changelog feed). Reuse
-closed-product code or schemas (ADR-0001). Sell or share telemetry.
+The product must never require company cloud, hold unencrypted owner backups,
+sell or share telemetry, or silently update devices. The planned audit log
+and changelog must make updates visible. The clean-room boundary is owned by
+[AGENTS.md](../AGENTS.md) and ADR-0023; this security design does not create an
+exception to it.

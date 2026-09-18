@@ -2,208 +2,141 @@
 
 [![Repository checks](https://github.com/JFForsythe/devmatrix/actions/workflows/ci.yml/badge.svg)](https://github.com/JFForsythe/devmatrix/actions/workflows/ci.yml)
 
-A hackable 64×32 LED matrix appliance you fully control: open
-firmware, documented APIs, and a control portal (the **Console**)
-served by the device itself. No app,
-no account, no cloud — everything works on your LAN with my servers
-unreachable, by invariant ([docs/MODES.md](docs/MODES.md)).
+An open, programmable **64×32 LED display** for your desk, workshop, or
+homelab. Put a message on it, draw pixels in your browser, connect Home
+Assistant, or write an app using the local HTTP API.
 
-Point a browser at the box and it hands you the rest: live status, a
-paint canvas, apps, over-the-air updates, and copy-paste `curl`
-commands with your own token already filled in.
+The device serves its own web interface, the **Console**. Basic control needs
+no phone app, account, subscription, or company server. Apps that fetch
+outside data still need their data source; community Pixlet apps also need a
+computer you keep running. [Local Mode](docs/MODES.md) explains those boundaries.
 
-Not the closed FlightTrackerLED appliance — an independent, clean-room
-canvas platform whose bundled apps include a small local-only flight
-display fed by your own receiver. No closed-product code, logic, or
-schemas, ever. See the IP line in [docs/VISION.md](docs/VISION.md).
+## Start here
 
-## What it does today
+| Your situation | Next step |
+|---|---|
+| I have an assembled kit | Follow the [owner's manual](docs/MANUAL.md#first-boot); skip compiling |
+| I want to try it before getting hardware | Open the [Console](https://devmatrix.flighttrackerled.com) and choose **EXPLORE THE INTERACTIVE DEMO** |
+| I have a bare MatrixPortal S3 and panel | Use the [pinned build and wiring guide](firmware/dk01/README.md) |
+| I want to write code or connect another service | Start with [your first API request](docs/MANUAL.md#first-api-request), then the [REST reference](contracts/rest.md) |
+| I want community apps, flights, or a background service | Choose a path in [examples/README.md](examples/README.md) |
+| Something stopped working | Use [troubleshooting](docs/MANUAL.md#troubleshooting), then [recovery](docs/MANUAL.md#recovery) |
 
-Current firmware: **v0.12.6**. Every claim below is labeled **Today**
-in the docs (the current firmware does it) — never a promise about
-the future; bench evidence lives in [hardware/](hardware/README.md).
+## What works, and what is still being built
 
-- **Five-minute setup, no app.** The panel walks you through it: join
-  its hotspot, pick your Wi-Fi on a live-scanning page, open the
-  address the panel shows you. Done.
-- **Your first app in 30 seconds.** Type words on the Console's
-  Messages card, press **PUT IT ON THE PANEL** — saved, enabled,
-  showing.
-- **A real HTTP API.** Bearer-token `/api/v1` for text, full frames
-  (~15 fps on your LAN), brightness, apps, settings — and the
-  Console's **Dev console** view writes the `curl` commands for you.
-- **MQTT + Home Assistant.** Point the device at *your* broker and
-  Home Assistant discovers light, text, and notify entities with zero
-  YAML. I never run the broker — it's yours.
-- **1,000+ community apps.** The owner-hosted Pixlet bridge renders
-  the open Tidbyt-ecosystem catalog on your always-on machine and
-  pushes the frames — with **Easy Mode**, a local browser page for
-  searching, previewing, and building the rotation.
-- **Planes from your own antenna.** A live flights list, or an
-  animated radar with altitude-colored aircraft and comet trails —
-  fed only by an ADS-B receiver on your LAN, never a feed of mine.
-- **Updates that can't brick the box.** OTA writes to the inactive app
-  slot while the old version stays in the other; the TinyUF2 factory
-  partition survives every update for drag-and-drop USB recovery; and
-  a token-free USB factory reset returns any board to out-of-box.
+The current implementation and version are recorded in the
+[firmware guide](firmware/dk01/README.md). Hardware evidence is indexed in
+[hardware/README.md](hardware/README.md); a successful build is not proof of
+production qualification. [ROADMAP.md](ROADMAP.md) owns acceptance gates.
 
-## What you need
+| Available in the current implementation | What it needs |
+|---|---|
+| Messages, native clock, brightness, app rotation | The panel; clock time needs SNTP after a cold boot |
+| Browser paint canvas and text/frame HTTP API | A browser or script on the LAN |
+| Custom JSON layouts and a weather starter | The device fetches your configured source; outside sources need internet |
+| MQTT and Home Assistant discovery | Your own broker; see the [MQTT contract](contracts/mqtt.md) for current limits |
+| Flights list | Your own local ADS-B receiver |
+| Animated flights radar | Your receiver and a computer running the host app |
+| Pixlet community apps and Easy Mode | An always-on computer running the [bridge](examples/pixlet-bridge/README.md); compatibility varies by app |
+| Manual firmware OTA and USB recovery | A compatible image and the [update/recovery instructions](docs/MANUAL.md#update-firmware) |
 
-- An [Adafruit MatrixPortal S3](https://www.adafruit.com/product/5778)
-  and a 64×32 HUB75 RGB matrix panel — the DK-01 hardware
-  ([docs/VISION.md](docs/VISION.md)).
-- A 5 V USB-C supply with real headroom (weak supplies brown out at
-  full white — the firmware caps brightness for exactly that reason).
-- A phone or laptop, and a 2.4 GHz Wi-Fi network.
+**Still ahead:** signed OTA and qualified automatic rollback, live Mirror,
+scoped credentials, device naming/fleet management, browser USB flashing,
+owner signing-key enrollment, `.dmapp` installation, and the Devmatrix
+Registry. These are specified features, not controls available today.
+Managed Cloud Mode is a possible future offer, [only if demand requires it](docs/MODES.md).
 
-## Quick start
+This remains development firmware with open security and reliability work.
+Use it on a trusted network. Read the [current security limits](docs/SECURITY.md)
+and [full repository review](docs/reviews/2026-09-08-full-review/README.md)
+before evaluating it for deployment or sale.
 
-The full walkthrough with every detail is
-[docs/MANUAL.md](docs/MANUAL.md) — this is the short version.
+## First message on an assembled kit
 
-**Bought a Dev Kit unit? It arrives already flashed** — skip straight
-to step 2: power it and follow the panel. Step 1 is for bare boards,
-forks, and rebuilding from source.
+1. Power it with the correct 5 V supply for your assembly. Follow the panel's
+   **SETUP: JOIN DEVMATRIX-XXXX** instruction.
+2. Join that hotspot and choose your **2.4 GHz** Wi-Fi network. If the setup
+   page does not open, visit `http://192.168.4.1` while joined to the hotspot.
+3. Rejoin your normal Wi-Fi and open the exact `http://dmx-xxxx.local/`
+   address displayed on the panel. If `.local` fails, use its IP address
+   from your router. Pair by entering the six digits on the panel if asked.
+4. Open **Apps → Messages**, type a short message, and press
+   **PUT IT ON THE PANEL**.
 
-**1 · Build and flash — one cable, one time** (updates go over the
-air after this). Install
-[arduino-cli](https://arduino.github.io/arduino-cli/), then, from the
-repository root:
+Your words appearing on the physical panel are the success check. The
+[manual](docs/MANUAL.md) covers pairing another browser, power, updates,
+configuration, and recovery. The under-five-minute setup time is an
+[acceptance target](ROADMAP.md), not a measured guarantee for every owner.
+
+## Build an integration
+
+From the repository root, after pairing your browser, use the token from
+**Dev console → COPY WITH MY TOKEN**. Replace both placeholders below:
 
 ```sh
-arduino-cli core install esp32:esp32            # pinned family: 3.3.x
-arduino-cli lib install "Adafruit Protomatter"  # 1.7.1
-arduino-cli lib install "ArduinoJson@7.4.3"
-arduino-cli lib install "Crypto@0.4.0"
-arduino-cli compile --fqbn esp32:esp32:adafruit_matrixportal_esp32s3 \
-  --output-dir out firmware/dk01
-arduino-cli upload --fqbn esp32:esp32:adafruit_matrixportal_esp32s3 \
-  -p /dev/cu.usbmodem* firmware/dk01
+export DMX_URL='http://dmx-xxxx.local'
+export TOKEN='<your LAN token>'
+curl --fail-with-body -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"SHIP IT","duration_s":30}' \
+  "$DMX_URL/api/v1/display/text"
 ```
 
-Exact pins and flashing tips: [firmware/dk01/README.md](firmware/dk01/README.md).
-Re-flashing a used board? [docs/MANUAL.md](docs/MANUAL.md) ch. 10
-returns it to out-of-box first.
+Expect a successful JSON response and **SHIP IT** on the panel. A `401` means
+this token is missing or stale; pair again. The token controls the whole
+device, so keep it out of screenshots, issues, and source control.
 
-**2 · First boot.** The panel announces `SETUP: JOIN DEVMATRIX-XXXX`.
-Join that Wi-Fi network from your phone; a captive portal opens, scans
-your networks live, and joins the one you pick — no blind
-reboot-and-hope ([docs/MANUAL.md](docs/MANUAL.md) ch. 3).
+The [REST](contracts/rest.md), [MQTT](contracts/mqtt.md),
+[layout](contracts/layout.md), and [OTA](contracts/ota.md) references describe
+the implemented subset separately from their draft targets. Contracts remain
+**DRAFT** until P2; no stable SDK or WebSocket implementation is shipped here.
 
-**3 · Open the Console.** The panel then walks you to the last step:
-open `http://dmx-xxxx.local/` (the exact address is on the panel). The
-phone that ran setup is already signed in; every other browser taps
-**Pair** and types the 6-digit code the panel shows
-([docs/MANUAL.md](docs/MANUAL.md) ch. 4).
+## Work on the project
 
-**4 · First app, 30 seconds.** Console → **Apps** → **Messages** →
-type words → **PUT IT ON THE PANEL**.
-
-**5 · First script.** Copy `$TOKEN` from the Console's **Dev console**
-view, then:
+Read [AGENTS.md](AGENTS.md), then choose the relevant owner document below.
+Firmware builds use the exact commands in the
+[firmware README](firmware/dk01/README.md); Console development uses the
+[Console README](portal/console/README.md).
 
 ```sh
-curl -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-     -d '{"text":"SHIP IT","duration_s":30}' \
-     http://dmx-xxxx.local/api/v1/display/text
+make check             # repository rules and tooling tests
+make console-verify    # install pinned deps, typecheck, rebuild, compare artifacts
 ```
 
-Full route list: [firmware/dk01/README.md](firmware/dk01/README.md).
-Ready-made host apps and installers: [examples/](examples/README.md).
+`make check` does not compile firmware or exercise a physical panel. The
+[CI workflow](.github/workflows/ci.yml) also compiles firmware and rebuilds
+both Console targets. The old mock design reference is available through
+`make portal`; it includes future features and is not the production Console.
 
-## Everyday things, and where they're explained
+There is one Console codebase at `portal/console/`, built for hosted and
+device use. Generated artifacts are committed; edit source and regenerate
+them, as described in its README. Hosting and release verification are owned
+by [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
-Every one of these is a step-by-step chapter in
-[docs/MANUAL.md](docs/MANUAL.md):
+## Documentation map
 
-| I want to… | Manual |
+| Topic | Owner |
 |---|---|
-| Set it up from scratch, pair more browsers | ch. 3–4 |
-| Know what every Console page does | ch. 5 |
-| Push text and frames from my own code | ch. 6 |
-| Show planes from my own ADS-B receiver | ch. 8 |
-| Run 1,000+ community Pixlet apps | ch. 8 |
-| Update the firmware over the air | ch. 9 |
-| Factory-reset, recover, or **re-flash back to default** — including with no token and no working Console | ch. 10 |
-| Connect MQTT and Home Assistant, and prove it from a terminal | ch. 11 |
-| Fix something weird (plus hard-won bench tips) | ch. 10 & 13 |
+| Setup, daily use, troubleshooting, recovery | [Owner's manual](docs/MANUAL.md) |
+| Product, audience, promises, clean-room boundary | [Vision](docs/VISION.md) |
+| Local operation, optional Cloud, support | [Modes](docs/MODES.md) |
+| Console behavior and planned interface | [Console specification](docs/PORTAL.md) |
+| Authentication, keys, current security limits | [Security](docs/SECURITY.md) |
+| Firmware architecture and hardware budgets | [Firmware](docs/FIRMWARE.md) |
+| Public interfaces | [Contracts](contracts/README.md) |
+| Host apps and service installation | [Examples](examples/README.md) |
+| Hardware procedures and dated evidence | [Hardware](hardware/README.md) |
+| Delivery gates and production blueprint | [Roadmap](ROADMAP.md), [plan snapshot](docs/PRODUCTION-PLAN.md) |
+| Decisions and canonical terminology | [ADRs](docs/adr/README.md), [glossary](docs/GLOSSARY.md) |
+| Target buyer journey and shared demo identifiers | [User story](docs/USER-STORY.md) |
+| Bugs, review coverage, and product opportunities | [September repository review](docs/reviews/2026-09-08-full-review/README.md) |
 
-The never-brick ladder is dual OTA slots, a TinyUF2 factory partition
-that survives every update, a token-free USB factory reset, and a
-serial flasher that lives in the chip's ROM. Physical access is the recovery tool, by design
-([docs/SECURITY.md](docs/SECURITY.md)).
+## Licensing and independence
 
-## Try the Console without hardware
+First-party code is GPL-3.0-or-later under [LICENSE](LICENSE); documentation
+is CC BY 4.0. Contracts/SDK code and hardware files follow the scheme in
+[ADR-0010](docs/adr/ADR-0010-license-scheme.md).
 
-Hosted URL: **https://devmatrix-console.vercel.app**. Until the
-coordinated cutover ([docs/OPERATIONS.md](docs/OPERATIONS.md) owns the
-recipe and current state) it serves the mock design reference; the
-switch makes this URL serve the real, one-codebase Console. Locally:
-
-```
-make portal        # serves the mock at http://localhost:8787
-```
-
-The production Console source and committed artifacts live under
-`portal/console/` (ADR-0027); deployment handoff is documented in
-[portal/console/README.md](portal/console/README.md#vercel-handoff).
-
-## How I ship it
-
-Devmatrix is a one-person product, built in the open and shipped along
-a single gate ladder — governance, hardware bring-up, contract freeze,
-then the launch gates. [ROADMAP.md](ROADMAP.md) owns where each gate
-stands, and the docs mark every capability **Today** (current firmware
-does it, evidence filed) or **Ahead · gate X** (specified, lands at its
-gate) — if you catch a claim the firmware doesn't keep, that's a bug.
-Interface contracts in [contracts/](contracts/README.md) stay **DRAFT**
-until the P2 freeze.
-
-**Local Mode is the complete product, free forever.** The harness for
-remote reach is included: point the box at any MQTT broker you can
-reach, or put the LAN behind your own VPN,
-and you're running your own cloud today. The support is written down
-and built in: the manual, the Console's Guide view, and the diag
-endpoint (`GET /api/v1/apps/diag`). I add real support capacity, and a paid
-managed Cloud Mode (remote control, fleet view, alerts), only if
-demand requires it — the box never depends on either
-([docs/MODES.md](docs/MODES.md)).
-
-## The documentation
-
-| You want to… | Read |
-|---|---|
-| **Use the box** — setup, Console, apps, updates, recovery | [docs/MANUAL.md](docs/MANUAL.md) |
-| Understand the product & brand | [docs/VISION.md](docs/VISION.md) |
-| Feel the buyer's journey (canonical example) | [docs/USER-STORY.md](docs/USER-STORY.md) |
-| The Console spec — pages, features, modes | [docs/PORTAL.md](docs/PORTAL.md) |
-| Local vs Cloud — what's free, what's paid, what dies | [docs/MODES.md](docs/MODES.md) |
-| Threat model, keys, security ceremonies | [docs/SECURITY.md](docs/SECURITY.md) |
-| Firmware architecture and flash map | [docs/FIRMWARE.md](docs/FIRMWARE.md) |
-| Full DK-01 production execution blueprint | [docs/PRODUCTION-PLAN.md](docs/PRODUCTION-PLAN.md) |
-| Ops — hosting, deploys, secrets | [docs/OPERATIONS.md](docs/OPERATIONS.md) |
-| Draft API contracts (MQTT first) | [contracts/README.md](contracts/README.md) |
-| Hardware gate evidence, procedures, manufacturing files | [hardware/README.md](hardware/README.md) |
-| Why I decided X | [docs/adr/](docs/adr/) |
-| What happens next, and in what order | [ROADMAP.md](ROADMAP.md) |
-| Canonical names, IDs, formats | [docs/GLOSSARY.md](docs/GLOSSARY.md) |
-
-## Licensing
-
-First-party code — scripts, the Console prototype, and future
-firmware/console/simulator — is GPL-3.0-or-later (root [LICENSE](LICENSE));
-documentation is CC BY 4.0. `contracts/` and SDKs adopt Apache-2.0 with their
-first code or schema artifact; hardware files adopt CERN-OHL-S-2.0. Code
-samples inside docs carry their stated software license. Full scheme:
-[docs/adr/ADR-0010-license-scheme.md](docs/adr/ADR-0010-license-scheme.md).
-
-## Rules of this repo
-
-See [docs/VISION.md](docs/VISION.md) for product boundaries and
-[AGENTS.md](AGENTS.md) for the working agreements and definition of done. The short version: one owner file
-per topic, every decision lands as an ADR, `make check` is the shared gate,
-the clean-room boundary is absolute, and the Console is one codebase built
-to two targets (ADR-0027) — the prototype stays a single-file design
-reference until `portal/console/` reaches parity. Commit, push, deploy, go live,
-publish, and ship are release verbs: an affirmative request using any one runs
-the complete validated commit-to-production chain defined in `AGENTS.md`.
+Devmatrix is independently built. Its local receiver app uses the owner's
+own data; no closed-product code, logic, schemas, or assets cross into this
+repository. [VISION.md](docs/VISION.md) owns that boundary.

@@ -8,7 +8,10 @@ decided and when.
 
 The cost of immutability is that a reader landing on an old ADR cannot
 see what happened next. **This index is the forward pointer.** Anything
-not listed below is current as written.
+not listed below remains a decision as written; acceptance does not mean
+implementation. Current capabilities and deviations belong to the owner
+documents, and the [latest review](../reviews/2026-09-08-full-review/README.md)
+records unresolved gaps.
 
 ## Superseded or refined
 
@@ -18,9 +21,11 @@ not listed below is current as written.
 | [ADR-0002](ADR-0002-portal-first.md) — Portal-first build order | Designing the API from the Console side in; the prototype as working spec | Its firmware-deferral half is overtaken by [ADR-0009](ADR-0009-adopt-production-plan.md)'s gate ladder and [ADR-0024](ADR-0024-living-firmware-tree.md)'s living firmware tree |
 | [ADR-0005](ADR-0005-prototype-constraints.md) — Prototype constraints | Why the prototype was single-file and mock-only | Superseded by [ADR-0027](ADR-0027-one-console-codebase.md); `portal/console/` is the Console, the prototype is a design reference |
 | [ADR-0006](ADR-0006-user-root-of-trust.md) — User-enrollable root of trust | The enrollment ceremony, its audit trail, and the owner exemption from the anti-rollback floor | Passkey-re-auth requirement superseded by [ADR-0008](ADR-0008-device-local-owner-session.md) (device-local session; no account in Local Mode); the single-"trust set" wording and "factory reset wipes enrolled keys" scoped to the software layer by [ADR-0021](ADR-0021-two-layer-trust-model.md) |
+| [ADR-0007](ADR-0007-local-free-cloud-paid.md) — Local/Cloud economics | Local is free; managed Cloud pays its own costs and preserves the sunset covenant | [ADR-0033](ADR-0033-demand-driven-cloud-and-support.md) makes the offer demand-driven, not a committed second product |
 | [ADR-0009](ADR-0009-adopt-production-plan.md) — Adopt the production plan | The gate ladder and its acceptance criteria | Firmware posture superseded by [ADR-0024](ADR-0024-living-firmware-tree.md); P1 and M4 rescoped by [ADR-0026](ADR-0026-three-tier-app-model.md) |
 | [ADR-0014](ADR-0014-console-production-stack.md) — Console stack | Preact + TypeScript + Vite, no runtime fonts | Build targets and the committed device header defined by [ADR-0027](ADR-0027-one-console-codebase.md) |
 | [ADR-0016](ADR-0016-static-hosting-cloudflare.md) — Static hosting | The atomicity rule (deploy target, ship.mjs, and verify-live.mjs move together); zero standing compute; GitHub Release assets | Cloudflare Pages migration superseded by [ADR-0034](ADR-0034-vercel-pro-hosting.md) (the Pro plan removed the Hobby commercial-use bar; the Console stays on Vercel and the domain attaches there); destination hostname set by [ADR-0025](ADR-0025-hosted-console-domain.md) |
+| [ADR-0019](ADR-0019-repo-restructure.md) — Target structure | Independently testable owners and no empty scaffolds | [ADR-0027](ADR-0027-one-console-codebase.md) places the implemented Console at `portal/console/` |
 | [ADR-0020](ADR-0020-browser-support-matrix.md) — Browser support matrix | The supported-browser baseline | Constraint 1 corrected and the transport decided by [ADR-0031](ADR-0031-browser-to-device-transport.md) |
 | [ADR-0022](ADR-0022-clean-room-enforcement.md) — Clean-room enforcement | The banned-identifier CI gate | Re-scoped by [ADR-0023](ADR-0023-clean-room-rescope.md); exactly one hostname excepted by [ADR-0025](ADR-0025-hosted-console-domain.md); the public role mailbox is excepted by [ADR-0035](ADR-0035-public-owner-privacy.md) |
 
@@ -45,5 +50,7 @@ not listed below is current as written.
 Owner documents carry the current state; this directory carries the
 reasoning. Where a document and a newer ADR disagree, the ADR wins and
 the document is fixed in the same change (AGENTS.md).
+
+## Public owner privacy
 
 - [ADR-0035: Public owner privacy](ADR-0035-public-owner-privacy.md) — organization attribution and private owner identity on public surfaces.

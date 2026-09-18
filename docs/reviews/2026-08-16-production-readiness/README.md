@@ -1,5 +1,9 @@
 # Production-readiness review — 2026-08-16
 
+> Historical August assessment. For the current source review and open work,
+> start with the [September review](../2026-09-08-full-review/README.md).
+> Checkboxes below retain their original meaning and are not current gate acceptance.
+
 Full-depth review of everything between commit `444691f` and a
 sellable DK-01, saved step by step. Start with
 [10-findings-and-plan.md](10-findings-and-plan.md) (the rollup and
