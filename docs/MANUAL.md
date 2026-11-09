@@ -84,7 +84,9 @@ token and no working Console.
    password, and watch it join — no blind reboot-and-hope.
 4. When the join succeeds, use **Finish** in the setup page, then rejoin
    your normal Wi-Fi. The full browser may retain the setup token; captive
-   portal mini-browsers may not share storage with it. If pairing is asked
+   portal mini-browsers may not share storage with it. Setup hands over a
+   token only the first time: a panel that has already been used asks a new
+   browser to pair instead. If pairing is asked
    for, follow chapter 4. (If nothing taps Finish, the device
    closes its setup hotspot by itself 90 seconds after the join and
    boots onto your Wi-Fi.)
@@ -121,7 +123,9 @@ or for any additional browser:
    bearer credential every API call uses ([docs/GLOSSARY.md](GLOSSARY.md)).
 
 Codes expire after 5 minutes, die after 5 wrong tries, and asking
-again never extends an active code's life. Reading the
+again never extends an active code's life. After 5 wrong tries pairing
+pauses before a new code can be shown: 30 seconds at first, doubling up to
+10 minutes if it keeps happening. Reading the
 panel *is* the proof of possession: nothing to write down, and a lost
 browser never means factory reset — just pair again. To revoke every
 existing session at once: Security → **ROTATE LAN TOKEN**.
@@ -643,7 +647,7 @@ browser MQTT workbench are in
 | `401 unauthorized` | Stale token — re-pair (chapter 4) or re-copy from the Dev console view |
 | Panel resets at high brightness | Under-powered supply. The 150 cap exists for this; the Dashboard's reset-reason tile confirms a brown-out |
 | Clock is wrong or shows `--:--` | Check Settings → timezone and SNTP reachability. The current firmware cannot set time manually or select a local time server; cold boot without public SNTP leaves time unavailable |
-| Weather / Flights list / any fetching app shows only the clock | The app has no usable data and is telling you why: check **`GET /api/v1/apps/diag`** (or run `node examples/dmx-top.mjs`) — `too-big` means the feed outgrew the fetch buffer (point the URL at the raw `aircraft.json`, not a dashboard page that wraps it), `no-url` means set the receiver URL, `connect-failed` means the source is unreachable, `http-…` means it answered with an error (check the path), `no-aircraft`/`bind-miss` means the feed answered but held nothing to render |
+| Weather / Flights list / any fetching app shows only the clock | The app has no usable data and is telling you why: check **`GET /api/v1/apps/diag`** (or run `node examples/dmx-top.mjs`) — `too-big` means the feed outgrew the fetch buffer (point the URL at the raw `aircraft.json`, not a dashboard page that wraps it), `no-url` means set the receiver URL, `connect-failed` means the source is unreachable, `http-…` means it answered with an error (check the path), `slow-read` means it took more than four seconds to send its answer, `no-aircraft`/`bind-miss` means the feed answered but held nothing to render |
 | Apps → Flights list saves but the radar shows nothing | The host script isn't running — chapter 8; check `systemctl status dmx-flights` |
 | MQTT stays disabled | Turn on **ENABLE MQTT** and enter a host; an empty host deliberately keeps MQTT off |
 | MQTT shows error | Check the broker address, port, per-device username/password and ACL from chapter 11; pre-P2 TLS also requires a trusted network path |

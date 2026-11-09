@@ -7,15 +7,15 @@ owns exact endpoint authentication; [ROADMAP.md](../ROADMAP.md) owns acceptance.
 
 ## What exists today
 
-| Area | Firmware v0.12.7 reality | Remaining work |
+| Area | Firmware v0.12.8 reality | Remaining work |
 |---|---|---|
 | LAN authority | One full-control bearer token per device, minted on first boot, stored in NVS and rotatable | Scoped tokens, revocable individual browser sessions, physical confirmation of sensitive actions |
-| Browser pairing | Six panel digits, five-minute code lifetime, five misses per code | Global throttling and session-bound physical confirmation; a fresh code can currently be requested immediately |
+| Browser pairing | Six panel digits, five-minute code lifetime, five misses per code; a retired code pauses pairing for 30 seconds, doubling to a 10-minute cap | Session-bound physical confirmation. The pause is device-wide and held in RAM: any LAN caller can trigger it, and a restart clears it |
 | Device identity | First-boot Ed25519 key and signed-nonce proof, Console key pinning | Independently authenticated first-use key capture and protection against an active HTTP proxy |
 | LAN transport | Plain HTTP, Host allowlist in Console mode, hosted-origin CORS responses | Request-side Origin checks, pre-buffer request caps and complete browser/device abuse tests |
-| Setup | Open hotspot; unauthenticated setup routes; closes after successful join and Finish or a 90-second timeout | Constrain setup to the intended interface/session and require presence before reopening on a provisioned device |
-| OTA | Bearer-authenticated image upload into the inactive app slot; SDK rollback support enabled | Signed manifests/images, health-based rollback acceptance and recovery evidence |
-| App sources | Size/depth limits, stale rendering; HTTPS certificate verification disabled | CA trust, redirect destination enforcement and total fetch deadlines |
+| Setup | Open hotspot; unauthenticated setup routes; closes after successful join and Finish or a 90-second timeout. The token is handed only to a hotspot client, and only before any Console has reached the device | Constrain the other setup routes to the intended interface/session and require presence before reopening on a provisioned device |
+| OTA | Bearer-authenticated image upload into the inactive app slot; SDK rollback support enabled; the image is confirmed after 30 seconds of loop operation, with the result checked | Signed manifests/images, health criteria beyond loop uptime, a boot counter or safe mode, and recovery evidence |
+| App sources | Size/depth limits, stale rendering, a 4-second budget for each response body; HTTPS certificate verification disabled | CA trust, redirect destination enforcement, and deadlines for the connect, TLS and header phases |
 | MQTT TLS | TLS option exists, but the code supplies no CA or other verification mechanism | Verified broker trust and a successful TLS device test; do not assume the option establishes a working TLS connection |
 | Cloud and advanced security UI | Design and demo surfaces | Passkeys/accounts, relay, audit log, guests, snapshots and owner signing-key enrollment are not implemented device services |
 
@@ -78,13 +78,18 @@ and I would not want them to):
 - **The setup window is open by design, with important limits.** The
   `DEVMATRIX-XXXX` hotspot and setup routes are unauthenticated. Setup runs
   in AP+STA mode, and the HTTP listener is not restricted to the hotspot
-  interface. After Wi-Fi joins, `/setup/status` exposes the current token
-  to reachable clients on either interface until reboot. Finish closes the
+  interface. After Wi-Fi joins, `/setup/status` is reachable on either
+  interface until reboot, but it hands over the token only when the request
+  arrives on the hotspot address and no Console has reached the device yet.
+  A device that has been used keeps its token out of setup entirely: its
+  owner still holds it, or pairs again with the panel code. Finish closes the
   window; otherwise a successful join starts a 90-second timeout. This does
   not bound an unsuccessful setup session. A provisioned device also reopens
-  setup after a 25-second boot-time join failure, without a button press.
-  Interface restriction, session binding and physically authorized recovery
-  setup are open hardening work, not enforced today.
+  setup after a 25-second boot-time join failure, without a button press,
+  and anyone in radio range can then move it to another network through the
+  unauthenticated join route. Restricting the remaining setup routes to the
+  hotspot, session binding and physically authorized recovery setup are open
+  hardening work, not enforced today.
 - **The panel is the directory.** The final setup card shows the device's
   address. Asking to pair replaces it temporarily with two rows of digits;
   address and code are not displayed together today. Discovery begins with
@@ -99,7 +104,7 @@ and I would not want them to):
   `Authorization: Bearer <LAN token>`. Health, identity and pairing routes
   are intentional public exceptions, listed in
   [contracts/rest.md](../contracts/rest.md). The token is minted on first boot,
-  returned during setup or successful panel-code pairing, and rotatable.
+  returned during first-time setup or successful panel-code pairing, and rotatable.
   All paired clients share it; rotating it invalidates every client. There
   is no separate owner account, ownership-transfer lock or individual session
   revocation today. Factory reset currently requires the token, not a button
@@ -227,8 +232,9 @@ bundled app settings. It bounds layout bytes, rows, pointer traversal and
 response storage; [contracts/layout.md](../contracts/layout.md) owns the
 numbers. It does not implement a `.dmapp` capability manifest, allowed-host
 list, Registry review pipeline, per-app storage quota or app audit log.
-Redirect destinations are not constrained, and a response can hold the main
-loop busy by continually sending bytes before the idle timeout.
+Redirect destinations are not constrained. A response body is cut off after
+4 seconds, but a source can still hold the main loop during the connect, TLS
+and header phases, which have no overall deadline.
 
 At M4, declarative apps must declare allowed hosts, storage, refresh rate and
 draw permissions before installation, with enforcement in the binding engine.

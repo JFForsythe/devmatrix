@@ -105,7 +105,7 @@ static const char SETUP_HTML[] PROGMEM = R"HTML(<!doctype html>
       <div style="font-size:20px;font-weight:700">Connected!</div></div>
     <h2>Your Console</h2>
     <div class="linkbox" id="consoleUrl"></div>
-    <p class="note">This phone signs in automatically when you open the
+    <p class="note" id="doneNote">This phone signs in automatically when you open the
        Console. Any other device can pair itself later with a short code
        shown right on the panel — <b>nothing to write down</b>.</p>
     <button class="btn" id="finish">Finish &mdash; restart onto my Wi-Fi</button>
@@ -117,7 +117,7 @@ static const char SETUP_HTML[] PROGMEM = R"HTML(<!doctype html>
     <p class="note">Reconnect your phone to <b id="homeSsid"></b> (usually
        automatic once this hotspot disappears), then open your Console:</p>
     <div class="linkbox"><a id="goLink" href="#"></a></div>
-    <p class="note">That link carries your token, so the Console signs itself
+    <p class="note" id="byeNote">That link carries your token, so the Console signs itself
        in on first open.</p>
   </div>
 </div>
@@ -174,6 +174,9 @@ function checkJoin(){
   fetch('/setup/status').then(function(r){return r.json()}).then(function(d){
     if(d.state==='joined'){ clearInterval(poll); joined=d;
       $('consoleUrl').textContent='http://'+d.mdns+'/  (or http://'+d.ip+'/)';
+      // The device hands the token only to its hotspot during first-time
+      // setup. Without one, say so instead of promising an automatic sign-in.
+      if(!d.token){ $('doneNote').textContent='This page has no token to hand over: the panel was set up before, or you are not on its hotspot. A browser you paired before still works. Any other pairs with the short code shown on the panel.' }
       show('stepDone');
     } else if(d.state==='failed'){
       fail('Couldn’t join “'+sel+'” — check the password and try again.');
@@ -182,7 +185,9 @@ function checkJoin(){
 }
 $('finish').onclick=function(){
   $('homeSsid').textContent=sel||'your Wi-Fi';
-  var url='http://'+joined.mdns+'/#t='+joined.token;
+  var url='http://'+joined.mdns+'/';
+  if(joined.token){ url+='#t='+joined.token }
+  else { $('byeNote').textContent='A browser you paired before signs in as usual. Any other asks for the short code shown on the panel.' }
   var a=$('goLink'); a.textContent=url; a.href=url;
   show('stepBye');
   fetch('/setup/done',{method:'POST'}).catch(function(){});

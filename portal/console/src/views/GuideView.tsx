@@ -130,7 +130,7 @@ export function GuideView({ transport }: { transport: ConsoleTransport }) {
               <li>
                 <strong>Pair each new browser once:</strong> tap PAIR, read the 6-digit code off the
                 panel (white row, then blue), type it in. Reading the panel is the proof — codes expire
-                in five minutes and die after five wrong tries.
+                in five minutes, and five wrong tries retire a code and pause pairing for a moment.
               </li>
               <li>
                 <strong>Push something.</strong> Dashboard → quick text, or paint the 64×32 canvas and
@@ -285,9 +285,10 @@ export function GuideView({ transport }: { transport: ConsoleTransport }) {
           <Card id="t-pair" title="Trouble: pairing, tokens, identity">
             <ul class="guide-list">
               <li>
-                <strong>Pair code rejected or expired?</strong> Codes live five minutes and die after
-                five wrong tries — tap PAIR again and an expired or retired code is replaced with a
-                fresh one (a still-active code just re-shows itself).
+                <strong>Pair code rejected or expired?</strong> Codes live five minutes. Five wrong
+                tries retire the code and pause pairing: 30 seconds at first, longer if it keeps
+                happening, 10 minutes at most. After the pause, tap PAIR for a fresh one (a
+                still-active code just re-shows itself).
               </li>
               <li>
                 <strong>Everything answers <code>401 unauthorized</code>?</strong> This browser's token
@@ -323,8 +324,9 @@ export function GuideView({ transport }: { transport: ConsoleTransport }) {
                 panel can't reach the source, <code>http-…</code> means the source answered with an
                 error (check the path), <code>too-big</code> means the feed outgrew the fetch buffer
                 (point the URL at the raw <code>aircraft.json</code>, not a dashboard page that wraps
-                it), and <code>no-aircraft</code> or <code>bind-miss</code> mean the feed answered but
-                held nothing to render.
+                it), <code>slow-read</code> means the source took more than four seconds to send its
+                answer, and <code>no-aircraft</code> or <code>bind-miss</code> mean the feed answered
+                but held nothing to render.
               </li>
               <li>
                 <strong>Flights list saves but the radar stays empty?</strong> The companion script on

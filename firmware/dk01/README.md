@@ -4,7 +4,7 @@ Build and extend the firmware for the DK-01 64×32 display. It serves the
 Local Console, runs the bundled declarative apps, and accepts content from
 your own scripts over LAN REST or MQTT.
 
-**Current source: v0.12.7, before the P2 contract freeze.** The features
+**Current source: v0.12.8, before the P2 contract freeze.** The features
 below exist in source; signed updates, recovery acceptance, and other
 release gates remain tracked in [ROADMAP.md](../../ROADMAP.md). A successful
 compile does not establish that a board is ready to sell.
@@ -21,7 +21,9 @@ owner-facing walkthrough — setup, Console, apps, updates, recovery — is
 
 - **Setup hotspot** — first boot opens `DEVMATRIX-XXXX`; a captive
   portal scans your networks and joins live (no blind reboot-and-pray).
-  The Finish link can carry that browser's token into the Console. Captive
+  During first-time setup the Finish link carries that browser's token into
+  the Console; a panel that has already been used hands the setup page no
+  token, and the browser pairs instead. Captive
   mini-browsers may require reopening and pairing in a full browser; follow
   [the setup walkthrough](../../docs/MANUAL.md).
 - **Claim-code pairing** — any other browser taps **Pair**, the panel
@@ -29,7 +31,9 @@ owner-facing walkthrough — setup, Console, apps, updates, recovery — is
   LAN token. Reading the panel *is* the credential: nothing to write
   down, and losing a browser never means factory reset. Codes expire in
   5 minutes and die after 5 wrong tries; asking again re-shows the
-  active code without extending its life.
+  active code without extending its life. A code retired by wrong tries
+  pauses pairing for 30 seconds, doubling up to 10 minutes if it keeps
+  happening.
 - **Local Console** — the device serves its own control page at
   `http://dmx-xxxx.local/`: status tiles, text push, a 64×32 paint
   canvas, brightness, identify, timezone, token rotation, and OTA

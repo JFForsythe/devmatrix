@@ -472,6 +472,16 @@ class PixletManager {
       signal: AbortSignal.timeout(5_000),
     });
     const result = await readResponseJson(response);
+    if (response.status === 429) {
+      // Firmware 0.12.8+ pauses pairing after a code is retired by wrong tries.
+      const wait = Number.isInteger(result.retry_after_s) ? result.retry_after_s : undefined;
+      throw new PublicError(
+        429,
+        wait === undefined
+          ? "Pairing is paused after wrong codes. Try again shortly."
+          : `Pairing is paused after wrong codes. Try again in ${wait} seconds.`,
+      );
+    }
     if (!response.ok) throw new PublicError(502, `Panel rejected pairing start (HTTP ${response.status}).`);
     return { expires_s: Number(result.expires_s) || 300, ok: true };
   }
@@ -497,7 +507,7 @@ class PixletManager {
           : response.status === 410
             ? "The pair code expired. Start pairing again."
             : response.status === 429
-              ? "Too many attempts. Start pairing again for a fresh code."
+              ? "Too many attempts. Pairing pauses briefly; then start again for a fresh code."
               : `Panel pairing failed (HTTP ${response.status}).`,
         attemptsLeft === undefined ? undefined : { attemptsLeft },
       );

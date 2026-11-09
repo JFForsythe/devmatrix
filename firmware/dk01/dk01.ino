@@ -10,10 +10,11 @@
 //
 // Security posture (v0, pre-P2-freeze):
 //   - No credentials are ever compiled in. Wi-Fi credentials are never
-//     logged; the LAN token lives only in device NVS (ADR-0023) and is
-//     revealed exactly twice: on the setup hotspot (physical presence)
-//     and once at boot on the USB serial console (physical cable) —
-//     never in the periodic stats.
+//     logged; the LAN token lives only in device NVS (ADR-0023). It is
+//     revealed in three places: to a hotspot client during first-time
+//     setup, to a browser that types the panel's pair code, and once at
+//     boot on the USB serial console (physical cable) — never in the
+//     periodic stats, and never to the LAN side of the setup window.
 //   - Plain HTTP on the LAN is the permanent transport (ADR-0031). TLS is
 //     not the authentication story, so the application layer is: the device
 //     holds an Ed25519 identity key and signs Console-supplied nonces, an
@@ -44,7 +45,7 @@
 #include "apps_builtin.h"
 #include "mqtt_client.h"
 
-#define FW_VERSION "0.12.7"
+#define FW_VERSION "0.12.8"
 
 // A full-bright white frame can out-draw USB-C power and brown-out the
 // board (observed on the bench 2026-08-07: brownout reset at high slider
@@ -118,6 +119,14 @@ String flView = "list";            // "list" (text board) or "radar" (pixels)
 String claimCode;                  // 6 digits while active
 uint32_t claimUntil = 0;           // code deadline (0 = none)
 uint8_t claimAttempts = 0;
+// Cool-down between codes. Five wrong tries retire a code; with no pause a
+// LAN caller could ask for the next one at once and sweep all million codes
+// in hours. Each code retired in a row doubles the wait (30 s up to 10 min);
+// a correct code or a quiet hour clears the history. RAM only on purpose:
+// power-cycling the box is physical presence.
+uint8_t claimBurns = 0;            // codes retired in a row by wrong tries
+uint32_t claimPauseUntil = 0;      // no new code before this (0 = none)
+uint32_t claimLastBurnMs = 0;      // when the last code was retired
 
 // The walkthrough's last on-panel step: after joining Wi-Fi the panel
 // points at the Local Console until the Console first reaches the device
@@ -1031,10 +1040,35 @@ void handleIdentityVerify() {
 
 // Unauthenticated by design: anyone on the LAN may ASK to pair, but only
 // someone who can read the panel can FINISH. One active code at a time;
-// re-requesting extends the same code instead of churning it.
+// re-requesting re-shows the same code instead of churning it, and a code
+// retired by wrong tries is followed by a pause before the next one.
+
+// Seconds until a new pair code may be shown; 0 when pairing is open.
+uint32_t claimPauseLeftS(uint32_t nowMs) {
+  if (!claimPauseUntil) return 0;
+  int32_t left = (int32_t)(claimPauseUntil - nowMs);
+  if (left <= 0) {
+    claimPauseUntil = 0;
+    return 0;
+  }
+  return ((uint32_t)left + 999UL) / 1000UL;
+}
+
 void handleClaimStart() {
   uint32_t nowMs = millis();
   if (!claimCode.length() || nowMs >= claimUntil) {
+    uint32_t waitS = claimPauseLeftS(nowMs);
+    if (waitS) {
+      char paused[112];
+      snprintf(paused, sizeof paused,
+               "{\"error\":\"pairing paused after wrong codes - try again "
+               "in %lu s\",\"retry_after_s\":%lu}",
+               (unsigned long)waitS, (unsigned long)waitS);
+      sendJson(429, paused);
+      return;
+    }
+    // A quiet hour forgives earlier retired codes.
+    if (claimBurns && nowMs - claimLastBurnMs > 3600000UL) claimBurns = 0;
     char c[7];
     snprintf(c, sizeof c, "%06lu", (unsigned long)(esp_random() % 1000000UL));
     claimCode = c;
@@ -1063,6 +1097,8 @@ void handleClaimFinish() {
   if (digits == claimCode) {
     claimUntil = 0;
     claimCode = "";
+    claimBurns = 0;  // a correct code clears the cool-down history
+    claimPauseUntil = 0;
     markConsoleSeen();  // pairing is arrival: the guide card is done
     overlayText = "paired!";
     overlayUntil = millis() + 3000;
@@ -1075,7 +1111,21 @@ void handleClaimFinish() {
   if (++claimAttempts >= 5) {
     claimUntil = 0;
     claimCode = "";
-    sendJson(429, "{\"error\":\"too many tries - tap Pair for a fresh code\"}");
+    // Retiring a code starts a pause before the next one: 30 s, doubling
+    // with each code retired in a row, capped at 10 minutes.
+    uint32_t nowMs = millis();
+    if (claimBurns < 6) claimBurns++;
+    uint32_t pauseS = 30UL << (claimBurns - 1);
+    if (pauseS > 600UL) pauseS = 600UL;
+    claimLastBurnMs = nowMs;
+    claimPauseUntil = nowMs + pauseS * 1000UL;
+    if (!claimPauseUntil) claimPauseUntil = 1;  // 0 is reserved for "no pause"
+    char paused[128];
+    snprintf(paused, sizeof paused,
+             "{\"error\":\"too many tries - wait %lu s, then tap Pair for a "
+             "fresh code\",\"retry_after_s\":%lu}",
+             (unsigned long)pauseS, (unsigned long)pauseS);
+    sendJson(429, paused);
     return;
   }
   char body[64];
@@ -1305,16 +1355,29 @@ void stepJoinMachine() {
   }
 }
 
+// Setup mode runs AP+STA, so once the device joins a network this same
+// listener is reachable from that LAN as well as from the hotspot. Only a
+// connection that arrived on the hotspot's own address counts as presence.
+bool requestOnHotspot() {
+  return server.client().localIP() == WiFi.softAPIP();
+}
+
 void handleJoinStatus() {
   stepJoinMachine();
   if (joinState == JOIN_OK) {
-    // Physical presence on the hotspot is the v0 claim ceremony: the token
-    // (and the identity key to pin) is revealed here, once, on the setup
-    // network only.
-    sendJson(200, String("{\"state\":\"joined\",\"ip\":\"") +
-                      WiFi.localIP().toString() + "\",\"mdns\":\"" + mdnsName +
-                      ".local\",\"token\":\"" + apiToken + "\"," +
-                      identityJson() + "}");
+    // Physical presence on the hotspot is the v0 claim ceremony, so the
+    // token is revealed only to a hotspot client, and only while the box
+    // has never been claimed. Once a Console has reached this box it keeps
+    // its token to itself here: setup reopens on its own after a failed
+    // boot join, and the owner either still holds the token or pairs with
+    // the panel code. The identity key is public and always included.
+    String body = String("{\"state\":\"joined\",\"ip\":\"") +
+                  WiFi.localIP().toString() + "\",\"mdns\":\"" + mdnsName +
+                  ".local\",";
+    if (!consoleSeen && requestOnHotspot())
+      body += String("\"token\":\"") + apiToken + "\",";
+    body += identityJson() + "}";
+    sendJson(200, body);
   } else if (joinState == JOIN_TRYING) {
     sendJson(200, "{\"state\":\"joining\"}");
   } else if (joinState == JOIN_FAIL) {
@@ -1552,13 +1615,30 @@ void loop() {
   stepJoinMachine();
 
   // 30 s of a running loop means display + server + apps came up: the
-  // image works, so cancel any pending rollback. Deliberately NOT tied
-  // to Wi-Fi join — a router outage on the first post-OTA boot must not
-  // roll back a healthy image (the device sits in setup/rejoin instead).
-  static bool otaMarkedValid = false;
-  if (!otaMarkedValid && millis() > 30000) {
-    otaMarkedValid = true;
-    esp_ota_mark_app_valid_cancel_rollback();
+  // image works, so cancel any pending rollback. The clock starts at the
+  // first loop pass, not at boot: setup() can spend ~27 s waiting on Wi-Fi,
+  // which used to leave a new image about 3 s of real service before it was
+  // accepted. Deliberately NOT tied to Wi-Fi join — a router outage on the
+  // first post-OTA boot must not roll back a healthy image (the device sits
+  // in setup/rejoin instead; its first background rejoin, and the restart
+  // that follows a success, come 45 s in — after this window). A failed
+  // confirmation is retried rather than assumed.
+  static bool otaSettled = false;
+  static uint8_t otaMarkTries = 0;
+  static uint32_t otaMarkDueMs = millis() + 30000UL;  // set on first loop pass
+  if (!otaSettled && (int32_t)(millis() - otaMarkDueMs) >= 0) {
+    esp_err_t markErr = esp_ota_mark_app_valid_cancel_rollback();
+    if (markErr == ESP_OK) {
+      otaSettled = true;
+    } else if (++otaMarkTries >= 5) {
+      otaSettled = true;  // stop retrying; the serial log says why
+      Serial.printf("ota: could not confirm this image (err %d); giving up\n",
+                    (int)markErr);
+    } else {
+      otaMarkDueMs = millis() + 30000UL;
+      Serial.printf("ota: could not confirm this image (err %d); retrying\n",
+                    (int)markErr);
+    }
   }
 
   // Close the post-join token-reveal window (docs/SECURITY.md): if the

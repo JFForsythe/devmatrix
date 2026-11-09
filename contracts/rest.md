@@ -81,13 +81,13 @@ declarative apps — docs/GLOSSARY.md).
 
 ### `GET /api/v1/health` — open
 
-`{"ok":true,"device":"DMX-4E71-0952","fw":"0.12.7","mode":"run"}` —
+`{"ok":true,"device":"DMX-4E71-0952","fw":"0.12.8","mode":"run"}` —
 `mode` is `run` or `setup`. Safe for monitoring; carries no secrets.
 
 ### `GET /api/v1/info`
 
 ```json
-{"device":"DMX-4E71-0952","serial":"DMX-4E71-0952","fw":"0.12.7",
+{"device":"DMX-4E71-0952","serial":"DMX-4E71-0952","fw":"0.12.8",
  "uptime_s":86432,"heap_free":118432,"rssi_dbm":-52,"ip":"10.0.4.22",
  "mdns":"dmx-0952.local","brightness":120,"refresh_hz":220,
  "slot":"ota_0","scene":"clock","reset_reason":"power-on"}
@@ -172,6 +172,8 @@ browser. [SECURITY.md](../docs/SECURITY.md) owns the current trust limitations.
   and the panel shows a 6-digit code. Codes live 5 minutes;
   re-requesting while a code is active re-shows it and reports the
   remaining seconds without extending its life (firmware 0.12.0+).
+  While pairing is paused (below) no code is shown and the reply is
+  `429 {"error":"…","retry_after_s":N}` (firmware 0.12.8+).
 - `claim/finish` with `{"code":"482913"}` (non-digits are stripped, so
   separators are tolerated). Success →
   `{"token":"<LAN token>", ...identity fields...}` — the identity key
@@ -179,9 +181,14 @@ browser. [SECURITY.md](../docs/SECURITY.md) owns the current trust limitations.
   the token; first-use out-of-band verification is not established by this
   response alone.
   Failures: `410` no active code; `403` wrong code with
-  `"attempts_left":N`; after 5 wrong tries the code dies → `429`.
-  This is a per-code attempt limit, not a time-based lockout: `claim/start`
-  immediately creates another code. Global throttling remains unimplemented.
+  `"attempts_left":N`; after 5 wrong tries the code dies → `429` with
+  `"retry_after_s":N`.
+- Pause after a retired code (firmware 0.12.8+): 30 seconds, doubling with
+  each code retired in a row, capped at 10 minutes. A correct code, or an
+  hour without a retired code, clears the history; so does a restart, because
+  the state is held in RAM. The pause is device-wide, not per client: any LAN
+  caller can trigger it, and paired clients are unaffected. Earlier firmware
+  creates another code immediately.
 
 ### `POST /api/v1/token/rotate`
 
@@ -228,7 +235,10 @@ Why is an app blank? →
 
 `result` ∈ `ok` · `too-big` · `bad-json` · `no-url` · `no-aircraft` ·
 `bind-miss` · `connect-failed` · `http-<code>` · `no-buffer` ·
-`bad-url` · `begin-failed` · `short-read` · `idle` · `offline-app`.
+`bad-url` · `begin-failed` · `short-read` · `slow-read` · `idle` ·
+`offline-app`. `slow-read` (firmware 0.12.8+) means the response body did not
+finish within its 4-second budget; the connect, TLS and header phases are not
+covered by that budget.
 `age_s` measures time since the last fetch attempt, not the age of displayed
 data; zero also covers "never attempted". `ok` counts successfully fetched,
 parsed JSON documents, even when their bindings or aircraft yield no rows.
@@ -285,14 +295,19 @@ the HTTP listener is not restricted to the hotspot interface.
 | `/` | GET | Captive-portal page |
 | `/setup/scan` | GET | Wi-Fi SSID list or `{"scanning":true}`; `?rescan` restarts a Wi-Fi scan |
 | `/setup/join` | POST | `{"ssid":"…","pass":"…"}` starts an asynchronous join |
-| `/setup/status` | GET | `idle`, `joining`, `failed`, or `joined` plus IP, mDNS, LAN token and identity fields |
+| `/setup/status` | GET | `idle`, `joining`, `failed`, or `joined` plus IP, mDNS and identity fields; `token` only as described below |
 | `/setup/done` | POST | Reboot; does not require authentication or a joined state |
 | `/api/v1/health` | GET | Liveness and setup mode |
 
 All of these routes are unauthenticated. POST bodies over 2,048 bytes are
 rejected after buffering. Unknown URLs redirect to the setup page. After a
-successful join, the token-bearing status response is reachable on the newly
-joined LAN as well as the hotspot until reboot. Finish triggers that reboot;
+successful join, the status route is reachable on the newly joined LAN as
+well as the hotspot until reboot. From firmware 0.12.8 its `joined` reply
+carries `token` only when the request arrives on the hotspot address and no
+Console has reached the device yet (no authenticated request, no completed
+pairing). Otherwise the field is omitted and a browser pairs with the panel
+code; earlier firmware returned the token to every client on either network.
+Finish triggers the reboot;
 otherwise a successful join starts a 90-second auto-close timer. An
 unsuccessful setup session has no equivalent overall deadline. Security
 implications and hardening requirements belong to

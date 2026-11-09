@@ -36,11 +36,16 @@ the partition layout alone.
   `500 {"error":"<platform error>"}` and the running image continues
   untouched (the inactive slot is simply left invalid).
 - Rollback machinery: the bootloader's app-rollback support is
-  enabled in the current SDK. The application calls
-  `esp_ota_mark_app_valid_cancel_rollback()` on a loop pass after 30 seconds
-  of global uptime; it does not count 30 seconds of successful loop operation
-  or check that call's result. Slow boot-time Wi-Fi attempts consume that
-  interval. The health criteria and real rollback/recovery evidence remain
+  enabled in the current SDK. From firmware 0.12.8 the application calls
+  `esp_ota_mark_app_valid_cancel_rollback()` after 30 seconds of loop
+  operation, counted from the first loop pass, so a slow boot-time Wi-Fi
+  attempt no longer consumes the interval. A failed call is logged on serial
+  and retried up to five times. Earlier firmware counted 30 seconds from boot
+  and ignored the result. Thirty seconds of loop passes is still the only
+  health criterion: there is no boot counter or safe mode. On the first boot
+  after an update, any restart inside the window, deliberate or not, is
+  expected to return to the previous image; that behavior is not yet
+  bench-verified. Stronger criteria and real rollback/recovery evidence remain
   M0 work ([bench procedure](../hardware/procedures/bench-week.md), run 5).
   Do not infer verified rollback from the presence of two slots.
 

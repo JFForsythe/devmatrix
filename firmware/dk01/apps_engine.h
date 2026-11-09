@@ -20,6 +20,7 @@
 
 static const size_t DMX_APP_FETCH_CAP = 65536;      // PSRAM
 static const size_t DMX_APP_FETCH_FALLBACK = 8192;  // internal-heap fallback
+static const uint32_t DMX_APP_FETCH_BODY_MS = 4000; // whole-body budget
 static const uint8_t DMX_APP_MAX_ROWS = 5;
 static const uint8_t DMX_APP_MAX_DEPTH = 8;
 static const uint8_t DMX_APP_BASELINES[DMX_APP_MAX_ROWS] = {5, 11, 17, 23, 29};
@@ -32,7 +33,7 @@ struct DmxFetchDiag {
   uint32_t lastAttemptMs;  // 0 = never tried
   int lastHttpCode;        // <=0: transport error / not reached
   size_t lastBytes;        // body bytes read, or announced size when too big
-  char lastResult[24];     // "ok", "too-big", "bad-json", "http-503", ...
+  char lastResult[24];     // "ok", "too-big", "slow-read", "http-503", ...
 };
 
 struct DmxAppSchedulerSlot {
@@ -440,10 +441,20 @@ static bool dmxFetchJson(const char* url, size_t& length,
     dmxDiagResult(diag, "too-big");
   } else {
     NetworkClient* stream = http.getStreamPtr();
-    uint32_t lastByteMs = millis();
+    uint32_t bodyStartMs = millis();
+    uint32_t lastByteMs = bodyStartMs;
     bool overflow = false;
+    bool slow = false;
     while (stream && http.connected() &&
            (announced < 0 || length < (size_t)announced)) {
+      // The idle-gap check below only catches a sender that stops. One
+      // that keeps trickling bytes would otherwise hold loop() — and with
+      // it REST, MQTT, rendering and frame-lease expiry — for as long as
+      // it liked, so the body as a whole gets a budget too.
+      if (millis() - bodyStartMs > DMX_APP_FETCH_BODY_MS) {
+        slow = true;
+        break;
+      }
       int available = stream->available();
       if (available <= 0) {
         if (millis() - lastByteMs > 1200) break;
@@ -465,6 +476,8 @@ static bool dmxFetchJson(const char* url, size_t& length,
     bool complete = announced < 0 || length == (size_t)announced;
     if (overflow) {
       dmxDiagResult(diag, "too-big");
+    } else if (slow) {
+      dmxDiagResult(diag, "slow-read");
     } else if (!complete || length == 0) {
       dmxDiagResult(diag, "short-read");
     } else if (!dmxJsonRoot(dmxAppFetchBuffer, length, root)) {

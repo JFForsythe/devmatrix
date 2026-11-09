@@ -1,6 +1,6 @@
 # Firmware architecture
 
-**Today:** the living DK-01 tree is firmware v0.12.7 in
+**Today:** the living DK-01 tree is firmware v0.12.8 in
 [`firmware/dk01/`](../firmware/dk01/README.md). It is a development firmware
 with working Local Console, LAN API, built-in declarative apps, and an
 optional MQTT client. Contracts remain drafts. Signed OTA, measured rollback,
@@ -69,10 +69,12 @@ content can still operate locally. Company-independent operation does not
 yet mean an accurate clock without an external time source.
 
 **Timing limit today:** app HTTP fetches are synchronous in the main loop.
-The 1.2-second receive timeout measures an idle gap, not the whole request.
-A slow source can delay rendering, REST handling, MQTT commands, and frame
-lease expiry. Hard request deadlines and cooperative fetch scheduling remain
-open defects, recorded in the
+The 1.2-second receive timeout measures an idle gap, and from v0.12.8 each
+response body also has a 4-second budget (`slow-read` in app diagnostics).
+The connect, TLS and header phases still have no overall deadline, so a slow
+source can delay rendering, REST handling, MQTT commands, and frame lease
+expiry for those phases plus the body budget. Whole-request deadlines and
+cooperative fetch scheduling remain open defects, recorded in the
 [firmware review](reviews/2026-09-08-full-review/firmware-and-contracts.md).
 
 ## Display and apps
@@ -135,7 +137,9 @@ bootloader/partition table, so a full-chip erase followed by one
 `arduino-cli upload` restores everything, USB recovery included
 ([docs/MANUAL.md](MANUAL.md) ch. 10 → Back to default walks the owner
 path). The v0.12.7 build recorded on 2026-09-18 measured 1,373,755 B of flash and
-116,708 B of static RAM (v0.12.6 measured 1,370,139 B and the same RAM). Treat recorded footprints as toolchain-specific;
+116,708 B of static RAM (v0.12.6 measured 1,370,139 B and the same RAM). A v0.12.8
+compile on 2026-11-09 with the same core and libraries measured 1,375,979 B and
+116,740 B; that image has not run on a board. Treat recorded footprints as toolchain-specific;
 the current review's fresh build result and exact versions are in the
 [firmware review](reviews/2026-09-08-full-review/firmware-and-contracts.md#validation).
 A CI slot-occupancy and heap-headroom gate is **Ahead · gate P2**. The
