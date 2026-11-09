@@ -1,6 +1,6 @@
 # Firmware architecture
 
-**Today:** the living DK-01 tree is firmware v0.12.8 in
+**Today:** the living DK-01 tree is firmware v0.12.9 in
 [`firmware/dk01/`](../firmware/dk01/README.md). It is a development firmware
 with working Local Console, LAN API, built-in declarative apps, and an
 optional MQTT client. Contracts remain drafts. Signed OTA, measured rollback,
@@ -139,7 +139,8 @@ bootloader/partition table, so a full-chip erase followed by one
 path). The v0.12.7 build recorded on 2026-09-18 measured 1,373,755 B of flash and
 116,708 B of static RAM (v0.12.6 measured 1,370,139 B and the same RAM). A v0.12.8
 compile on 2026-11-09 with the same core and libraries measured 1,375,979 B and
-116,740 B; that image has not run on a board. Treat recorded footprints as toolchain-specific;
+116,740 B, and v0.12.9 the same day measured 1,376,359 B and 116,740 B; neither
+image has run on a board. Treat recorded footprints as toolchain-specific;
 the current review's fresh build result and exact versions are in the
 [firmware review](reviews/2026-09-08-full-review/firmware-and-contracts.md#validation).
 A CI slot-occupancy and heap-headroom gate is **Ahead · gate P2**. The

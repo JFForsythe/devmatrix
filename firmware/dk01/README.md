@@ -4,7 +4,7 @@ Build and extend the firmware for the DK-01 64×32 display. It serves the
 Local Console, runs the bundled declarative apps, and accepts content from
 your own scripts over LAN REST or MQTT.
 
-**Current source: v0.12.8, before the P2 contract freeze.** The features
+**Current source: v0.12.9, before the P2 contract freeze.** The features
 below exist in source; signed updates, recovery acceptance, and other
 release gates remain tracked in [ROADMAP.md](../../ROADMAP.md). A successful
 compile does not establish that a board is ready to sell.
@@ -160,9 +160,11 @@ USB serial output to obtain your token. It grants full device control;
 
 Read [the current security posture](../../docs/SECURITY.md#what-exists-today)
 for setup-window exposure, plain HTTP and key-pinning limits, outbound TLS,
-and unsigned OTA. Dual app slots exist; automatic rollback and USB recovery
-still require the hardware acceptance evidence in
-[ROADMAP.md](../../ROADMAP.md). USB may be needed again after a bad update.
+and unsigned OTA. Dual app slots exist, but nothing rolls a bad update back
+by itself: the stock bootloader is built without app rollback
+([contracts/ota.md](../../contracts/ota.md)), so a bad update is recovered
+over USB. USB recovery still requires the hardware acceptance evidence in
+[ROADMAP.md](../../ROADMAP.md).
 
 The API shapes remain drafts until P2. For known defects and the exact scope
 of the latest source review, see

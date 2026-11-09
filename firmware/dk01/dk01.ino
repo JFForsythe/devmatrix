@@ -45,7 +45,7 @@
 #include "apps_builtin.h"
 #include "mqtt_client.h"
 
-#define FW_VERSION "0.12.8"
+#define FW_VERSION "0.12.9"
 
 // A full-bright white frame can out-draw USB-C power and brown-out the
 // board (observed on the bench 2026-08-07: brownout reset at high slider
@@ -1356,10 +1356,18 @@ void stepJoinMachine() {
 }
 
 // Setup mode runs AP+STA, so once the device joins a network this same
-// listener is reachable from that LAN as well as from the hotspot. Only a
-// connection that arrived on the hotspot's own address counts as presence.
+// listener is reachable from that LAN as well as from the hotspot. Presence
+// means both ends of the connection sit on the hotspot: it arrived on the
+// hotspot's own address, and the caller's address is inside the hotspot's
+// subnet. The second test is there so this does not rest on the network
+// stack's routing alone to keep a joined-LAN caller off the hotspot address.
+// A hotspot with no address or mask counts as absent.
 bool requestOnHotspot() {
-  return server.client().localIP() == WiFi.softAPIP();
+  uint32_t ap = (uint32_t)WiFi.softAPIP();
+  uint32_t mask = (uint32_t)WiFi.softAPSubnetMask();
+  if (!ap || !mask) return false;
+  if ((uint32_t)server.client().localIP() != ap) return false;
+  return ((uint32_t)server.client().remoteIP() & mask) == (ap & mask);
 }
 
 void handleJoinStatus() {
@@ -1614,15 +1622,28 @@ void loop() {
   server.handleClient();
   stepJoinMachine();
 
-  // 30 s of a running loop means display + server + apps came up: the
-  // image works, so cancel any pending rollback. The clock starts at the
-  // first loop pass, not at boot: setup() can spend ~27 s waiting on Wi-Fi,
-  // which used to leave a new image about 3 s of real service before it was
-  // accepted. Deliberately NOT tied to Wi-Fi join — a router outage on the
-  // first post-OTA boot must not roll back a healthy image (the device sits
-  // in setup/rejoin instead; its first background rejoin, and the restart
-  // that follows a success, come 45 s in — after this window). A failed
-  // confirmation is retried rather than assumed.
+  // Expire the pairing pause, and forgive retired codes after a quiet hour,
+  // as time passes rather than only when someone next asks to pair. The
+  // deadline is a millis() value: left standing for about 25 days it reads
+  // as a pause still ahead, and pairing stayed shut until a restart.
+  {
+    uint32_t nowMs = millis();
+    if (claimPauseUntil && (int32_t)(nowMs - claimPauseUntil) >= 0)
+      claimPauseUntil = 0;
+    if (claimBurns && nowMs - claimLastBurnMs > 3600000UL) claimBurns = 0;
+  }
+
+  // After 30 s of a running loop (display + server + apps came up), record
+  // this image as valid in the OTA data. On the DK-01 this is bookkeeping,
+  // NOT a rollback window: the board boots through the board package's
+  // stock TinyUF2 bootloader, which is built without app rollback, so no
+  // image is ever pending and nothing returns to the previous slot by
+  // itself (contracts/ota.md owns the statement). The call stays, with its
+  // result checked, so the record is right if a rollback-capable bootloader
+  // is ever fitted — and then the sketch must also define
+  // verifyRollbackLater(), or the Arduino core confirms the image before
+  // setup() runs. The clock starts at the first loop pass, not at boot,
+  // and is deliberately NOT tied to Wi-Fi join.
   static bool otaSettled = false;
   static uint8_t otaMarkTries = 0;
   static uint32_t otaMarkDueMs = millis() + 30000UL;  // set on first loop pass

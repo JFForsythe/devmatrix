@@ -35,19 +35,27 @@ the partition layout alone.
   device reboots into the new slot. On failure:
   `500 {"error":"<platform error>"}` and the running image continues
   untouched (the inactive slot is simply left invalid).
-- Rollback machinery: the bootloader's app-rollback support is
-  enabled in the current SDK. From firmware 0.12.8 the application calls
-  `esp_ota_mark_app_valid_cancel_rollback()` after 30 seconds of loop
-  operation, counted from the first loop pass, so a slow boot-time Wi-Fi
-  attempt no longer consumes the interval. A failed call is logged on serial
-  and retried up to five times. Earlier firmware counted 30 seconds from boot
-  and ignored the result. Thirty seconds of loop passes is still the only
-  health criterion: there is no boot counter or safe mode. On the first boot
-  after an update, any restart inside the window, deliberate or not, is
-  expected to return to the previous image; that behavior is not yet
-  bench-verified. Stronger criteria and real rollback/recovery evidence remain
-  M0 work ([bench procedure](../hardware/procedures/bench-week.md), run 5).
-  Do not infer verified rollback from the presence of two slots.
+- **No automatic rollback today.** The DK-01 boots through the board
+  package's prebuilt TinyUF2 bootloader, and that bootloader is built without
+  ESP-IDF app rollback: a new image is never held pending, and nothing returns
+  the device to the previous slot by itself. If an uploaded image cannot serve
+  the Console, recovery is the USB path above. This is read from the build
+  inputs on 2026-11-09 (the TinyUF2 project's published build configuration
+  and the bootloader binary the build flashes); it has not been measured on a
+  board. The 0.12.8 revision of this file described a 30-second rollback
+  window; that description was wrong.
+- The application still calls `esp_ota_mark_app_valid_cancel_rollback()`
+  after 30 seconds of loop operation, counted from the first loop pass, and
+  retries a failed call up to five times with the result logged on serial.
+  With the current bootloader this only records the slot as valid. It becomes
+  a health check only with a rollback-capable bootloader, and then the sketch
+  must also define `verifyRollbackLater()`, because the Arduino core otherwise
+  confirms a pending image before `setup()` runs.
+- Automatic rollback needs a rollback-capable bootloader or an
+  application-level boot counter, plus health criteria stronger than loop
+  uptime. That is M0 work, with bench evidence
+  ([bench procedure](../hardware/procedures/bench-week.md), run 5).
+  Do not infer rollback from the presence of two slots.
 
 ## Gate M0 target: signed manifest OTA (freezes at P2)
 

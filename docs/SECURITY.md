@@ -7,14 +7,14 @@ owns exact endpoint authentication; [ROADMAP.md](../ROADMAP.md) owns acceptance.
 
 ## What exists today
 
-| Area | Firmware v0.12.8 reality | Remaining work |
+| Area | Firmware v0.12.9 reality | Remaining work |
 |---|---|---|
 | LAN authority | One full-control bearer token per device, minted on first boot, stored in NVS and rotatable | Scoped tokens, revocable individual browser sessions, physical confirmation of sensitive actions |
 | Browser pairing | Six panel digits, five-minute code lifetime, five misses per code; a retired code pauses pairing for 30 seconds, doubling to a 10-minute cap | Session-bound physical confirmation. The pause is device-wide and held in RAM: any LAN caller can trigger it, and a restart clears it |
 | Device identity | First-boot Ed25519 key and signed-nonce proof, Console key pinning | Independently authenticated first-use key capture and protection against an active HTTP proxy |
 | LAN transport | Plain HTTP, Host allowlist in Console mode, hosted-origin CORS responses | Request-side Origin checks, pre-buffer request caps and complete browser/device abuse tests |
 | Setup | Open hotspot; unauthenticated setup routes; closes after successful join and Finish or a 90-second timeout. The token is handed only to a hotspot client, and only before any Console has reached the device | Constrain the other setup routes to the intended interface/session and require presence before reopening on a provisioned device |
-| OTA | Bearer-authenticated image upload into the inactive app slot; SDK rollback support enabled; the image is confirmed after 30 seconds of loop operation, with the result checked | Signed manifests/images, health criteria beyond loop uptime, a boot counter or safe mode, and recovery evidence |
+| OTA | Bearer-authenticated image upload into the inactive app slot. No automatic rollback: the stock bootloader is built without it, so a bad image is recovered over USB ([contracts/ota.md](../contracts/ota.md) owns the detail) | Signed manifests/images, a rollback-capable bootloader or boot counter, health criteria beyond loop uptime, safe mode, and recovery evidence |
 | App sources | Size/depth limits, stale rendering, a 4-second budget for each response body; HTTPS certificate verification disabled | CA trust, redirect destination enforcement, and deadlines for the connect, TLS and header phases |
 | MQTT TLS | TLS option exists, but the code supplies no CA or other verification mechanism | Verified broker trust and a successful TLS device test; do not assume the option establishes a working TLS connection |
 | Cloud and advanced security UI | Design and demo surfaces | Passkeys/accounts, relay, audit log, guests, snapshots and owner signing-key enrollment are not implemented device services |
@@ -80,7 +80,8 @@ and I would not want them to):
   in AP+STA mode, and the HTTP listener is not restricted to the hotspot
   interface. After Wi-Fi joins, `/setup/status` is reachable on either
   interface until reboot, but it hands over the token only when the request
-  arrives on the hotspot address and no Console has reached the device yet.
+  arrives on the hotspot address from an address inside the hotspot's subnet,
+  and no Console has reached the device yet.
   A device that has been used keeps its token out of setup entirely: its
   owner still holds it, or pairs again with the panel code. Finish closes the
   window; otherwise a successful join starts a 90-second timeout. This does

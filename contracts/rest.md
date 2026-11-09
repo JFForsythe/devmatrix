@@ -81,13 +81,13 @@ declarative apps — docs/GLOSSARY.md).
 
 ### `GET /api/v1/health` — open
 
-`{"ok":true,"device":"DMX-4E71-0952","fw":"0.12.8","mode":"run"}` —
+`{"ok":true,"device":"DMX-4E71-0952","fw":"0.12.9","mode":"run"}` —
 `mode` is `run` or `setup`. Safe for monitoring; carries no secrets.
 
 ### `GET /api/v1/info`
 
 ```json
-{"device":"DMX-4E71-0952","serial":"DMX-4E71-0952","fw":"0.12.8",
+{"device":"DMX-4E71-0952","serial":"DMX-4E71-0952","fw":"0.12.9",
  "uptime_s":86432,"heap_free":118432,"rssi_dbm":-52,"ip":"10.0.4.22",
  "mdns":"dmx-0952.local","brightness":120,"refresh_hz":220,
  "slot":"ota_0","scene":"clock","reset_reason":"power-on"}
@@ -188,7 +188,10 @@ browser. [SECURITY.md](../docs/SECURITY.md) owns the current trust limitations.
   hour without a retired code, clears the history; so does a restart, because
   the state is held in RAM. The pause is device-wide, not per client: any LAN
   caller can trigger it, and paired clients are unaffected. Earlier firmware
-  creates another code immediately.
+  creates another code immediately. Firmware 0.12.8 ended a pause only when
+  the next pairing request arrived, so a pause left untouched for about 25
+  days could be reported as running again until a restart; 0.12.9 ends it as
+  time passes.
 
 ### `POST /api/v1/token/rotate`
 
@@ -305,8 +308,10 @@ successful join, the status route is reachable on the newly joined LAN as
 well as the hotspot until reboot. From firmware 0.12.8 its `joined` reply
 carries `token` only when the request arrives on the hotspot address and no
 Console has reached the device yet (no authenticated request, no completed
-pairing). Otherwise the field is omitted and a browser pairs with the panel
-code; earlier firmware returned the token to every client on either network.
+pairing). From 0.12.9 the caller's own address must also lie inside the
+hotspot's subnet. Otherwise the field is omitted and a browser pairs with the
+panel code; firmware before 0.12.8 returned the token to every client on
+either network.
 Finish triggers the reboot;
 otherwise a successful join starts a 90-second auto-close timer. An
 unsuccessful setup session has no equivalent overall deadline. Security
