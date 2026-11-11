@@ -82,6 +82,7 @@ rewriting the old record.
 
 | Date | Record | Observed scope |
 |---|---|---|
+| 2026-11-09 | [v0.12.9 on its first board](evidence/2026-11-09-v0129-first-board-flash.md) | One board, v0.12.9: arrived with another setup's layout and NVS, flashed under the owner's override in 2 min 3 s with five verified regions and setup mode at 200 Hz; the v0.12.8 and v0.12.9 changes not exercised; panel legibility pending |
 | 2026-09-18 | [Flash-station first real runs](evidence/2026-09-18-flash-station-first-real-run.md) | Two boards, v0.12.7: four stopped runs with nothing erased, four bench fixes, then clean passes in 2 min 27 s and 2 min 15 s with five verified regions and setup mode at 200 Hz; panel legibility pending |
 | 2026-09-18 | [Flash-station fault injection](evidence/2026-09-18-flash-station-fault-injection.md) | v0.12.7 build identity; 22 simulated failure scenarios against the hardened script, with 8 unsafe acceptances reproduced on the previous script; no hardware touched |
 | 2026-08-26 | [First-ship bench](evidence/2026-08-26-r0-first-ship-bench.md) | v0.12.6 writes and NVS wipes; one production-path board's double-reset **mount** observed; 200 Hz idle / 199 Hz loaded; visual checks still pending in the ledger |
